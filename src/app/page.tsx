@@ -8,10 +8,6 @@ import {
   Typography,
   Button,
   TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
   Chip,
   Paper,
   Grid,
@@ -25,7 +21,6 @@ import {
   Person as PersonIcon,
   CreditCard as CreditCardIcon,
   AttachMoney as MoneyIcon,
-  Add as AddIcon,
   Check as CheckIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
@@ -41,14 +36,6 @@ interface Passenger {
   hasUnpaidItems: boolean;
 }
 
-interface PaymentMethod {
-  id: string;
-  type: 'credit' | 'debit';
-  cardNumber: string;
-  expiryDate: string;
-  cvv: string;
-  holderName: string;
-}
 
 export default function PaymentPortal() {
   const reservation: Reservation = MOCK_RESERVATION;
@@ -80,9 +67,6 @@ export default function PaymentPortal() {
     points?: { amount: number; accountId: string };
   }}>({});
   
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([
-    { id: '1', type: 'credit', cardNumber: '', expiryDate: '', cvv: '', holderName: '' }
-  ]);
 
   useEffect(() => {
     setIsClient(true);
@@ -138,24 +122,6 @@ export default function PaymentPortal() {
     return selectedItems[passengerId]?.includes(itemType) || false;
   };
 
-  const addPaymentMethod = () => {
-    const newPaymentMethod: PaymentMethod = {
-      id: (paymentMethods.length + 1).toString(),
-      type: 'credit',
-      cardNumber: '',
-      expiryDate: '',
-      cvv: '',
-      holderName: ''
-    };
-    setPaymentMethods([...paymentMethods, newPaymentMethod]);
-  };
-
-
-  const updatePaymentMethod = (id: string, field: keyof PaymentMethod, value: string) => {
-    setPaymentMethods(paymentMethods.map(p => 
-      p.id === id ? { ...p, [field]: value } : p
-    ));
-  };
 
   // Get all selected items with their details
   const getSelectedItemsDetails = () => {
@@ -804,81 +770,6 @@ export default function PaymentPortal() {
                   </Box>
                 )}
 
-                {/* Show old payment method cards only when items are selected */}
-                {getSelectedItemsDetails().length > 0 && (
-                  <Box sx={{ flex: 1, overflowY: 'auto' }}>
-                    <Typography variant="h6" sx={{ mb: 2, fontWeight: 'medium', color: 'text.secondary' }}>
-                      Additional Payment Methods
-                    </Typography>
-                    {paymentMethods.map((payment, index) => (
-                  <Paper key={payment.id} sx={{ p: 3, mb: 2, border: 1, borderColor: 'grey.200' }}>
-                    <Typography variant="subtitle1" sx={{ mb: 2, color: 'text.secondary' }}>
-                      Card {index + 1}
-                    </Typography>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      <FormControl fullWidth>
-                        <InputLabel>Card Type</InputLabel>
-                        <Select
-                          value={payment.type}
-                          onChange={(e) => updatePaymentMethod(payment.id, 'type', e.target.value as 'credit' | 'debit')}
-                          label="Card Type"
-                        >
-                          <MenuItem value="credit">Credit</MenuItem>
-                          <MenuItem value="debit">Debit</MenuItem>
-                        </Select>
-                      </FormControl>
-                      
-                      <TextField
-                        fullWidth
-                        label="Card Number"
-                        value={payment.cardNumber}
-                        onChange={(e) => updatePaymentMethod(payment.id, 'cardNumber', e.target.value)}
-                        placeholder="1234 5678 9012 3456"
-                        inputProps={{ suppressHydrationWarning: true }}
-                      />
-                      
-                      <Box sx={{ display: 'flex', gap: 2 }}>
-                        <TextField
-                          label="Expiry Date"
-                          value={payment.expiryDate}
-                          onChange={(e) => updatePaymentMethod(payment.id, 'expiryDate', e.target.value)}
-                          placeholder="MM/YY"
-                          sx={{ flex: 1 }}
-                          inputProps={{ suppressHydrationWarning: true }}
-                        />
-                        <TextField
-                          label="CVV"
-                          value={payment.cvv}
-                          onChange={(e) => updatePaymentMethod(payment.id, 'cvv', e.target.value)}
-                          placeholder="123"
-                          sx={{ flex: 1 }}
-                          inputProps={{ suppressHydrationWarning: true }}
-                        />
-                      </Box>
-                      
-                      <TextField
-                        fullWidth
-                        label="Cardholder Name"
-                        value={payment.holderName}
-                        onChange={(e) => updatePaymentMethod(payment.id, 'holderName', e.target.value)}
-                        placeholder="Full name as it appears on the card"
-                        inputProps={{ suppressHydrationWarning: true }}
-                      />
-                    </Box>
-                  </Paper>
-                ))}
-                
-                    <Button
-                      fullWidth
-                      variant="outlined"
-                      startIcon={<AddIcon />}
-                      onClick={addPaymentMethod}
-                      sx={{ mt: 2, borderColor: 'success.main', color: 'success.main' }}
-                    >
-                      Add Card
-                    </Button>
-                  </Box>
-                )}
               </CardContent>
             </Card>
           </Grid>
@@ -1022,9 +913,6 @@ export default function PaymentPortal() {
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                       <Typography variant="caption" color="text.secondary">
                         Passengers: {selectedPassengers.length}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Cards: {paymentMethods.length}
                       </Typography>
                     </Box>
                     

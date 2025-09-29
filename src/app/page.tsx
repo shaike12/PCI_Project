@@ -109,12 +109,50 @@ export default function PaymentPortal() {
       const passengerItems = prev[passengerId] || [];
       const isSelected = passengerItems.includes(itemType);
       
-      return {
-        ...prev,
-        [passengerId]: isSelected 
-          ? passengerItems.filter(item => item !== itemType)
-          : [...passengerItems, itemType]
-      };
+      if (isSelected) {
+        // Remove item
+        const newItems = passengerItems.filter(item => item !== itemType);
+        
+        // Remove payment method assignment for this item
+        const itemKey = `${passengerId}-${itemType}`;
+        setItemPaymentMethods(prev => {
+          const newMethods = { ...prev };
+          delete newMethods[itemKey];
+          return newMethods;
+        });
+        
+        // If no items left for this passenger, remove passenger from selectedPassengers
+        if (newItems.length === 0) {
+          setSelectedPassengers(prev => prev.filter(id => id !== passengerId));
+        }
+        
+        return {
+          ...prev,
+          [passengerId]: newItems
+        };
+      } else {
+        // Add item
+        const newItems = [...passengerItems, itemType];
+        
+        // Auto-assign credit card payment to this item
+        const itemKey = `${passengerId}-${itemType}`;
+        setItemPaymentMethods(prev => ({
+          ...prev,
+          [itemKey]: {
+            credit: { amount: 0, cardId: 'default-card' } // Will be calculated based on item amount
+          }
+        }));
+        
+        // Add passenger to selectedPassengers if not already there
+        setSelectedPassengers(prev => 
+          prev.includes(passengerId) ? prev : [...prev, passengerId]
+        );
+        
+        return {
+          ...prev,
+          [passengerId]: newItems
+        };
+      }
     });
   };
 
@@ -132,6 +170,7 @@ export default function PaymentPortal() {
       passengerName: string;
       itemName: string;
       amount: number;
+      paymentMethods: any;
     }> = [];
 
     Object.entries(selectedItems).forEach(([passengerId, items]) => {
@@ -160,7 +199,8 @@ export default function PaymentPortal() {
           itemType,
           passengerName: passengerData.name,
           itemName,
-          amount
+          amount,
+          paymentMethods: itemPaymentMethods[itemKey] || {}
         });
       });
     });
@@ -705,53 +745,55 @@ export default function PaymentPortal() {
                         {/* Payment Method Selection for this item */}
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                           <Typography variant="subtitle2" sx={{ fontWeight: 'medium' }}>
-                            Select Payment Methods (up to 3):
+                            Payment Methods:
                           </Typography>
                           
-                          {/* Credit Card */}
-                          <Paper sx={{ p: 2, border: 1, borderColor: 'primary.main', bgcolor: 'white' }}>
+                          {/* Credit Card - Auto-assigned */}
+                          <Paper sx={{ p: 2, border: 1, borderColor: 'primary.main', bgcolor: 'primary.light' }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                 <CreditCardIcon sx={{ color: 'primary.main' }} />
-                                <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                                  Credit Card
-                                </Typography>
+                                <Box>
+                                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                                    Credit Card (Auto-assigned)
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary">
+                                    Amount: ${item.amount.toLocaleString()}
+                                  </Typography>
+                                </Box>
                               </Box>
-                              <Button size="small" variant="outlined" color="primary">
-                                Add Card
-                              </Button>
+                              <Box sx={{ display: 'flex', gap: 1 }}>
+                                <Button size="small" variant="outlined" color="primary">
+                                  Edit
+                                </Button>
+                                <Button size="small" variant="outlined" color="error">
+                                  Remove
+                                </Button>
+                              </Box>
                             </Box>
                           </Paper>
 
-                          {/* Vouchers */}
-                          <Paper sx={{ p: 2, border: 1, borderColor: 'success.main', bgcolor: 'white' }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <MoneyIcon sx={{ color: 'success.main' }} />
-                                <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                                  Vouchers (up to 3)
-                                </Typography>
-                              </Box>
-                              <Button size="small" variant="outlined" color="success">
-                                Add Voucher
-                              </Button>
-                            </Box>
-                          </Paper>
-
-                          {/* Points */}
-                          <Paper sx={{ p: 2, border: 1, borderColor: 'warning.main', bgcolor: 'white' }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <MoneyIcon sx={{ color: 'warning.main' }} />
-                                <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                                  Loyalty Points
-                                </Typography>
-                              </Box>
-                              <Button size="small" variant="outlined" color="warning">
-                                Use Points
-                              </Button>
-                            </Box>
-                          </Paper>
+                          {/* Split Payment Options */}
+                          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                            <Button 
+                              size="small" 
+                              variant="outlined" 
+                              color="success"
+                              startIcon={<MoneyIcon />}
+                              sx={{ flex: 1 }}
+                            >
+                              Add Voucher
+                            </Button>
+                            <Button 
+                              size="small" 
+                              variant="outlined" 
+                              color="warning"
+                              startIcon={<MoneyIcon />}
+                              sx={{ flex: 1 }}
+                            >
+                              Use Points
+                            </Button>
+                          </Box>
                         </Box>
                       </Paper>
                     ))}

@@ -19,14 +19,7 @@ import {
   Divider,
   IconButton,
   Checkbox,
-  FormControlLabel,
-  Modal,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Tabs,
-  Tab
+  FormControlLabel
 } from '@mui/material';
 import {
   Person as PersonIcon,
@@ -80,13 +73,7 @@ export default function PaymentPortal() {
   const [selectedItems, setSelectedItems] = useState<{[key: string]: string[]}>({});
   
   // Payment management states
-  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
-  const [paymentTarget, setPaymentTarget] = useState<{
-    type: 'item' | 'passenger' | 'reservation';
-    passengerId?: string;
-    itemType?: string;
-    amount: number;
-  } | null>(null);
+  const [expandedPayments, setExpandedPayments] = useState<{[key: string]: boolean}>({});
   const [assignedPayments, setAssignedPayments] = useState<{[key: string]: {
     credit?: { amount: number; cardId: string };
     vouchers?: { amount: number; voucherIds: string[] }[];
@@ -166,27 +153,25 @@ export default function PaymentPortal() {
     ));
   };
 
-  const openPaymentModal = (type: 'item' | 'passenger' | 'reservation', passengerId?: string, itemType?: string) => {
-    let amount = 0;
+  const togglePaymentExpansion = (itemKey: string) => {
+    setExpandedPayments(prev => ({
+      ...prev,
+      [itemKey]: !prev[itemKey]
+    }));
+  };
+
+  const getItemKey = (passengerId: string, itemType: string) => {
+    return `${passengerId}-${itemType}`;
+  };
+
+  const getItemAmount = (passengerId: string, itemType: string) => {
+    const passengerIndex = parseInt(passengerId) - 1;
+    const passengerData = reservation.passengers[passengerIndex];
     
-    if (type === 'item' && passengerId && itemType) {
-      const passengerIndex = parseInt(passengerId) - 1;
-      const passengerData = reservation.passengers[passengerIndex];
-      if (itemType === 'ticket') amount = passengerData.ticket.price;
-      else if (itemType === 'seat') amount = passengerData.ancillaries.seat.price;
-      else if (itemType === 'bag') amount = passengerData.ancillaries.bag.price;
-    } else if (type === 'passenger' && passengerId) {
-      const passengerIndex = parseInt(passengerId) - 1;
-      const passengerData = reservation.passengers[passengerIndex];
-      amount = (passengerData.ticket.status !== 'Paid' ? passengerData.ticket.price : 0) +
-               (passengerData.ancillaries.seat.status !== 'Paid' ? passengerData.ancillaries.seat.price : 0) +
-               (passengerData.ancillaries.bag.status !== 'Paid' ? passengerData.ancillaries.bag.price : 0);
-    } else if (type === 'reservation') {
-      amount = flightPrice + additionalServices;
-    }
-    
-    setPaymentTarget({ type, passengerId, itemType, amount });
-    setPaymentModalOpen(true);
+    if (itemType === 'ticket') return passengerData.ticket.price;
+    if (itemType === 'seat') return passengerData.ancillaries.seat.price;
+    if (itemType === 'bag') return passengerData.ancillaries.bag.price;
+    return 0;
   };
 
   return (
@@ -338,22 +323,6 @@ export default function PaymentPortal() {
                               <Typography variant="body1" sx={{ fontWeight: 'medium', mr: 2 }}>
                                 {passenger.fullName}
                               </Typography>
-                              
-                              {/* Pay All Button for passengers with unpaid items */}
-                              {passenger.hasUnpaidItems && (
-                                <Button
-                                  size="small"
-                                  variant="contained"
-                                  color="primary"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openPaymentModal('passenger', passenger.id);
-                                  }}
-                                  sx={{ mr: 2 }}
-                                >
-                                  Pay All
-                                </Button>
-                              )}
                               
                               {/* Product Icons - Show all items, gray out unselected, clickable */}
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 1 }}>
@@ -575,26 +544,78 @@ export default function PaymentPortal() {
                                     </Typography>
                                   </Box>
                                 </Box>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                  {isItemSelected(passenger.id, 'ticket') && (
-                                    <CheckIcon sx={{ color: 'success.main' }} />
-                                  )}
-                                  {passengerData.ticket.status !== 'Paid' && (
-                                    <Button
-                                      size="small"
-                                      variant="outlined"
-                                      color="primary"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        openPaymentModal('item', passenger.id, 'ticket');
-                                      }}
-                                    >
-                                      Pay
-                                    </Button>
-                                  )}
-                                </Box>
+                                {isItemSelected(passenger.id, 'ticket') && (
+                                  <CheckIcon sx={{ color: 'success.main' }} />
+                                )}
                               </Box>
                             </Paper>
+
+                            {/* Inline Payment Panel for Flight Ticket */}
+                            {passengerData.ticket.status !== 'Paid' && (
+                              <Paper sx={{ p: 2, mb: 2, bgcolor: 'grey.50', border: 1, borderColor: 'grey.300' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                                  <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>
+                                    Payment Methods - ${getItemAmount(passenger.id, 'ticket')}
+                                  </Typography>
+                                  <Button
+                                    size="small"
+                                    variant="outlined"
+                                    onClick={() => togglePaymentExpansion(getItemKey(passenger.id, 'ticket'))}
+                                  >
+                                    {expandedPayments[getItemKey(passenger.id, 'ticket')] ? 'Collapse' : 'Expand'}
+                                  </Button>
+                                </Box>
+                                
+                                {expandedPayments[getItemKey(passenger.id, 'ticket')] && (
+                                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                    {/* Credit Card */}
+                                    <Paper sx={{ p: 2, border: 1, borderColor: 'primary.main', bgcolor: 'primary.light' }}>
+                                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                          <CreditCardIcon sx={{ color: 'primary.main' }} />
+                                          <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                                            Credit Card
+                                          </Typography>
+                                        </Box>
+                                        <Button size="small" variant="contained" color="primary">
+                                          Add Card
+                                        </Button>
+                                      </Box>
+                                    </Paper>
+
+                                    {/* Vouchers */}
+                                    <Paper sx={{ p: 2, border: 1, borderColor: 'success.main', bgcolor: 'success.light' }}>
+                                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                          <MoneyIcon sx={{ color: 'success.main' }} />
+                                          <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                                            Vouchers (up to 3)
+                                          </Typography>
+                                        </Box>
+                                        <Button size="small" variant="contained" color="success">
+                                          Add Voucher
+                                        </Button>
+                                      </Box>
+                                    </Paper>
+
+                                    {/* Points */}
+                                    <Paper sx={{ p: 2, border: 1, borderColor: 'warning.main', bgcolor: 'warning.light' }}>
+                                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                          <MoneyIcon sx={{ color: 'warning.main' }} />
+                                          <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                                            Loyalty Points
+                                          </Typography>
+                                        </Box>
+                                        <Button size="small" variant="contained" color="warning">
+                                          Use Points
+                                        </Button>
+                                      </Box>
+                                    </Paper>
+                                  </Box>
+                                )}
+                              </Paper>
+                            )}
 
                             {/* Ancillaries */}
                             <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'medium' }}>
@@ -644,26 +665,78 @@ export default function PaymentPortal() {
                                     </Typography>
                                   </Box>
                                 </Box>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                  {isItemSelected(passenger.id, 'seat') && (
-                                    <CheckIcon sx={{ color: 'info.main' }} />
-                                  )}
-                                  {passengerData.ancillaries.seat.status !== 'Paid' && (
-                                    <Button
-                                      size="small"
-                                      variant="outlined"
-                                      color="primary"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        openPaymentModal('item', passenger.id, 'seat');
-                                      }}
-                                    >
-                                      Pay
-                                    </Button>
-                                  )}
-                                </Box>
+                                {isItemSelected(passenger.id, 'seat') && (
+                                  <CheckIcon sx={{ color: 'info.main' }} />
+                                )}
                               </Box>
                             </Paper>
+
+                            {/* Inline Payment Panel for Seat */}
+                            {passengerData.ancillaries.seat.status !== 'Paid' && (
+                              <Paper sx={{ p: 2, mb: 2, bgcolor: 'grey.50', border: 1, borderColor: 'grey.300' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                                  <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>
+                                    Payment Methods - ${getItemAmount(passenger.id, 'seat')}
+                                  </Typography>
+                                  <Button
+                                    size="small"
+                                    variant="outlined"
+                                    onClick={() => togglePaymentExpansion(getItemKey(passenger.id, 'seat'))}
+                                  >
+                                    {expandedPayments[getItemKey(passenger.id, 'seat')] ? 'Collapse' : 'Expand'}
+                                  </Button>
+                                </Box>
+                                
+                                {expandedPayments[getItemKey(passenger.id, 'seat')] && (
+                                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                    {/* Credit Card */}
+                                    <Paper sx={{ p: 2, border: 1, borderColor: 'primary.main', bgcolor: 'primary.light' }}>
+                                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                          <CreditCardIcon sx={{ color: 'primary.main' }} />
+                                          <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                                            Credit Card
+                                          </Typography>
+                                        </Box>
+                                        <Button size="small" variant="contained" color="primary">
+                                          Add Card
+                                        </Button>
+                                      </Box>
+                                    </Paper>
+
+                                    {/* Vouchers */}
+                                    <Paper sx={{ p: 2, border: 1, borderColor: 'success.main', bgcolor: 'success.light' }}>
+                                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                          <MoneyIcon sx={{ color: 'success.main' }} />
+                                          <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                                            Vouchers (up to 3)
+                                          </Typography>
+                                        </Box>
+                                        <Button size="small" variant="contained" color="success">
+                                          Add Voucher
+                                        </Button>
+                                      </Box>
+                                    </Paper>
+
+                                    {/* Points */}
+                                    <Paper sx={{ p: 2, border: 1, borderColor: 'warning.main', bgcolor: 'warning.light' }}>
+                                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                          <MoneyIcon sx={{ color: 'warning.main' }} />
+                                          <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                                            Loyalty Points
+                                          </Typography>
+                                        </Box>
+                                        <Button size="small" variant="contained" color="warning">
+                                          Use Points
+                                        </Button>
+                                      </Box>
+                                    </Paper>
+                                  </Box>
+                                )}
+                              </Paper>
+                            )}
 
                             {/* Baggage */}
                             <Paper
@@ -707,26 +780,78 @@ export default function PaymentPortal() {
                                     </Typography>
                                   </Box>
                                 </Box>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                  {isItemSelected(passenger.id, 'bag') && (
-                                    <CheckIcon sx={{ color: 'warning.main' }} />
-                                  )}
-                                  {passengerData.ancillaries.bag.status !== 'Paid' && (
-                                    <Button
-                                      size="small"
-                                      variant="outlined"
-                                      color="primary"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        openPaymentModal('item', passenger.id, 'bag');
-                                      }}
-                                    >
-                                      Pay
-                                    </Button>
-                                  )}
-                                </Box>
+                                {isItemSelected(passenger.id, 'bag') && (
+                                  <CheckIcon sx={{ color: 'warning.main' }} />
+                                )}
                               </Box>
                             </Paper>
+
+                            {/* Inline Payment Panel for Baggage */}
+                            {passengerData.ancillaries.bag.status !== 'Paid' && (
+                              <Paper sx={{ p: 2, mb: 2, bgcolor: 'grey.50', border: 1, borderColor: 'grey.300' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                                  <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>
+                                    Payment Methods - ${getItemAmount(passenger.id, 'bag')}
+                                  </Typography>
+                                  <Button
+                                    size="small"
+                                    variant="outlined"
+                                    onClick={() => togglePaymentExpansion(getItemKey(passenger.id, 'bag'))}
+                                  >
+                                    {expandedPayments[getItemKey(passenger.id, 'bag')] ? 'Collapse' : 'Expand'}
+                                  </Button>
+                                </Box>
+                                
+                                {expandedPayments[getItemKey(passenger.id, 'bag')] && (
+                                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                    {/* Credit Card */}
+                                    <Paper sx={{ p: 2, border: 1, borderColor: 'primary.main', bgcolor: 'primary.light' }}>
+                                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                          <CreditCardIcon sx={{ color: 'primary.main' }} />
+                                          <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                                            Credit Card
+                                          </Typography>
+                                        </Box>
+                                        <Button size="small" variant="contained" color="primary">
+                                          Add Card
+                                        </Button>
+                                      </Box>
+                                    </Paper>
+
+                                    {/* Vouchers */}
+                                    <Paper sx={{ p: 2, border: 1, borderColor: 'success.main', bgcolor: 'success.light' }}>
+                                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                          <MoneyIcon sx={{ color: 'success.main' }} />
+                                          <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                                            Vouchers (up to 3)
+                                          </Typography>
+                                        </Box>
+                                        <Button size="small" variant="contained" color="success">
+                                          Add Voucher
+                                        </Button>
+                                      </Box>
+                                    </Paper>
+
+                                    {/* Points */}
+                                    <Paper sx={{ p: 2, border: 1, borderColor: 'warning.main', bgcolor: 'warning.light' }}>
+                                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                          <MoneyIcon sx={{ color: 'warning.main' }} />
+                                          <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                                            Loyalty Points
+                                          </Typography>
+                                        </Box>
+                                        <Button size="small" variant="contained" color="warning">
+                                          Use Points
+                                        </Button>
+                                      </Box>
+                                    </Paper>
+                                  </Box>
+                                )}
+                              </Paper>
+                            )}
                           </Box>
                         )}
                       </Paper>
@@ -954,18 +1079,6 @@ export default function PaymentPortal() {
                               ${total.toLocaleString()}
                             </Typography>
                           </Box>
-                          <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
-                            <Button
-                              fullWidth
-                              variant="contained"
-                              color="primary"
-                              size="large"
-                              onClick={() => openPaymentModal('reservation')}
-                              sx={{ py: 1.5 }}
-                            >
-                              Pay All Reservation
-                            </Button>
-                          </Box>
                         </Paper>
                       </>
                     );
@@ -993,14 +1106,6 @@ export default function PaymentPortal() {
                     >
                       Confirm Payment
                     </Button>
-                    
-                    <Button
-                      fullWidth
-                      variant="outlined"
-                      sx={{ borderColor: 'grey.300', color: 'text.secondary' }}
-                    >
-                      Cancel
-                    </Button>
                   </Box>
                 </Box>
               </CardContent>
@@ -1008,102 +1113,6 @@ export default function PaymentPortal() {
           </Grid>
         </Grid>
       </Container>
-
-      {/* Payment Modal */}
-      <Dialog
-        open={paymentModalOpen}
-        onClose={() => setPaymentModalOpen(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <MoneyIcon sx={{ color: 'primary.main' }} />
-            <Typography variant="h6">
-              Payment Method Selection
-            </Typography>
-          </Box>
-        </DialogTitle>
-        <DialogContent>
-          {paymentTarget && (
-            <Box>
-              <Paper sx={{ p: 2, mb: 3, bgcolor: 'primary.light' }}>
-                <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                  Payment Target: {
-                    paymentTarget.type === 'item' ? 
-                      `${reservation.passengers[parseInt(paymentTarget.passengerId!) - 1]?.name} - ${paymentTarget.itemType}` :
-                    paymentTarget.type === 'passenger' ?
-                      `${reservation.passengers[parseInt(paymentTarget.passengerId!) - 1]?.name} - All Items` :
-                      'Entire Reservation'
-                  }
-                </Typography>
-                <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-                  Amount: ${paymentTarget.amount.toLocaleString()}
-                </Typography>
-              </Paper>
-
-              <Typography variant="h6" sx={{ mb: 2 }}>
-                Select Payment Methods
-              </Typography>
-              
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {/* Credit Card */}
-                <Paper sx={{ p: 2, border: 1, borderColor: 'grey.300' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <CreditCardIcon sx={{ color: 'primary.main' }} />
-                      <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                        Credit Card
-                      </Typography>
-                    </Box>
-                    <Button variant="outlined" size="small">
-                      Add Card
-                    </Button>
-                  </Box>
-                </Paper>
-
-                {/* Vouchers */}
-                <Paper sx={{ p: 2, border: 1, borderColor: 'grey.300' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <MoneyIcon sx={{ color: 'success.main' }} />
-                      <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                        Vouchers (up to 3)
-                      </Typography>
-                    </Box>
-                    <Button variant="outlined" size="small">
-                      Add Voucher
-                    </Button>
-                  </Box>
-                </Paper>
-
-                {/* Points */}
-                <Paper sx={{ p: 2, border: 1, borderColor: 'grey.300' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <MoneyIcon sx={{ color: 'warning.main' }} />
-                      <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                        Loyalty Points
-                      </Typography>
-                    </Box>
-                    <Button variant="outlined" size="small">
-                      Use Points
-                    </Button>
-                  </Box>
-                </Paper>
-              </Box>
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setPaymentModalOpen(false)}>
-            Cancel
-          </Button>
-          <Button variant="contained" color="primary">
-            Apply Payment
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 }

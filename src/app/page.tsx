@@ -97,11 +97,14 @@ export default function PaymentPortal() {
   };
 
   const toggleExpanded = (passengerId: string) => {
-    setExpandedPassengers(prev => 
-      prev.includes(passengerId) 
-        ? prev.filter(id => id !== passengerId)
-        : [...prev, passengerId]
-    );
+    setExpandedPassengers(prev => {
+      // If the passenger is already expanded, collapse it
+      if (prev.includes(passengerId)) {
+        return prev.filter(id => id !== passengerId);
+      }
+      // If expanding a passenger, close all others (accordion behavior)
+      return [passengerId];
+    });
   };
 
   const toggleItem = (passengerId: string, itemType: string) => {
@@ -143,17 +146,17 @@ export default function PaymentPortal() {
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50', p: 2 }}>
-      <Container maxWidth="xl">
+      <Container maxWidth="xl" sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
         <Typography variant="h3" component="h1" align="center" sx={{ mb: 4, fontWeight: 'bold', color: 'grey.800' }}>
           PCI
         </Typography>
         
 
-        <Grid container spacing={3}>
+        <Grid container spacing={3} sx={{ flex: 1, height: '100%' }}>
           {/* סקשן נוסעים - שמאל - 25% */}
           <Grid size={{ xs: 12, lg: 3 }}>
-            <Card sx={{ height: '100%' }}>
-              <CardContent>
+            <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+              <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                   <PersonIcon sx={{ color: 'primary.main', mr: 1, fontSize: 28 }} />
                   <Typography variant="h6" component="h2" sx={{ fontWeight: 'semibold' }}>
@@ -233,7 +236,7 @@ export default function PaymentPortal() {
                   })()}
                 </Button>
                 
-                <Box sx={{ maxHeight: 400, overflowY: 'auto', mb: 2 }}>
+                <Box sx={{ flex: 1, overflowY: 'auto', mb: 2 }}>
                   {availablePassengers.map((passenger) => {
                     const passengerIndex = parseInt(passenger.id) - 1;
                     const passengerData = reservation.passengers[passengerIndex];
@@ -294,21 +297,12 @@ export default function PaymentPortal() {
                               {/* Product Icons - Show all items, gray out unselected, clickable */}
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 1 }}>
                                 {/* Flight Ticket Icon */}
-                                <FlightIcon
+                                <Box
                                   sx={{
-                                    fontSize: 20,
-                                    color: (() => {
-                                      if (passengerData.ticket.status === 'Paid') return 'grey.500';
-                                      return isItemSelected(passenger.id, 'ticket') ? 'success.main' : 'grey.400';
-                                    })(),
-                                    opacity: (() => {
-                                      if (passengerData.ticket.status === 'Paid') return 0.3;
-                                      return isItemSelected(passenger.id, 'ticket') ? 1 : 0.5;
-                                    })(),
+                                    position: 'relative',
                                     cursor: passengerData.ticket.status === 'Paid' ? 'not-allowed' : 'pointer',
                                     transition: 'all 0.2s',
                                     '&:hover': {
-                                      opacity: passengerData.ticket.status === 'Paid' ? 0.3 : 1,
                                       transform: passengerData.ticket.status === 'Paid' ? 'none' : 'scale(1.1)'
                                     }
                                   }}
@@ -319,24 +313,46 @@ export default function PaymentPortal() {
                                       toggleItem(passenger.id, 'ticket');
                                     }
                                   }}
-                                />
+                                >
+                                  <FlightIcon
+                                    sx={{
+                                      fontSize: 20,
+                                      color: (() => {
+                                        if (passengerData.ticket.status === 'Paid') return 'grey.500';
+                                        return isItemSelected(passenger.id, 'ticket') ? 'white' : 'success.main';
+                                      })(),
+                                      opacity: passengerData.ticket.status === 'Paid' ? 0.3 : 1,
+                                      zIndex: 2,
+                                      position: 'relative'
+                                    }}
+                                  />
+                                  {/* Background circle only when selected */}
+                                  {isItemSelected(passenger.id, 'ticket') && (
+                                    <Box
+                                      sx={{
+                                        position: 'absolute',
+                                        top: '50%',
+                                        left: '50%',
+                                        transform: 'translate(-50%, -50%)',
+                                        width: 28,
+                                        height: 28,
+                                        borderRadius: '50%',
+                                        bgcolor: 'success.main',
+                                        border: '2px solid',
+                                        borderColor: 'success.main',
+                                        zIndex: 1
+                                      }}
+                                    />
+                                  )}
+                                </Box>
                                 
                                 {/* Seat Icon */}
-                                <SeatIcon
+                                <Box
                                   sx={{
-                                    fontSize: 20,
-                                    color: (() => {
-                                      if (passengerData.ancillaries.seat.status === 'Paid') return 'grey.500';
-                                      return isItemSelected(passenger.id, 'seat') ? 'info.main' : 'grey.400';
-                                    })(),
-                                    opacity: (() => {
-                                      if (passengerData.ancillaries.seat.status === 'Paid') return 0.3;
-                                      return isItemSelected(passenger.id, 'seat') ? 1 : 0.5;
-                                    })(),
+                                    position: 'relative',
                                     cursor: passengerData.ancillaries.seat.status === 'Paid' ? 'not-allowed' : 'pointer',
                                     transition: 'all 0.2s',
                                     '&:hover': {
-                                      opacity: passengerData.ancillaries.seat.status === 'Paid' ? 0.3 : 1,
                                       transform: passengerData.ancillaries.seat.status === 'Paid' ? 'none' : 'scale(1.1)'
                                     }
                                   }}
@@ -347,24 +363,46 @@ export default function PaymentPortal() {
                                       toggleItem(passenger.id, 'seat');
                                     }
                                   }}
-                                />
+                                >
+                                  <SeatIcon
+                                    sx={{
+                                      fontSize: 20,
+                                      color: (() => {
+                                        if (passengerData.ancillaries.seat.status === 'Paid') return 'grey.500';
+                                        return isItemSelected(passenger.id, 'seat') ? 'white' : 'info.main';
+                                      })(),
+                                      opacity: passengerData.ancillaries.seat.status === 'Paid' ? 0.3 : 1,
+                                      zIndex: 2,
+                                      position: 'relative'
+                                    }}
+                                  />
+                                  {/* Background circle only when selected */}
+                                  {isItemSelected(passenger.id, 'seat') && (
+                                    <Box
+                                      sx={{
+                                        position: 'absolute',
+                                        top: '50%',
+                                        left: '50%',
+                                        transform: 'translate(-50%, -50%)',
+                                        width: 28,
+                                        height: 28,
+                                        borderRadius: '50%',
+                                        bgcolor: 'info.main',
+                                        border: '2px solid',
+                                        borderColor: 'info.main',
+                                        zIndex: 1
+                                      }}
+                                    />
+                                  )}
+                                </Box>
                                 
                                 {/* Baggage Icon */}
-                                <BagIcon
+                                <Box
                                   sx={{
-                                    fontSize: 20,
-                                    color: (() => {
-                                      if (passengerData.ancillaries.bag.status === 'Paid') return 'grey.500';
-                                      return isItemSelected(passenger.id, 'bag') ? 'warning.main' : 'grey.400';
-                                    })(),
-                                    opacity: (() => {
-                                      if (passengerData.ancillaries.bag.status === 'Paid') return 0.3;
-                                      return isItemSelected(passenger.id, 'bag') ? 1 : 0.5;
-                                    })(),
+                                    position: 'relative',
                                     cursor: passengerData.ancillaries.bag.status === 'Paid' ? 'not-allowed' : 'pointer',
                                     transition: 'all 0.2s',
                                     '&:hover': {
-                                      opacity: passengerData.ancillaries.bag.status === 'Paid' ? 0.3 : 1,
                                       transform: passengerData.ancillaries.bag.status === 'Paid' ? 'none' : 'scale(1.1)'
                                     }
                                   }}
@@ -375,7 +413,38 @@ export default function PaymentPortal() {
                                       toggleItem(passenger.id, 'bag');
                                     }
                                   }}
-                                />
+                                >
+                                  <BagIcon
+                                    sx={{
+                                      fontSize: 20,
+                                      color: (() => {
+                                        if (passengerData.ancillaries.bag.status === 'Paid') return 'grey.500';
+                                        return isItemSelected(passenger.id, 'bag') ? 'white' : 'warning.main';
+                                      })(),
+                                      opacity: passengerData.ancillaries.bag.status === 'Paid' ? 0.3 : 1,
+                                      zIndex: 2,
+                                      position: 'relative'
+                                    }}
+                                  />
+                                  {/* Background circle only when selected */}
+                                  {isItemSelected(passenger.id, 'bag') && (
+                                    <Box
+                                      sx={{
+                                        position: 'absolute',
+                                        top: '50%',
+                                        left: '50%',
+                                        transform: 'translate(-50%, -50%)',
+                                        width: 28,
+                                        height: 28,
+                                        borderRadius: '50%',
+                                        bgcolor: 'warning.main',
+                                        border: '2px solid',
+                                        borderColor: 'warning.main',
+                                        zIndex: 1
+                                      }}
+                                    />
+                                  )}
+                                </Box>
                               </Box>
                             </Box>
                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -558,20 +627,20 @@ export default function PaymentPortal() {
                     );
                   })}
                 </Box>
-                
-                <Paper sx={{ p: 2, bgcolor: 'grey.100' }}>
-                  <Typography variant="body2" color="text.secondary">
-                    {selectedPassengers.length} passengers selected
-                  </Typography>
-                </Paper>
               </CardContent>
+              
+              <Paper sx={{ p: 2, bgcolor: 'grey.100', m: 2, mt: 0 }}>
+                <Typography variant="body2" color="text.secondary">
+                  {selectedPassengers.length} passengers selected
+                </Typography>
+              </Paper>
             </Card>
           </Grid>
 
           {/* סקשן אמצעי תשלום - אמצע - 50% */}
           <Grid size={{ xs: 12, lg: 6 }}>
-            <Card sx={{ height: '100%' }}>
-              <CardContent>
+            <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+              <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                   <CreditCardIcon sx={{ color: 'success.main', mr: 1, fontSize: 28 }} />
                   <Typography variant="h6" component="h2" sx={{ fontWeight: 'semibold' }}>
@@ -579,7 +648,8 @@ export default function PaymentPortal() {
                   </Typography>
                 </Box>
                 
-                {paymentMethods.map((payment, index) => (
+                <Box sx={{ flex: 1, overflowY: 'auto' }}>
+                  {paymentMethods.map((payment, index) => (
                   <Paper key={payment.id} sx={{ p: 3, mb: 2, border: 1, borderColor: 'grey.200' }}>
                     <Typography variant="subtitle1" sx={{ mb: 2, color: 'text.secondary' }}>
                       Card {index + 1}
@@ -633,6 +703,8 @@ export default function PaymentPortal() {
                   </Paper>
                 ))}
                 
+                </Box>
+                
                 <Button
                   fullWidth
                   variant="outlined"
@@ -648,8 +720,8 @@ export default function PaymentPortal() {
 
           {/* סקשן סה״כ תשלום - ימין - 25% */}
           <Grid size={{ xs: 12, lg: 3 }}>
-            <Card sx={{ height: '100%' }}>
-              <CardContent>
+            <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+              <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                   <MoneyIcon sx={{ color: 'secondary.main', mr: 1, fontSize: 28 }} />
                   <Typography variant="h6" component="h2" sx={{ fontWeight: 'semibold' }}>
@@ -657,7 +729,7 @@ export default function PaymentPortal() {
                   </Typography>
                 </Box>
                 
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1 }}>
                     <Typography variant="body2" color="text.secondary">Flight Price</Typography>
                     <Typography variant="body1" sx={{ fontWeight: 'medium' }}>

@@ -55,7 +55,7 @@ export const MOCK_RESERVATION: Reservation = {
   phone: '+1-555-123-4567',
   email: 'user@example.com',
   currency: 'USD',
-  totalAmount: 3500.0,
+  totalAmount: 5300.0,
   passengers: [
     {
       name: 'John Smith',
@@ -182,6 +182,71 @@ export const MOCK_RESERVATION: Reservation = {
           },
           emdNumber: '114-EMD-004',
           status: 'Pending Payment',
+        },
+      },
+    },
+    {
+      name: 'Michael Brown',
+      ticket: {
+        price: 1800.0,
+        status: 'Paid',
+        paymentMethods: {
+          credit: {
+            maskedCardNumber: '433333******3333',
+            expiry: '08/29',
+            cvv: '789',
+            amount: 1800.0,
+          },
+          points: {
+            pointsAmount: 0,
+            amount: 0.0,
+          },
+          voucher: {
+            amount: 0.0,
+          },
+        },
+        ticketNumber: '114-5555555555555',
+      },
+      ancillaries: {
+        seat: {
+          price: 100.0,
+          paymentMethods: {
+            credit: {
+              maskedCardNumber: '433333******3333',
+              expiry: '08/29',
+              cvv: '789',
+              amount: 100.0,
+            },
+            points: {
+              pointsAmount: 0,
+              amount: 0.0,
+            },
+            voucher: {
+              amount: 0.0,
+            },
+          },
+          emdNumber: '114-EMD-005',
+          status: 'Paid',
+        },
+        bag: {
+          price: 200.0,
+          paymentMethods: {
+            credit: {
+              maskedCardNumber: '433333******3333',
+              expiry: '08/29',
+              cvv: '789',
+              amount: 200.0,
+            },
+            points: {
+              pointsAmount: 0,
+              amount: 0.0,
+            },
+            voucher: {
+              amount: 0.0,
+            },
+          },
+          emdNumber: '114-EMD-006',
+          status: 'Paid',
         },
       },
     },

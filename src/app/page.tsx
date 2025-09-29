@@ -19,7 +19,14 @@ import {
   Divider,
   IconButton,
   Checkbox,
-  FormControlLabel
+  FormControlLabel,
+  Modal,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Tabs,
+  Tab
 } from '@mui/material';
 import {
   Person as PersonIcon,
@@ -38,6 +45,7 @@ import { MOCK_RESERVATION, Reservation } from '@/types/reservation';
 interface Passenger {
   id: string;
   fullName: string;
+  hasUnpaidItems: boolean;
 }
 
 interface PaymentMethod {
@@ -70,6 +78,20 @@ export default function PaymentPortal() {
   const [selectedPassengers, setSelectedPassengers] = useState<string[]>([]);
   const [expandedPassengers, setExpandedPassengers] = useState<string[]>([]);
   const [selectedItems, setSelectedItems] = useState<{[key: string]: string[]}>({});
+  
+  // Payment management states
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [paymentTarget, setPaymentTarget] = useState<{
+    type: 'item' | 'passenger' | 'reservation';
+    passengerId?: string;
+    itemType?: string;
+    amount: number;
+  } | null>(null);
+  const [assignedPayments, setAssignedPayments] = useState<{[key: string]: {
+    credit?: { amount: number; cardId: string };
+    vouchers?: { amount: number; voucherIds: string[] }[];
+    points?: { amount: number; accountId: string };
+  }}>({});
   
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([
     { id: '1', type: 'credit', cardNumber: '', expiryDate: '', cvv: '', holderName: '' }
@@ -142,6 +164,29 @@ export default function PaymentPortal() {
     setPaymentMethods(paymentMethods.map(p => 
       p.id === id ? { ...p, [field]: value } : p
     ));
+  };
+
+  const openPaymentModal = (type: 'item' | 'passenger' | 'reservation', passengerId?: string, itemType?: string) => {
+    let amount = 0;
+    
+    if (type === 'item' && passengerId && itemType) {
+      const passengerIndex = parseInt(passengerId) - 1;
+      const passengerData = reservation.passengers[passengerIndex];
+      if (itemType === 'ticket') amount = passengerData.ticket.price;
+      else if (itemType === 'seat') amount = passengerData.ancillaries.seat.price;
+      else if (itemType === 'bag') amount = passengerData.ancillaries.bag.price;
+    } else if (type === 'passenger' && passengerId) {
+      const passengerIndex = parseInt(passengerId) - 1;
+      const passengerData = reservation.passengers[passengerIndex];
+      amount = (passengerData.ticket.status !== 'Paid' ? passengerData.ticket.price : 0) +
+               (passengerData.ancillaries.seat.status !== 'Paid' ? passengerData.ancillaries.seat.price : 0) +
+               (passengerData.ancillaries.bag.status !== 'Paid' ? passengerData.ancillaries.bag.price : 0);
+    } else if (type === 'reservation') {
+      amount = flightPrice + additionalServices;
+    }
+    
+    setPaymentTarget({ type, passengerId, itemType, amount });
+    setPaymentModalOpen(true);
   };
 
   return (
@@ -293,6 +338,22 @@ export default function PaymentPortal() {
                               <Typography variant="body1" sx={{ fontWeight: 'medium', mr: 2 }}>
                                 {passenger.fullName}
                               </Typography>
+                              
+                              {/* Pay All Button for passengers with unpaid items */}
+                              {passenger.hasUnpaidItems && (
+                                <Button
+                                  size="small"
+                                  variant="contained"
+                                  color="primary"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openPaymentModal('passenger', passenger.id);
+                                  }}
+                                  sx={{ mr: 2 }}
+                                >
+                                  Pay All
+                                </Button>
+                              )}
                               
                               {/* Product Icons - Show all items, gray out unselected, clickable */}
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 1 }}>
@@ -514,9 +575,24 @@ export default function PaymentPortal() {
                                     </Typography>
                                   </Box>
                                 </Box>
-                                {isItemSelected(passenger.id, 'ticket') && (
-                                  <CheckIcon sx={{ color: 'success.main' }} />
-                                )}
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  {isItemSelected(passenger.id, 'ticket') && (
+                                    <CheckIcon sx={{ color: 'success.main' }} />
+                                  )}
+                                  {passengerData.ticket.status !== 'Paid' && (
+                                    <Button
+                                      size="small"
+                                      variant="outlined"
+                                      color="primary"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openPaymentModal('item', passenger.id, 'ticket');
+                                      }}
+                                    >
+                                      Pay
+                                    </Button>
+                                  )}
+                                </Box>
                               </Box>
                             </Paper>
 
@@ -568,9 +644,24 @@ export default function PaymentPortal() {
                                     </Typography>
                                   </Box>
                                 </Box>
-                                {isItemSelected(passenger.id, 'seat') && (
-                                  <CheckIcon sx={{ color: 'info.main' }} />
-                                )}
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  {isItemSelected(passenger.id, 'seat') && (
+                                    <CheckIcon sx={{ color: 'info.main' }} />
+                                  )}
+                                  {passengerData.ancillaries.seat.status !== 'Paid' && (
+                                    <Button
+                                      size="small"
+                                      variant="outlined"
+                                      color="primary"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openPaymentModal('item', passenger.id, 'seat');
+                                      }}
+                                    >
+                                      Pay
+                                    </Button>
+                                  )}
+                                </Box>
                               </Box>
                             </Paper>
 
@@ -616,9 +707,24 @@ export default function PaymentPortal() {
                                     </Typography>
                                   </Box>
                                 </Box>
-                                {isItemSelected(passenger.id, 'bag') && (
-                                  <CheckIcon sx={{ color: 'warning.main' }} />
-                                )}
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  {isItemSelected(passenger.id, 'bag') && (
+                                    <CheckIcon sx={{ color: 'warning.main' }} />
+                                  )}
+                                  {passengerData.ancillaries.bag.status !== 'Paid' && (
+                                    <Button
+                                      size="small"
+                                      variant="outlined"
+                                      color="primary"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openPaymentModal('item', passenger.id, 'bag');
+                                      }}
+                                    >
+                                      Pay
+                                    </Button>
+                                  )}
+                                </Box>
                               </Box>
                             </Paper>
                           </Box>
@@ -848,6 +954,18 @@ export default function PaymentPortal() {
                               ${total.toLocaleString()}
                             </Typography>
                           </Box>
+                          <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+                            <Button
+                              fullWidth
+                              variant="contained"
+                              color="primary"
+                              size="large"
+                              onClick={() => openPaymentModal('reservation')}
+                              sx={{ py: 1.5 }}
+                            >
+                              Pay All Reservation
+                            </Button>
+                          </Box>
                         </Paper>
                       </>
                     );
@@ -890,176 +1008,102 @@ export default function PaymentPortal() {
           </Grid>
         </Grid>
       </Container>
+
+      {/* Payment Modal */}
+      <Dialog
+        open={paymentModalOpen}
+        onClose={() => setPaymentModalOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <MoneyIcon sx={{ color: 'primary.main' }} />
+            <Typography variant="h6">
+              Payment Method Selection
+            </Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          {paymentTarget && (
+            <Box>
+              <Paper sx={{ p: 2, mb: 3, bgcolor: 'primary.light' }}>
+                <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
+                  Payment Target: {
+                    paymentTarget.type === 'item' ? 
+                      `${reservation.passengers[parseInt(paymentTarget.passengerId!) - 1]?.name} - ${paymentTarget.itemType}` :
+                    paymentTarget.type === 'passenger' ?
+                      `${reservation.passengers[parseInt(paymentTarget.passengerId!) - 1]?.name} - All Items` :
+                      'Entire Reservation'
+                  }
+                </Typography>
+                <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                  Amount: ${paymentTarget.amount.toLocaleString()}
+                </Typography>
+              </Paper>
+
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                Select Payment Methods
+              </Typography>
+              
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {/* Credit Card */}
+                <Paper sx={{ p: 2, border: 1, borderColor: 'grey.300' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <CreditCardIcon sx={{ color: 'primary.main' }} />
+                      <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
+                        Credit Card
+                      </Typography>
+                    </Box>
+                    <Button variant="outlined" size="small">
+                      Add Card
+                    </Button>
+                  </Box>
+                </Paper>
+
+                {/* Vouchers */}
+                <Paper sx={{ p: 2, border: 1, borderColor: 'grey.300' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <MoneyIcon sx={{ color: 'success.main' }} />
+                      <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
+                        Vouchers (up to 3)
+                      </Typography>
+                    </Box>
+                    <Button variant="outlined" size="small">
+                      Add Voucher
+                    </Button>
+                  </Box>
+                </Paper>
+
+                {/* Points */}
+                <Paper sx={{ p: 2, border: 1, borderColor: 'grey.300' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <MoneyIcon sx={{ color: 'warning.main' }} />
+                      <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
+                        Loyalty Points
+                      </Typography>
+                    </Box>
+                    <Button variant="outlined" size="small">
+                      Use Points
+                    </Button>
+                  </Box>
+                </Paper>
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPaymentModalOpen(false)}>
+            Cancel
+          </Button>
+          <Button variant="contained" color="primary">
+            Apply Payment
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
-
-[
-  {
-    "מספר הזמנה": "ORD-0001",
-    טלפון: "+972-50-1234567",
-    אימייל: "user@example.com",
-    'סה"כ סכום': 3500.0,
-    נוסעים: [
-      {
-        נוסע: "נוסע 1",
-        "כרטיס טיסה": {
-          מחיר: 1800.0,
-          סטטוס: "ממתין לתשלום",
-          "אמצעי תשלום": {
-            אשראי: {
-              "מספר אשראי": "411111******1111",
-              תוקף: "12/27",
-              "3 ספרות": "123",
-              סכום: 900.0,
-            },
-            נקודות: {
-              "כמות נקודות": 3000,
-              "מספר אסמכתא (award)": "AWD-1001",
-              סכום: 300.0,
-            },
-            שובר: {
-              "מספר שובר": "VCH-5001",
-              תוקף: "2026-12-31",
-              סכום: 600.0,
-            },
-          },
-          "מספר כרטיס טיסה": "114-1234567890123",
-        },
-        אנסילירי: {
-          מושב: {
-            מחיר: 100.0,
-            "אמצעי תשלום": {
-              אשראי: {
-                "מספר אשראי": "411111******1111",
-                תוקף: "12/27",
-                "3 ספרות": "123",
-                סכום: 100.0,
-              },
-              נקודות: {
-                "כמות נקודות": 0,
-                "מספר אסמכתא (award)": "",
-                סכום: 0.0,
-              },
-              שובר: {
-                "מספר שובר": "",
-                תוקף: "",
-                סכום: 0.0,
-              },
-            },
-            "מספר emd": "114-EMD-001",
-            סטטוס: "שולם",
-          },
-          מזוודה: {
-            מחיר: 200.0,
-            "אמצעי תשלום": {
-              אשראי: {
-                "מספר אשראי": "",
-                תוקף: "",
-                "3 ספרות": "",
-                סכום: 0.0,
-              },
-              נקודות: {
-                "כמות נקודות": 1500,
-                "מספר אסמכתא (award)": "AWD-2002",
-                סכום: 150.0,
-              },
-              שובר: {
-                "מספר שובר": "",
-                תוקף: "",
-                סכום: 0.0,
-              },
-            },
-            "מספר emd": "114-EMD-002",
-            סטטוס: "תשלום חלקי",
-          },
-        },
-      },
-      {
-        נוסע: "נוסע 2",
-        "כרטיס טיסה": {
-          מחיר: 1800.0,
-          סטטוס: "שולם",
-          "אמצעי תשלום": {
-            אשראי: {
-              "מספר אשראי": "522222******2222",
-              תוקף: "05/28",
-              "3 ספרות": "456",
-              סכום: 1800.0,
-            },
-            נקודות: {
-              "כמות נקודות": 0,
-              "מספר אסמכתא (award)": "",
-              סכום: 0.0,
-            },
-            שובר: {
-              "מספר שובר": "",
-              תוקף: "",
-              סכום: 0.0,
-            },
-          },
-          "מספר כרטיס טיסה": "114-9876543210987",
-        },
-        אנסילירי: {
-          מושב: {
-            מחיר: 100.0,
-            "אמצעי תשלום": {
-              אשראי: {
-                "מספר אשראי": "522222******2222",
-                תוקף: "05/28",
-                "3 ספרות": "456",
-                סכום: 100.0,
-              },
-              נקודות: {
-                "כמות נקודות": 0,
-                "מספר אסמכתא (award)": "",
-                סכום: 0.0,
-              },
-              שובר: {
-                "מספר שובר": "",
-                תוקף: "",
-                סכום: 0.0,
-              },
-            },
-            "מספר emd": "114-EMD-003",
-            סטטוס: "שולם",
-          },
-          מזוודה: {
-            מחיר: 200.0,
-            "אמצעי תשלום": {
-              אשראי: {
-                "מספר אשראי": "",
-                תוקף: "",
-                "3 ספרות": "",
-                סכום: 0.0,
-              },
-              נקודות: {
-                "כמות נקודות": 0,
-                "מספר אסמכתא (award)": "",
-                סכום: 0.0,
-              },
-              שובר: {
-                "מספר שובר": "",
-                תוקף: "",
-                סכום: 0.0,
-              },
-            },
-            "מספר emd": "114-EMD-004",
-            סטטוס: "ממתין לתשלום",
-          },
-        },
-      },
-    ],
-  },
-][
-  ({
-    שם: "נוסע 1",
-    "מספר חבר": "MATMID-001",
-    "כמות נקודות": 5000,
-  },
-  {
-    שם: "נוסע 2",
-    "מספר חבר": "MATMID-002",
-    "כמות נקודות": 12000,
-  })
-];

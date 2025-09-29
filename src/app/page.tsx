@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Card,
@@ -38,6 +38,7 @@ import { MOCK_RESERVATION, Reservation } from '@/types/reservation';
 interface Passenger {
   id: string;
   fullName: string;
+  hasUnpaidItems: boolean;
 }
 
 interface PaymentMethod {
@@ -70,10 +71,15 @@ export default function PaymentPortal() {
   const [selectedPassengers, setSelectedPassengers] = useState<string[]>([]);
   const [expandedPassengers, setExpandedPassengers] = useState<string[]>([]);
   const [selectedItems, setSelectedItems] = useState<{[key: string]: string[]}>({});
+  const [isClient, setIsClient] = useState(false);
   
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([
     { id: '1', type: 'credit', cardNumber: '', expiryDate: '', cvv: '', holderName: '' }
   ]);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Calculate costs only for unpaid items
   const flightPrice = reservation.passengers.reduce((sum, p) => {
@@ -143,6 +149,14 @@ export default function PaymentPortal() {
       p.id === id ? { ...p, [field]: value } : p
     ));
   };
+
+  if (!isClient) {
+    return (
+      <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50', p: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Typography variant="h4">Loading...</Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50', p: 2 }}>
@@ -673,6 +687,7 @@ export default function PaymentPortal() {
                         value={payment.cardNumber}
                         onChange={(e) => updatePaymentMethod(payment.id, 'cardNumber', e.target.value)}
                         placeholder="1234 5678 9012 3456"
+                        inputProps={{ suppressHydrationWarning: true }}
                       />
                       
                       <Box sx={{ display: 'flex', gap: 2 }}>
@@ -682,6 +697,7 @@ export default function PaymentPortal() {
                           onChange={(e) => updatePaymentMethod(payment.id, 'expiryDate', e.target.value)}
                           placeholder="MM/YY"
                           sx={{ flex: 1 }}
+                          inputProps={{ suppressHydrationWarning: true }}
                         />
                         <TextField
                           label="CVV"
@@ -689,6 +705,7 @@ export default function PaymentPortal() {
                           onChange={(e) => updatePaymentMethod(payment.id, 'cvv', e.target.value)}
                           placeholder="123"
                           sx={{ flex: 1 }}
+                          inputProps={{ suppressHydrationWarning: true }}
                         />
                       </Box>
                       
@@ -698,6 +715,7 @@ export default function PaymentPortal() {
                         value={payment.holderName}
                         onChange={(e) => updatePaymentMethod(payment.id, 'holderName', e.target.value)}
                         placeholder="Full name as it appears on the card"
+                        inputProps={{ suppressHydrationWarning: true }}
                       />
                     </Box>
                   </Paper>
@@ -1047,18 +1065,5 @@ export default function PaymentPortal() {
             סטטוס: "ממתין לתשלום",
           },
         },
-      },
-    ],
-  },
-][
-  ({
-    שם: "נוסע 1",
-    "מספר חבר": "MATMID-001",
-    "כמות נקודות": 5000,
-  },
-  {
-    שם: "נוסע 2",
-    "מספר חבר": "MATMID-002",
-    "כמות נקודות": 12000,
-  })
-];
+  };
+}

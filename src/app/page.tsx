@@ -804,8 +804,13 @@ export default function PaymentPortal() {
                   </Box>
                 )}
 
-                <Box sx={{ flex: 1, overflowY: 'auto' }}>
-                  {paymentMethods.map((payment, index) => (
+                {/* Show old payment method cards only when items are selected */}
+                {getSelectedItemsDetails().length > 0 && (
+                  <Box sx={{ flex: 1, overflowY: 'auto' }}>
+                    <Typography variant="h6" sx={{ mb: 2, fontWeight: 'medium', color: 'text.secondary' }}>
+                      Additional Payment Methods
+                    </Typography>
+                    {paymentMethods.map((payment, index) => (
                   <Paper key={payment.id} sx={{ p: 3, mb: 2, border: 1, borderColor: 'grey.200' }}>
                     <Typography variant="subtitle1" sx={{ mb: 2, color: 'text.secondary' }}>
                       Card {index + 1}
@@ -863,17 +868,17 @@ export default function PaymentPortal() {
                   </Paper>
                 ))}
                 
-                </Box>
-                
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  startIcon={<AddIcon />}
-                  onClick={addPaymentMethod}
-                  sx={{ mt: 2, borderColor: 'success.main', color: 'success.main' }}
-                >
-                  Add Card
-                </Button>
+                    <Button
+                      fullWidth
+                      variant="outlined"
+                      startIcon={<AddIcon />}
+                      onClick={addPaymentMethod}
+                      sx={{ mt: 2, borderColor: 'success.main', color: 'success.main' }}
+                    >
+                      Add Card
+                    </Button>
+                  </Box>
+                )}
               </CardContent>
             </Card>
           </Grid>

@@ -38,7 +38,6 @@ import { MOCK_RESERVATION, Reservation } from '@/types/reservation';
 interface Passenger {
   id: string;
   fullName: string;
-  hasUnpaidItems: boolean;
 }
 
 interface PaymentMethod {
@@ -71,14 +70,6 @@ export default function PaymentPortal() {
   const [selectedPassengers, setSelectedPassengers] = useState<string[]>([]);
   const [expandedPassengers, setExpandedPassengers] = useState<string[]>([]);
   const [selectedItems, setSelectedItems] = useState<{[key: string]: string[]}>({});
-  
-  // Payment management states
-  const [expandedPayments, setExpandedPayments] = useState<{[key: string]: boolean}>({});
-  const [assignedPayments, setAssignedPayments] = useState<{[key: string]: {
-    credit?: { amount: number; cardId: string };
-    vouchers?: { amount: number; voucherIds: string[] }[];
-    points?: { amount: number; accountId: string };
-  }}>({});
   
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([
     { id: '1', type: 'credit', cardNumber: '', expiryDate: '', cvv: '', holderName: '' }
@@ -151,27 +142,6 @@ export default function PaymentPortal() {
     setPaymentMethods(paymentMethods.map(p => 
       p.id === id ? { ...p, [field]: value } : p
     ));
-  };
-
-  const togglePaymentExpansion = (itemKey: string) => {
-    setExpandedPayments(prev => ({
-      ...prev,
-      [itemKey]: !prev[itemKey]
-    }));
-  };
-
-  const getItemKey = (passengerId: string, itemType: string) => {
-    return `${passengerId}-${itemType}`;
-  };
-
-  const getItemAmount = (passengerId: string, itemType: string) => {
-    const passengerIndex = parseInt(passengerId) - 1;
-    const passengerData = reservation.passengers[passengerIndex];
-    
-    if (itemType === 'ticket') return passengerData.ticket.price;
-    if (itemType === 'seat') return passengerData.ancillaries.seat.price;
-    if (itemType === 'bag') return passengerData.ancillaries.bag.price;
-    return 0;
   };
 
   return (
@@ -550,73 +520,6 @@ export default function PaymentPortal() {
                               </Box>
                             </Paper>
 
-                            {/* Inline Payment Panel for Flight Ticket */}
-                            {passengerData.ticket.status !== 'Paid' && (
-                              <Paper sx={{ p: 2, mb: 2, bgcolor: 'grey.50', border: 1, borderColor: 'grey.300' }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                                  <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>
-                                    Payment Methods - ${getItemAmount(passenger.id, 'ticket')}
-                                  </Typography>
-                                  <Button
-                                    size="small"
-                                    variant="outlined"
-                                    onClick={() => togglePaymentExpansion(getItemKey(passenger.id, 'ticket'))}
-                                  >
-                                    {expandedPayments[getItemKey(passenger.id, 'ticket')] ? 'Collapse' : 'Expand'}
-                                  </Button>
-                                </Box>
-                                
-                                {expandedPayments[getItemKey(passenger.id, 'ticket')] && (
-                                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                    {/* Credit Card */}
-                                    <Paper sx={{ p: 2, border: 1, borderColor: 'primary.main', bgcolor: 'primary.light' }}>
-                                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                          <CreditCardIcon sx={{ color: 'primary.main' }} />
-                                          <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                                            Credit Card
-                                          </Typography>
-                                        </Box>
-                                        <Button size="small" variant="contained" color="primary">
-                                          Add Card
-                                        </Button>
-                                      </Box>
-                                    </Paper>
-
-                                    {/* Vouchers */}
-                                    <Paper sx={{ p: 2, border: 1, borderColor: 'success.main', bgcolor: 'success.light' }}>
-                                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                          <MoneyIcon sx={{ color: 'success.main' }} />
-                                          <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                                            Vouchers (up to 3)
-                                          </Typography>
-                                        </Box>
-                                        <Button size="small" variant="contained" color="success">
-                                          Add Voucher
-                                        </Button>
-                                      </Box>
-                                    </Paper>
-
-                                    {/* Points */}
-                                    <Paper sx={{ p: 2, border: 1, borderColor: 'warning.main', bgcolor: 'warning.light' }}>
-                                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                          <MoneyIcon sx={{ color: 'warning.main' }} />
-                                          <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                                            Loyalty Points
-                                          </Typography>
-                                        </Box>
-                                        <Button size="small" variant="contained" color="warning">
-                                          Use Points
-                                        </Button>
-                                      </Box>
-                                    </Paper>
-                                  </Box>
-                                )}
-                              </Paper>
-                            )}
-
                             {/* Ancillaries */}
                             <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'medium' }}>
                               Ancillaries:
@@ -671,73 +574,6 @@ export default function PaymentPortal() {
                               </Box>
                             </Paper>
 
-                            {/* Inline Payment Panel for Seat */}
-                            {passengerData.ancillaries.seat.status !== 'Paid' && (
-                              <Paper sx={{ p: 2, mb: 2, bgcolor: 'grey.50', border: 1, borderColor: 'grey.300' }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                                  <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>
-                                    Payment Methods - ${getItemAmount(passenger.id, 'seat')}
-                                  </Typography>
-                                  <Button
-                                    size="small"
-                                    variant="outlined"
-                                    onClick={() => togglePaymentExpansion(getItemKey(passenger.id, 'seat'))}
-                                  >
-                                    {expandedPayments[getItemKey(passenger.id, 'seat')] ? 'Collapse' : 'Expand'}
-                                  </Button>
-                                </Box>
-                                
-                                {expandedPayments[getItemKey(passenger.id, 'seat')] && (
-                                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                    {/* Credit Card */}
-                                    <Paper sx={{ p: 2, border: 1, borderColor: 'primary.main', bgcolor: 'primary.light' }}>
-                                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                          <CreditCardIcon sx={{ color: 'primary.main' }} />
-                                          <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                                            Credit Card
-                                          </Typography>
-                                        </Box>
-                                        <Button size="small" variant="contained" color="primary">
-                                          Add Card
-                                        </Button>
-                                      </Box>
-                                    </Paper>
-
-                                    {/* Vouchers */}
-                                    <Paper sx={{ p: 2, border: 1, borderColor: 'success.main', bgcolor: 'success.light' }}>
-                                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                          <MoneyIcon sx={{ color: 'success.main' }} />
-                                          <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                                            Vouchers (up to 3)
-                                          </Typography>
-                                        </Box>
-                                        <Button size="small" variant="contained" color="success">
-                                          Add Voucher
-                                        </Button>
-                                      </Box>
-                                    </Paper>
-
-                                    {/* Points */}
-                                    <Paper sx={{ p: 2, border: 1, borderColor: 'warning.main', bgcolor: 'warning.light' }}>
-                                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                          <MoneyIcon sx={{ color: 'warning.main' }} />
-                                          <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                                            Loyalty Points
-                                          </Typography>
-                                        </Box>
-                                        <Button size="small" variant="contained" color="warning">
-                                          Use Points
-                                        </Button>
-                                      </Box>
-                                    </Paper>
-                                  </Box>
-                                )}
-                              </Paper>
-                            )}
-
                             {/* Baggage */}
                             <Paper
                               sx={{
@@ -785,73 +621,6 @@ export default function PaymentPortal() {
                                 )}
                               </Box>
                             </Paper>
-
-                            {/* Inline Payment Panel for Baggage */}
-                            {passengerData.ancillaries.bag.status !== 'Paid' && (
-                              <Paper sx={{ p: 2, mb: 2, bgcolor: 'grey.50', border: 1, borderColor: 'grey.300' }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                                  <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>
-                                    Payment Methods - ${getItemAmount(passenger.id, 'bag')}
-                                  </Typography>
-                                  <Button
-                                    size="small"
-                                    variant="outlined"
-                                    onClick={() => togglePaymentExpansion(getItemKey(passenger.id, 'bag'))}
-                                  >
-                                    {expandedPayments[getItemKey(passenger.id, 'bag')] ? 'Collapse' : 'Expand'}
-                                  </Button>
-                                </Box>
-                                
-                                {expandedPayments[getItemKey(passenger.id, 'bag')] && (
-                                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                    {/* Credit Card */}
-                                    <Paper sx={{ p: 2, border: 1, borderColor: 'primary.main', bgcolor: 'primary.light' }}>
-                                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                          <CreditCardIcon sx={{ color: 'primary.main' }} />
-                                          <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                                            Credit Card
-                                          </Typography>
-                                        </Box>
-                                        <Button size="small" variant="contained" color="primary">
-                                          Add Card
-                                        </Button>
-                                      </Box>
-                                    </Paper>
-
-                                    {/* Vouchers */}
-                                    <Paper sx={{ p: 2, border: 1, borderColor: 'success.main', bgcolor: 'success.light' }}>
-                                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                          <MoneyIcon sx={{ color: 'success.main' }} />
-                                          <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                                            Vouchers (up to 3)
-                                          </Typography>
-                                        </Box>
-                                        <Button size="small" variant="contained" color="success">
-                                          Add Voucher
-                                        </Button>
-                                      </Box>
-                                    </Paper>
-
-                                    {/* Points */}
-                                    <Paper sx={{ p: 2, border: 1, borderColor: 'warning.main', bgcolor: 'warning.light' }}>
-                                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                          <MoneyIcon sx={{ color: 'warning.main' }} />
-                                          <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                                            Loyalty Points
-                                          </Typography>
-                                        </Box>
-                                        <Button size="small" variant="contained" color="warning">
-                                          Use Points
-                                        </Button>
-                                      </Box>
-                                    </Paper>
-                                  </Box>
-                                )}
-                              </Paper>
-                            )}
                           </Box>
                         )}
                       </Paper>
@@ -1106,6 +875,14 @@ export default function PaymentPortal() {
                     >
                       Confirm Payment
                     </Button>
+                    
+                    <Button
+                      fullWidth
+                      variant="outlined"
+                      sx={{ borderColor: 'grey.300', color: 'text.secondary' }}
+                    >
+                      Cancel
+                    </Button>
                   </Box>
                 </Box>
               </CardContent>
@@ -1116,3 +893,172 @@ export default function PaymentPortal() {
     </Box>
   );
 }
+[
+  {
+    "מספר הזמנה": "ORD-0001",
+    טלפון: "+972-50-1234567",
+    אימייל: "user@example.com",
+    'סה"כ סכום': 3500.0,
+    נוסעים: [
+      {
+        נוסע: "נוסע 1",
+        "כרטיס טיסה": {
+          מחיר: 1800.0,
+          סטטוס: "ממתין לתשלום",
+          "אמצעי תשלום": {
+            אשראי: {
+              "מספר אשראי": "411111******1111",
+              תוקף: "12/27",
+              "3 ספרות": "123",
+              סכום: 900.0,
+            },
+            נקודות: {
+              "כמות נקודות": 3000,
+              "מספר אסמכתא (award)": "AWD-1001",
+              סכום: 300.0,
+            },
+            שובר: {
+              "מספר שובר": "VCH-5001",
+              תוקף: "2026-12-31",
+              סכום: 600.0,
+            },
+          },
+          "מספר כרטיס טיסה": "114-1234567890123",
+        },
+        אנסילירי: {
+          מושב: {
+            מחיר: 100.0,
+            "אמצעי תשלום": {
+              אשראי: {
+                "מספר אשראי": "411111******1111",
+                תוקף: "12/27",
+                "3 ספרות": "123",
+                סכום: 100.0,
+              },
+              נקודות: {
+                "כמות נקודות": 0,
+                "מספר אסמכתא (award)": "",
+                סכום: 0.0,
+              },
+              שובר: {
+                "מספר שובר": "",
+                תוקף: "",
+                סכום: 0.0,
+              },
+            },
+            "מספר emd": "114-EMD-001",
+            סטטוס: "שולם",
+          },
+          מזוודה: {
+            מחיר: 200.0,
+            "אמצעי תשלום": {
+              אשראי: {
+                "מספר אשראי": "",
+                תוקף: "",
+                "3 ספרות": "",
+                סכום: 0.0,
+              },
+              נקודות: {
+                "כמות נקודות": 1500,
+                "מספר אסמכתא (award)": "AWD-2002",
+                סכום: 150.0,
+              },
+              שובר: {
+                "מספר שובר": "",
+                תוקף: "",
+                סכום: 0.0,
+              },
+            },
+            "מספר emd": "114-EMD-002",
+            סטטוס: "תשלום חלקי",
+          },
+        },
+      },
+      {
+        נוסע: "נוסע 2",
+        "כרטיס טיסה": {
+          מחיר: 1800.0,
+          סטטוס: "שולם",
+          "אמצעי תשלום": {
+            אשראי: {
+              "מספר אשראי": "522222******2222",
+              תוקף: "05/28",
+              "3 ספרות": "456",
+              סכום: 1800.0,
+            },
+            נקודות: {
+              "כמות נקודות": 0,
+              "מספר אסמכתא (award)": "",
+              סכום: 0.0,
+            },
+            שובר: {
+              "מספר שובר": "",
+              תוקף: "",
+              סכום: 0.0,
+            },
+          },
+          "מספר כרטיס טיסה": "114-9876543210987",
+        },
+        אנסילירי: {
+          מושב: {
+            מחיר: 100.0,
+            "אמצעי תשלום": {
+              אשראי: {
+                "מספר אשראי": "522222******2222",
+                תוקף: "05/28",
+                "3 ספרות": "456",
+                סכום: 100.0,
+              },
+              נקודות: {
+                "כמות נקודות": 0,
+                "מספר אסמכתא (award)": "",
+                סכום: 0.0,
+              },
+              שובר: {
+                "מספר שובר": "",
+                תוקף: "",
+                סכום: 0.0,
+              },
+            },
+            "מספר emd": "114-EMD-003",
+            סטטוס: "שולם",
+          },
+          מזוודה: {
+            מחיר: 200.0,
+            "אמצעי תשלום": {
+              אשראי: {
+                "מספר אשראי": "",
+                תוקף: "",
+                "3 ספרות": "",
+                סכום: 0.0,
+              },
+              נקודות: {
+                "כמות נקודות": 0,
+                "מספר אסמכתא (award)": "",
+                סכום: 0.0,
+              },
+              שובר: {
+                "מספר שובר": "",
+                תוקף: "",
+                סכום: 0.0,
+              },
+            },
+            "מספר emd": "114-EMD-004",
+            סטטוס: "ממתין לתשלום",
+          },
+        },
+      },
+    ],
+  },
+][
+  ({
+    שם: "נוסע 1",
+    "מספר חבר": "MATMID-001",
+    "כמות נקודות": 5000,
+  },
+  {
+    שם: "נוסע 2",
+    "מספר חבר": "MATMID-002",
+    "כמות נקודות": 12000,
+  })
+];

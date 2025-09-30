@@ -319,7 +319,7 @@ export default function PaymentPortal() {
                         key={passenger.id}
                         elevation={2}
                         sx={{
-                          mb: 1.5,
+                          mb: 2,
                           border: 1,
                           borderColor: 'grey.300',
                           overflow: 'hidden'
@@ -328,7 +328,7 @@ export default function PaymentPortal() {
                         {/* Passenger Header */}
                         <Box
                           sx={{
-                            p: 1.5,
+                            p: 2,
                             cursor: passenger.hasUnpaidItems ? 'pointer' : 'not-allowed',
                             bgcolor: (() => {
                               if (!passenger.hasUnpaidItems) return 'grey.100';
@@ -542,14 +542,14 @@ export default function PaymentPortal() {
 
                         {/* Expanded Content */}
                         {isExpanded && (
-                          <Box sx={{ p: 1.5, bgcolor: 'grey.50' }}>
+                          <Box sx={{ p: 2, bgcolor: 'grey.50' }}>
                             {/* Flight Ticket */}
                             <Paper
                               sx={{
-                                p: 1,
-                                mb: 0.5,
+                                p: 2,
+                                mb: 2,
                                 cursor: passengerData.ticket.status === 'Paid' ? 'not-allowed' : 'pointer',
-                                border: 1,
+                                border: 2,
                                 borderColor: (() => {
                                   if (passengerData.ticket.status === 'Paid') return 'grey.400';
                                   return isItemSelected(passenger.id, 'ticket') ? 'success.main' : 'grey.300';
@@ -572,36 +572,23 @@ export default function PaymentPortal() {
                               }}
                             >
                               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-                                  <FlightIcon sx={{ mr: 1, color: passengerData.ticket.status === 'Paid' ? 'grey.500' : 'primary.main', fontSize: 18 }} />
-                                  <Box sx={{ flex: 1 }}>
-                                    <Typography variant="body2" sx={{ fontWeight: 'medium', fontSize: '0.875rem' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                  <FlightIcon sx={{ mr: 1, color: passengerData.ticket.status === 'Paid' ? 'grey.500' : 'primary.main' }} />
+                                  <Box>
+                                    <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
                                       Flight Ticket
                                     </Typography>
-                                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                                      {passengerData.ticket.ticketNumber}
+                                    <Typography variant="body2" color="text.secondary">
+                                      {passengerData.ticket.ticketNumber} - ${passengerData.ticket.price}
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary">
+                                      Status: {passengerData.ticket.status}
                                     </Typography>
                                   </Box>
                                 </Box>
-                                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
-                                  <Typography variant="caption" sx={{ 
-                                    color: passengerData.ticket.status === 'Paid' ? 'success.main' : 'warning.main',
-                                    fontWeight: 'medium',
-                                    fontSize: '0.75rem'
-                                  }}>
-                                    {passengerData.ticket.status}
-                                  </Typography>
-                                  <Typography variant="body2" sx={{ 
-                                    fontWeight: 'bold',
-                                    fontSize: '0.875rem',
-                                    color: 'primary.main'
-                                  }}>
-                                    ${passengerData.ticket.price}
-                                  </Typography>
-                                  {isItemSelected(passenger.id, 'ticket') && (
-                                    <CheckIcon sx={{ color: 'success.main', fontSize: 16 }} />
-                                  )}
-                                </Box>
+                                {isItemSelected(passenger.id, 'ticket') && (
+                                  <CheckIcon sx={{ color: 'success.main' }} />
+                                )}
                               </Box>
                             </Paper>
 
@@ -613,10 +600,10 @@ export default function PaymentPortal() {
                             {/* Seat */}
                             <Paper
                               sx={{
-                                p: 1,
-                                mb: 0.5,
+                                p: 2,
+                                mb: 1,
                                 cursor: passengerData.ancillaries.seat.status === 'Paid' ? 'not-allowed' : 'pointer',
-                                border: 1,
+                                border: 2,
                                 borderColor: (() => {
                                   if (passengerData.ancillaries.seat.status === 'Paid') return 'grey.400';
                                   return isItemSelected(passenger.id, 'seat') ? 'info.main' : 'grey.300';
@@ -639,45 +626,32 @@ export default function PaymentPortal() {
                               }}
                             >
                               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-                                  <SeatIcon sx={{ mr: 1, color: passengerData.ancillaries.seat.status === 'Paid' ? 'grey.500' : 'info.main', fontSize: 18 }} />
-                                  <Box sx={{ flex: 1 }}>
-                                    <Typography variant="body2" sx={{ fontWeight: 'medium', fontSize: '0.875rem' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                  <SeatIcon sx={{ mr: 1, color: passengerData.ancillaries.seat.status === 'Paid' ? 'grey.500' : 'info.main' }} />
+                                  <Box>
+                                    <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
                                       Seat Selection
                                     </Typography>
-                                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                                      {passengerData.ancillaries.seat.emdNumber}
+                                    <Typography variant="body2" color="text.secondary">
+                                      {passengerData.ancillaries.seat.emdNumber} - ${passengerData.ancillaries.seat.price}
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary">
+                                      Status: {passengerData.ancillaries.seat.status}
                                     </Typography>
                                   </Box>
                                 </Box>
-                                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
-                                  <Typography variant="caption" sx={{ 
-                                    color: passengerData.ancillaries.seat.status === 'Paid' ? 'success.main' : 'warning.main',
-                                    fontWeight: 'medium',
-                                    fontSize: '0.75rem'
-                                  }}>
-                                    {passengerData.ancillaries.seat.status}
-                                  </Typography>
-                                  <Typography variant="body2" sx={{ 
-                                    fontWeight: 'bold',
-                                    fontSize: '0.875rem',
-                                    color: 'primary.main'
-                                  }}>
-                                    ${passengerData.ancillaries.seat.price}
-                                  </Typography>
-                                  {isItemSelected(passenger.id, 'seat') && (
-                                    <CheckIcon sx={{ color: 'info.main', fontSize: 16 }} />
-                                  )}
-                                </Box>
+                                {isItemSelected(passenger.id, 'seat') && (
+                                  <CheckIcon sx={{ color: 'info.main' }} />
+                                )}
                               </Box>
                             </Paper>
 
                             {/* Baggage */}
                             <Paper
                               sx={{
-                                p: 1,
+                                p: 2,
                                 cursor: passengerData.ancillaries.bag.status === 'Paid' ? 'not-allowed' : 'pointer',
-                                border: 1,
+                                border: 2,
                                 borderColor: (() => {
                                   if (passengerData.ancillaries.bag.status === 'Paid') return 'grey.400';
                                   return isItemSelected(passenger.id, 'bag') ? 'warning.main' : 'grey.300';
@@ -700,36 +674,23 @@ export default function PaymentPortal() {
                               }}
                             >
                               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-                                  <BagIcon sx={{ mr: 1, color: passengerData.ancillaries.bag.status === 'Paid' ? 'grey.500' : 'warning.main', fontSize: 18 }} />
-                                  <Box sx={{ flex: 1 }}>
-                                    <Typography variant="body2" sx={{ fontWeight: 'medium', fontSize: '0.875rem' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                  <BagIcon sx={{ mr: 1, color: passengerData.ancillaries.bag.status === 'Paid' ? 'grey.500' : 'warning.main' }} />
+                                  <Box>
+                                    <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
                                       Baggage
                                     </Typography>
-                                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                                      {passengerData.ancillaries.bag.emdNumber}
+                                    <Typography variant="body2" color="text.secondary">
+                                      {passengerData.ancillaries.bag.emdNumber} - ${passengerData.ancillaries.bag.price}
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary">
+                                      Status: {passengerData.ancillaries.bag.status}
                                     </Typography>
                                   </Box>
                                 </Box>
-                                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
-                                  <Typography variant="caption" sx={{ 
-                                    color: passengerData.ancillaries.bag.status === 'Paid' ? 'success.main' : 'warning.main',
-                                    fontWeight: 'medium',
-                                    fontSize: '0.75rem'
-                                  }}>
-                                    {passengerData.ancillaries.bag.status}
-                                  </Typography>
-                                  <Typography variant="body2" sx={{ 
-                                    fontWeight: 'bold',
-                                    fontSize: '0.875rem',
-                                    color: 'primary.main'
-                                  }}>
-                                    ${passengerData.ancillaries.bag.price}
-                                  </Typography>
-                                  {isItemSelected(passenger.id, 'bag') && (
-                                    <CheckIcon sx={{ color: 'warning.main', fontSize: 16 }} />
-                                  )}
-                                </Box>
+                                {isItemSelected(passenger.id, 'bag') && (
+                                  <CheckIcon sx={{ color: 'warning.main' }} />
+                                )}
                               </Box>
                             </Paper>
                           </Box>
@@ -759,97 +720,83 @@ export default function PaymentPortal() {
                   </Typography>
                 </Box>
                 
-                {/* Unified Payment Window */}
+                {/* Selected Items for Payment */}
                 {getSelectedItemsDetails().length > 0 && (
                   <Box sx={{ mb: 3 }}>
                     <Typography variant="h6" sx={{ mb: 2, fontWeight: 'medium', color: 'primary.main' }}>
-                      Payment Summary
+                      Selected Items for Payment
                     </Typography>
-                    
-                    <Paper sx={{ p: 3, border: 1, borderColor: 'grey.300', bgcolor: 'white' }}>
-                      {/* Items Breakdown */}
-                      <Box sx={{ mb: 3 }}>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 'medium', mb: 2 }}>
-                          Selected Items:
-                        </Typography>
-                        {getSelectedItemsDetails().map((item) => (
-                          <Box key={item.key} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.5, borderBottom: 1, borderColor: 'grey.200' }}>
-                            <Box>
-                              <Typography variant="body2" sx={{ fontWeight: 'medium', fontSize: '0.875rem' }}>
-                                {item.passengerName} - {item.itemName}
-                              </Typography>
-                            </Box>
-                            <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'primary.main', fontSize: '0.875rem' }}>
-                              ${item.amount.toLocaleString()}
+                    {getSelectedItemsDetails().map((item) => (
+                      <Paper key={item.key} sx={{ p: 2, mb: 2, border: 1, borderColor: 'primary.main', bgcolor: 'primary.light' }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                          <Box>
+                            <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
+                              {item.passengerName} - {item.itemName}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              Amount: ${item.amount.toLocaleString()}
                             </Typography>
                           </Box>
-                        ))}
-                        
-                        {/* Total */}
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2, pt: 2, borderTop: 2, borderColor: 'primary.main' }}>
-                          <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                            Total Amount:
-                          </Typography>
-                          <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-                            ${getSelectedItemsDetails().reduce((sum, item) => sum + item.amount, 0).toLocaleString()}
+                          <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                            ${item.amount.toLocaleString()}
                           </Typography>
                         </Box>
-                      </Box>
-                      
-                      {/* Payment Method Selection */}
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>
-                          Payment Method:
-                        </Typography>
                         
-                        {/* Credit Card - Auto-assigned */}
-                        <Paper sx={{ p: 2, border: 1, borderColor: 'grey.300', bgcolor: 'grey.50' }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <CreditCardIcon sx={{ color: 'primary.main' }} />
-                              <Box>
-                                <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                                  Credit Card (Auto-assigned)
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                  Full amount: ${getSelectedItemsDetails().reduce((sum, item) => sum + item.amount, 0).toLocaleString()}
-                                </Typography>
+                        {/* Payment Method Selection for this item */}
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 'medium' }}>
+                            Payment Methods:
+                          </Typography>
+                          
+                          {/* Credit Card - Auto-assigned */}
+                          <Paper sx={{ p: 2, border: 1, borderColor: 'primary.main', bgcolor: 'primary.light' }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <CreditCardIcon sx={{ color: 'primary.main' }} />
+                                <Box>
+                                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                                    Credit Card (Auto-assigned)
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary">
+                                    Amount: ${item.amount.toLocaleString()}
+                                  </Typography>
+                                </Box>
+                              </Box>
+                              <Box sx={{ display: 'flex', gap: 1 }}>
+                                <Button size="small" variant="outlined" color="primary">
+                                  Edit
+                                </Button>
+                                <Button size="small" variant="outlined" color="error">
+                                  Remove
+                                </Button>
                               </Box>
                             </Box>
-                            <Box sx={{ display: 'flex', gap: 1 }}>
-                              <Button size="small" variant="outlined" color="primary">
-                                Edit
-                              </Button>
-                              <Button size="small" variant="outlined" color="error">
-                                Remove
-                              </Button>
-                            </Box>
-                          </Box>
-                        </Paper>
+                          </Paper>
 
-                        {/* Split Payment Options */}
-                        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-                          <Button 
-                            size="medium" 
-                            variant="outlined" 
-                            color="success"
-                            startIcon={<MoneyIcon />}
-                            sx={{ flex: 1 }}
-                          >
-                            Split with Voucher
-                          </Button>
-                          <Button 
-                            size="medium" 
-                            variant="outlined" 
-                            color="warning"
-                            startIcon={<MoneyIcon />}
-                            sx={{ flex: 1 }}
-                          >
-                            Split with Points
-                          </Button>
+                          {/* Split Payment Options */}
+                          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                            <Button 
+                              size="small" 
+                              variant="outlined" 
+                              color="success"
+                              startIcon={<MoneyIcon />}
+                              sx={{ flex: 1 }}
+                            >
+                              Add Voucher
+                            </Button>
+                            <Button 
+                              size="small" 
+                              variant="outlined" 
+                              color="warning"
+                              startIcon={<MoneyIcon />}
+                              sx={{ flex: 1 }}
+                            >
+                              Use Points
+                            </Button>
+                          </Box>
                         </Box>
-                      </Box>
-                    </Paper>
+                      </Paper>
+                    ))}
                   </Box>
                 )}
 

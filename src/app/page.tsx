@@ -78,10 +78,40 @@ export default function PaymentPortal() {
       balance: number; 
       expirationDate: string;
     }[];
-    points?: { amount: number; accountId: string };
+    points?: { 
+      amount: number; 
+      accountId: string; 
+      memberNumber: string; 
+      pointsToUse: number;
+      awardReference: string;
+    };
   }}>({});
   // UI state: show credit card edit form in unified payment card
   const [showEditCard, setShowEditCard] = useState(false);
+  
+  // Error states for form validation
+  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
+  
+  // Mock frequent flyers data
+  const frequentFlyers = [
+    { memberNumber: '1234567', name: 'John Smith', points: 25000 },
+    { memberNumber: '2345678', name: 'Sarah Johnson', points: 18000 },
+    { memberNumber: '3456789', name: 'Michael Brown', points: 32000 }
+  ];
+  
+  // Helper function to set field error
+  const setFieldError = (fieldKey: string, error: string) => {
+    setFieldErrors(prev => ({ ...prev, [fieldKey]: error }));
+  };
+  
+  // Helper function to clear field error
+  const clearFieldError = (fieldKey: string) => {
+    setFieldErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors[fieldKey];
+      return newErrors;
+    });
+  };
   
 
   useEffect(() => {
@@ -389,7 +419,9 @@ export default function PaymentPortal() {
       if (method === 'points' && !current[itemKey].points) {
         current[itemKey].points = { 
           amount: remainingAmount, 
-          pointsAmount: 0, 
+          accountId: '', 
+          memberNumber: '', 
+          pointsToUse: 0,
           awardReference: '' 
         };
       }
@@ -422,6 +454,12 @@ export default function PaymentPortal() {
     value: string,
     voucherIndex?: number
   ) => {
+    console.log('🔧 updateMethodField called:');
+    console.log('📋 itemKey:', itemKey);
+    console.log('📋 method:', method);
+    console.log('📋 field:', field);
+    console.log('📋 value:', value);
+    console.log('📋 voucherIndex:', voucherIndex);
     
     setItemPaymentMethods(prev => {
       const next = { ...prev } as any;
@@ -429,7 +467,7 @@ export default function PaymentPortal() {
       
       // Coerce amount within remaining balance (excluding this method's previous value)
       let coercedAmount: number | string | null = null;
-      if (field === 'amount') {
+    if (field === 'amount' || field === 'pointsToUse') {
         // Allow empty while typing
         if (value === '') {
           coercedAmount = '';
@@ -453,13 +491,16 @@ export default function PaymentPortal() {
         } else if (method === 'voucher') {
           // For vouchers, use the specific voucher index
           const idx = typeof voucherIndex === 'number' ? voucherIndex : 0;
-          if (field === 'amount') {
-            currentAmountOfThisMethod = Number(methodsForItem?.vouchers?.[idx]?.amount) || 0;
-          } else if (field === 'balance') {
-            currentAmountOfThisMethod = Number(methodsForItem?.vouchers?.[idx]?.balance) || 0;
-          }
+            if (field === 'amount') {
+          currentAmountOfThisMethod = Number(methodsForItem?.vouchers?.[idx]?.amount) || 0;
+            }
         } else if (method === 'points') {
+          if (field === 'amount') {
           currentAmountOfThisMethod = Number(methodsForItem?.points?.amount) || 0;
+          } else if (field === 'pointsToUse') {
+            // For pointsToUse, convert to dollar amount for comparison
+            currentAmountOfThisMethod = (Number(methodsForItem?.points?.pointsToUse) || 0) / 50;
+          }
         }
 
         // Calculate total paid excluding the current method being edited
@@ -473,6 +514,14 @@ export default function PaymentPortal() {
           coercedAmount = remaining;
         } else {
           coercedAmount = numericNew;
+        }
+        
+        // Special handling for pointsToUse field - convert back to points
+        if (field === 'pointsToUse' && method === 'points') {
+          // For pointsToUse, we don't want to limit by remaining balance
+          // because the user is directly specifying the points to use
+          coercedAmount = numericNew;
+          console.log(`PointsToUse coercion: ${numericNew} -> ${coercedAmount} (no limit)`);
         }
         
         }
@@ -503,15 +552,15 @@ export default function PaymentPortal() {
         const idx = typeof voucherIndex === 'number' ? voucherIndex : 0;
         console.log('🎫 Updating voucher:', { idx, listLength: list.length, field, value, coercedAmount, listBefore: [...list] });
         if (idx < list.length) {
-            list[idx] = { 
-              ...(list[idx] || { 
-                amount: 0, 
+          list[idx] = { 
+            ...(list[idx] || { 
+              amount: 0, 
                 uatpNumber: '', 
                 balance: 0, 
                 expirationDate: '' 
-              }), 
+            }), 
               [field]: field === 'amount' || field === 'balance' ? (coercedAmount ?? 0) : value 
-            };
+          };
           console.log('🎫 Updated voucher:', list[idx]);
         }
         next[itemKey].vouchers = list;
@@ -520,12 +569,15 @@ export default function PaymentPortal() {
         next[itemKey].points = { 
           ...(next[itemKey].points || { 
             amount: 0, 
-            pointsAmount: 0, 
+            accountId: '', 
+            memberNumber: '', 
+            pointsToUse: 0,
             awardReference: '' 
           }), 
-          [field]: field === 'amount' ? (coercedAmount ?? 0) : value 
+          [field]: field === 'amount' || field === 'pointsToUse' ? (coercedAmount ?? 0) : value 
         };
       }
+      console.log('🔄 State updated, new state:', next);
       return next;
     });
   };
@@ -1497,50 +1549,50 @@ export default function PaymentPortal() {
 
                                         {/* Cardholder Name */}
                                         <Box sx={{ mb: 2.5 }}>
-                                          <TextField 
+                                        <TextField 
                                             fullWidth
                                             size="medium" 
-                                            sx={{ 
+                                          sx={{ 
                                               '& .MuiInputBase-root': { height: 48 }, 
                                               '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
                                               '& .MuiInputLabel-root': { fontSize: '0.9rem' }
-                                            }} 
-                                            label="Cardholder Name" 
-                                            placeholder="Full name as on card"
-                                            InputLabelProps={{ shrink: true }}
-                                            value={(paymentData?.credit?.holderName ?? '')} 
-                                            inputProps={{ suppressHydrationWarning: true }} 
-                                            onChange={(e) => updateMethodField(itemKey, 'credit', 'holderName', e.target.value)} 
-                                          />
+                                          }} 
+                                          label="Cardholder Name" 
+                                          placeholder="Full name as on card"
+                                          InputLabelProps={{ shrink: true }}
+                                          value={(paymentData?.credit?.holderName ?? '')} 
+                                          inputProps={{ suppressHydrationWarning: true }} 
+                                          onChange={(e) => updateMethodField(itemKey, 'credit', 'holderName', e.target.value)} 
+                                        />
                                         </Box>
 
                                         {/* Expiry and CVV */}
                                         <Box sx={{ display: 'flex', gap: 2, mb: 2.5 }}>
-                                          <TextField 
+                                        <TextField 
                                             size="medium" 
-                                            sx={{ 
+                                          sx={{ 
                                               flex: 1,
                                               '& .MuiInputBase-root': { height: 48 }, 
                                               '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
                                               '& .MuiInputLabel-root': { fontSize: '0.9rem' }
                                             }} 
                                             label="Expiry Date" 
-                                            placeholder="MM/YY"
-                                            InputLabelProps={{ shrink: true }}
-                                            value={(paymentData?.credit?.expiryDate ?? '')} 
-                                            inputProps={{ 
-                                              suppressHydrationWarning: true,
-                                              maxLength: 5,
-                                              inputMode: 'numeric'
-                                            }} 
-                                            onChange={(e) => {
-                                              let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
-                                              if (value.length >= 2) {
-                                                value = value.substring(0, 2) + '/' + value.substring(2, 4);
-                                              }
-                                              updateMethodField(itemKey, 'credit', 'expiryDate', value);
-                                            }} 
-                                          />
+                                          placeholder="MM/YY"
+                                          InputLabelProps={{ shrink: true }}
+                                          value={(paymentData?.credit?.expiryDate ?? '')} 
+                                          inputProps={{ 
+                                            suppressHydrationWarning: true,
+                                            maxLength: 5,
+                                            inputMode: 'numeric'
+                                          }} 
+                                          onChange={(e) => {
+                                            let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+                                            if (value.length >= 2) {
+                                              value = value.substring(0, 2) + '/' + value.substring(2, 4);
+                                            }
+                                            updateMethodField(itemKey, 'credit', 'expiryDate', value);
+                                          }} 
+                                        />
                                           <TextField 
                                             size="medium" 
                                             sx={{ 
@@ -1628,8 +1680,8 @@ export default function PaymentPortal() {
                                           </Typography>
                                           
                                           <Box sx={{ mb: 2.5 }}>
-                                            <TextField 
-                                              fullWidth
+                                          <TextField 
+                                            fullWidth 
                                               size="medium" 
                                               sx={{ 
                                                 '& .MuiInputBase-root': { height: 48 }, 
@@ -1637,58 +1689,140 @@ export default function PaymentPortal() {
                                                 '& .MuiInputLabel-root': { fontSize: '0.9rem' }
                                               }} 
                                               label="UATP Number" 
-                                              placeholder="Enter UATP number"
-                                              InputLabelProps={{ shrink: true }}
+                                              placeholder="1114-XXXXXXXXX"
+                                            InputLabelProps={{ shrink: true }}
                                               value={(paymentData?.vouchers?.[voucherIdx]?.uatpNumber ?? '')} 
-                                              inputProps={{ 
-                                                suppressHydrationWarning: true,
-                                                maxLength: 20
-                                              }} 
-                                              onChange={(e) => updateMethodField(itemKey, 'voucher', 'uatpNumber', e.target.value, voucherIdx)} 
-                                            />
-                                          </Box>
-
-                                          <Box sx={{ mb: 2.5 }}>
-                                            <Button
-                                              variant="outlined"
-                                              size="medium"
-                                              fullWidth
-                                              sx={{ 
-                                                height: 48,
-                                                fontSize: '0.9rem',
-                                                fontWeight: 500,
-                                                textTransform: 'none',
-                                                borderColor: 'primary.main',
-                                                color: 'primary.main',
-                                                '&:hover': {
-                                                  borderColor: 'primary.dark',
-                                                  backgroundColor: 'primary.50'
-                                                }
-                                              }}
-                                              onClick={() => {
-                                                const uatpNumber = paymentData?.vouchers?.[voucherIdx]?.uatpNumber;
-                                                if (!uatpNumber || uatpNumber.trim() === '') {
-                                                  alert('Please enter UATP number first');
+                                            inputProps={{ 
+                                              suppressHydrationWarning: true,
+                                              maxLength: 15
+                                            }} 
+                                              onChange={(e) => {
+                                                let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+                                                
+                                                // Clear error when user starts typing
+                                                const errorKey = `${itemKey}-voucher-${voucherIdx}-uatp`;
+                                                clearFieldError(errorKey);
+                                                
+                                                // If field is empty, allow it to be empty
+                                                if (value.length === 0) {
+                                                  updateMethodField(itemKey, 'voucher', 'uatpNumber', '', voucherIdx);
                                                   return;
                                                 }
                                                 
-                                                // TODO: Implement voucher balance check API call
-                                                console.log('Checking voucher balance for:', uatpNumber);
+                                                // Only add 1114 if user is typing something that doesn't start with 1114
+                                                // and the current value is not already a partial 1114 (like 111, 11, 1)
+                                                if (!value.startsWith('1114') && !value.startsWith('111') && !value.startsWith('11') && !value.startsWith('1')) {
+                                                  value = '1114' + value;
+                                                }
                                                 
-                                                // For now, simulate a balance check with loading
-                                                const mockBalance = Math.floor(Math.random() * 1000) + 100;
-                                                updateMethodField(itemKey, 'voucher', 'balance', mockBalance.toString(), voucherIdx);
+                                                // Limit to 14 digits (1114 + 10 more digits)
+                                                if (value.length > 14) {
+                                                  value = value.substring(0, 14);
+                                                }
                                                 
-                                                // Show success message
-                                                console.log(`Voucher balance checked: $${mockBalance}`);
-                                              }}
-                                            >
-                                              Check Voucher Balance
-                                            </Button>
+                                                // Format as 1114-XXXXXXXXX
+                                                let formatted = value;
+                                                if (value.length > 4) {
+                                                  formatted = value.substring(0, 4) + '-' + value.substring(4);
+                                                }
+                                                
+                                                updateMethodField(itemKey, 'voucher', 'uatpNumber', formatted, voucherIdx);
+                                              }} 
+                                            />
+                                            {fieldErrors[`${itemKey}-voucher-${voucherIdx}-uatp`] && (
+                                              <Typography 
+                                                variant="caption" 
+                                                sx={{ 
+                                                  color: 'error.main', 
+                                                  mt: 0.5, 
+                                                  display: 'block',
+                                                  fontSize: '0.75rem'
+                                                }}
+                                              >
+                                                {fieldErrors[`${itemKey}-voucher-${voucherIdx}-uatp`]}
+                                              </Typography>
+                                            )}
                                           </Box>
 
                                           <Box sx={{ display: 'flex', gap: 2, mb: 2.5 }}>
-                                            <TextField 
+                                            <Box sx={{ flex: 1, position: 'relative' }}>
+                                          <TextField 
+                                                size="medium" 
+                                            fullWidth 
+                                                sx={{ 
+                                                  '& .MuiInputBase-root': { height: 48, paddingRight: '120px' }, 
+                                                  '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
+                                                  '& .MuiInputLabel-root': { fontSize: '0.9rem' }
+                                                }} 
+                                                label="Balance" 
+                                                placeholder="$0.00"
+                                            InputLabelProps={{ shrink: true }}
+                                                type="number" 
+                                                value={(paymentData?.vouchers?.[voucherIdx]?.balance ?? '')} 
+                                                inputProps={{ suppressHydrationWarning: true }} 
+                                                onChange={(e) => updateMethodField(itemKey, 'voucher', 'balance', e.target.value, voucherIdx)} 
+                                              />
+                                              <Button
+                                                variant="outlined"
+                                                size="small"
+                                                sx={{ 
+                                                  position: 'absolute',
+                                                  right: 8,
+                                                  top: '50%',
+                                                  transform: 'translateY(-50%)',
+                                                  height: 32,
+                                                  minWidth: 'auto',
+                                                  px: 1.5,
+                                                  fontSize: '0.75rem',
+                                                  fontWeight: 500,
+                                                  textTransform: 'none',
+                                                  borderColor: 'primary.main',
+                                                  color: 'primary.main',
+                                                  '&:hover': {
+                                                    borderColor: 'primary.dark',
+                                                    backgroundColor: 'primary.50'
+                                                  }
+                                                }}
+                                                onClick={() => {
+                                                  const uatpNumber = paymentData?.vouchers?.[voucherIdx]?.uatpNumber;
+                                                  const errorKey = `${itemKey}-voucher-${voucherIdx}-uatp`;
+                                                  
+                                                  // Clear any existing error
+                                                  clearFieldError(errorKey);
+                                                  
+                                                  if (!uatpNumber || uatpNumber.trim() === '') {
+                                                    setFieldError(errorKey, 'Please enter UATP number first');
+                                                    return;
+                                                  }
+                                                  
+                                                  // Validate UATP number format (1114-XXXXXXXXX, 15 characters total)
+                                                  if (uatpNumber.length !== 15 || !uatpNumber.startsWith('1114-') || !/^1114-\d{10}$/.test(uatpNumber)) {
+                                                    setFieldError(errorKey, 'UATP number must be in format 1114-XXXXXXXXX (15 characters total)');
+                                                    return;
+                                                  }
+                                                  
+                                                  // TODO: Implement voucher balance check API call
+                                                  console.log('Checking voucher balance for:', uatpNumber);
+                                                  
+                                                  // For now, simulate a balance check with loading
+                                                  const mockBalance = Math.floor(Math.random() * 1000) + 100;
+                                                  updateMethodField(itemKey, 'voucher', 'balance', mockBalance.toString(), voucherIdx);
+                                                  
+                                                  // Check if current amount is greater than balance, and adjust if needed
+                                                  const currentAmount = Number(paymentData?.vouchers?.[voucherIdx]?.amount) || 0;
+                                                  if (currentAmount > mockBalance) {
+                                                    updateMethodField(itemKey, 'voucher', 'amount', mockBalance.toString(), voucherIdx);
+                                                    console.log(`Amount adjusted from $${currentAmount} to $${mockBalance} (voucher balance)`);
+                                                  }
+                                                  
+                                                  // Show success message
+                                                  console.log(`Voucher balance checked: $${mockBalance}`);
+                                                }}
+                                              >
+                                                Check
+                                              </Button>
+                                            </Box>
+                                          <TextField 
                                               size="medium" 
                                               sx={{ 
                                                 flex: 1,
@@ -1696,30 +1830,14 @@ export default function PaymentPortal() {
                                                 '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
                                                 '& .MuiInputLabel-root': { fontSize: '0.9rem' }
                                               }} 
-                                              label="Balance" 
-                                              placeholder="$0.00"
-                                              InputLabelProps={{ shrink: true }}
-                                              type="number" 
-                                              value={(paymentData?.vouchers?.[voucherIdx]?.balance ?? '')} 
-                                              inputProps={{ suppressHydrationWarning: true }} 
-                                              onChange={(e) => updateMethodField(itemKey, 'voucher', 'balance', e.target.value, voucherIdx)} 
-                                            />
-                                            <TextField 
-                                              size="medium" 
-                                              sx={{ 
-                                                flex: 1,
-                                                '& .MuiInputBase-root': { height: 48 }, 
-                                                '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
-                                                '& .MuiInputLabel-root': { fontSize: '0.9rem' }
-                                              }} 
-                                              label="Amount" 
-                                              placeholder="$0.00"
-                                              InputLabelProps={{ shrink: true }}
-                                              type="number" 
-                                              value={(paymentData?.vouchers?.[voucherIdx]?.amount ?? '')} 
-                                              inputProps={{ suppressHydrationWarning: true }} 
-                                              onChange={(e) => updateMethodField(itemKey, 'voucher', 'amount', e.target.value, voucherIdx)} 
-                                            />
+                                            label="Amount" 
+                                            placeholder="$0.00"
+                                            InputLabelProps={{ shrink: true }}
+                                            type="number" 
+                                            value={(paymentData?.vouchers?.[voucherIdx]?.amount ?? '')} 
+                                            inputProps={{ suppressHydrationWarning: true }} 
+                                            onChange={(e) => updateMethodField(itemKey, 'voucher', 'amount', e.target.value, voucherIdx)} 
+                                          />
                                           </Box>
 
                                           <Box>
@@ -1732,21 +1850,26 @@ export default function PaymentPortal() {
                                                 '& .MuiInputLabel-root': { fontSize: '0.9rem' }
                                               }} 
                                               label="Expiration Date" 
-                                              placeholder="MM/DD/YYYY"
+                                              placeholder="MM/YY"
                                               InputLabelProps={{ shrink: true }}
                                               value={(paymentData?.vouchers?.[voucherIdx]?.expirationDate ?? '')} 
                                               inputProps={{ 
                                                 suppressHydrationWarning: true,
-                                                maxLength: 10
+                                                maxLength: 5
                                               }} 
                                               onChange={(e) => {
                                                 let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+                                                
+                                                // Limit to 4 digits (MMYY)
+                                                if (value.length > 4) {
+                                                  value = value.substring(0, 4);
+                                                }
+                                                
+                                                // Format as MM/YY
                                                 if (value.length >= 2) {
                                                   value = value.substring(0, 2) + '/' + value.substring(2);
                                                 }
-                                                if (value.length >= 5) {
-                                                  value = value.substring(0, 5) + '/' + value.substring(5, 9);
-                                                }
+                                                
                                                 updateMethodField(itemKey, 'voucher', 'expirationDate', value, voucherIdx);
                                               }} 
                                             />
@@ -1768,58 +1891,275 @@ export default function PaymentPortal() {
                                         </Typography>
                                         
                                         <Box sx={{ mb: 2.5 }}>
-                                          <TextField 
-                                            fullWidth
-                                            size="medium" 
-                                            sx={{ 
-                                              '& .MuiInputBase-root': { height: 48 }, 
-                                              '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
-                                              '& .MuiInputLabel-root': { fontSize: '0.9rem' }
-                                            }} 
-                                            label="Points Amount" 
-                                            placeholder="0"
-                                            InputLabelProps={{ shrink: true }}
-                                            type="number" 
-                                            value={(paymentData?.points?.pointsAmount ?? 0)} 
-                                            inputProps={{ suppressHydrationWarning: true }} 
-                                            onChange={(e) => updateMethodField(itemKey, 'points', 'pointsAmount', e.target.value)} 
-                                          />
+                                          <Box sx={{ position: 'relative' }}>
+                                        <TextField 
+                                          fullWidth 
+                                              size="medium" 
+                                              sx={{ 
+                                                '& .MuiInputBase-root': { height: 48, paddingRight: '120px' }, 
+                                                '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
+                                                '& .MuiInputLabel-root': { fontSize: '0.9rem' }
+                                              }} 
+                                              label="Member Number" 
+                                              placeholder="Enter member number"
+                                          InputLabelProps={{ shrink: true }}
+                                              value={(paymentData?.points?.memberNumber ?? '')} 
+                                              inputProps={{ 
+                                                suppressHydrationWarning: true,
+                                                maxLength: 9
+                                              }} 
+                                              onChange={(e) => {
+                                                let value = e.target.value.replace(/\D/g, ''); // Only digits
+                                                
+                                                // Limit to 7-9 digits
+                                                if (value.length > 9) {
+                                                  value = value.substring(0, 9);
+                                                }
+                                                
+                                                // Clear error when user starts typing
+                                                const errorKey = `${itemKey}-points-member`;
+                                                clearFieldError(errorKey);
+                                                
+                                                updateMethodField(itemKey, 'points', 'memberNumber', value);
+                                              }} 
+                                            />
+                                            <Button
+                                              variant="outlined"
+                                          size="small" 
+                                              sx={{ 
+                                                position: 'absolute',
+                                                right: 8,
+                                                top: '50%',
+                                                transform: 'translateY(-50%)',
+                                                height: 32,
+                                                minWidth: 'auto',
+                                                px: 1.5,
+                                                fontSize: '0.75rem',
+                                                fontWeight: 500,
+                                                textTransform: 'none',
+                                                borderColor: 'primary.main',
+                                                color: 'primary.main',
+                                                '&:hover': {
+                                                  borderColor: 'primary.dark',
+                                                  backgroundColor: 'primary.50'
+                                                }
+                                              }}
+                                              onClick={() => {
+                                                const memberNumber = paymentData?.points?.memberNumber;
+                                                const errorKey = `${itemKey}-points-member`;
+                                                
+                                                // Clear any existing error
+                                                clearFieldError(errorKey);
+                                                
+                                                if (!memberNumber || memberNumber.trim() === '') {
+                                                  setFieldError(errorKey, 'Please enter member number first');
+                                                  return;
+                                                }
+                                                
+                                                // Validate member number length (7-9 digits)
+                                                if (memberNumber.length < 7 || memberNumber.length > 9) {
+                                                  setFieldError(errorKey, 'Member number must be 7-9 digits');
+                                                  return;
+                                                }
+                                                
+                                                // Check if member exists in frequent flyers
+                                                const member = frequentFlyers.find(f => f.memberNumber === memberNumber);
+                                                
+                                                if (member) {
+                                                  // Member found - update points to use with member's available points
+                                                  const currentPaymentAmount = Number(paymentData?.points?.amount) || 0;
+                                                  const requiredPoints = Math.round(currentPaymentAmount * 50); // 50 points = $1
+                                                  
+                                                  if (requiredPoints > member.points) {
+                                                    // Not enough points - use all available points
+                                                    const maxPaymentAmount = (member.points / 50).toFixed(2);
+                                                    updateMethodField(itemKey, 'points', 'amount', maxPaymentAmount);
+                                                    updateMethodField(itemKey, 'points', 'pointsToUse', member.points.toString());
+                                                    console.log(`Member found: ${member.name} with ${member.points} points. Using all ${member.points} points for $${maxPaymentAmount}`);
+                                                  } else {
+                                                    // Enough points - use required points
+                                                    updateMethodField(itemKey, 'points', 'pointsToUse', requiredPoints.toString());
+                                                    console.log(`Member found: ${member.name} with ${member.points} points. Using ${requiredPoints} points for $${currentPaymentAmount}`);
+                                                  }
+                                                } else {
+                                                  // Member not found - simulate random points
+                                                  const mockPoints = Math.floor(Math.random() * 50000) + 1000;
+                                                  const currentPaymentAmount = Number(paymentData?.points?.amount) || 0;
+                                                  const requiredPoints = Math.round(currentPaymentAmount * 50);
+                                                  
+                                                  if (requiredPoints > mockPoints) {
+                                                    // Not enough points - use all available points
+                                                    const maxPaymentAmount = (mockPoints / 50).toFixed(2);
+                                                    updateMethodField(itemKey, 'points', 'amount', maxPaymentAmount);
+                                                    updateMethodField(itemKey, 'points', 'pointsToUse', mockPoints.toString());
+                                                    console.log(`Member not found, simulated ${mockPoints} points. Using all ${mockPoints} points for $${maxPaymentAmount}`);
+                                                  } else {
+                                                    // Enough points - use required points
+                                                    updateMethodField(itemKey, 'points', 'pointsToUse', requiredPoints.toString());
+                                                    console.log(`Member not found, simulated ${mockPoints} points. Using ${requiredPoints} points for $${currentPaymentAmount}`);
+                                                  }
+                                                }
+                                              }}
+                                            >
+                                              Check
+                                            </Button>
+                                          </Box>
+                                          {fieldErrors[`${itemKey}-points-member`] && (
+                                            <Typography 
+                                              variant="caption" 
+                                              sx={{ 
+                                                color: 'error.main', 
+                                                mt: 0.5, 
+                                                display: 'block',
+                                                fontSize: '0.75rem'
+                                              }}
+                                            >
+                                              {fieldErrors[`${itemKey}-points-member`]}
+                                            </Typography>
+                                          )}
                                         </Box>
 
                                         <Box sx={{ mb: 2.5 }}>
                                           <TextField 
-                                            fullWidth
+                                          fullWidth 
                                             size="medium" 
                                             sx={{ 
                                               '& .MuiInputBase-root': { height: 48 }, 
                                               '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
                                               '& .MuiInputLabel-root': { fontSize: '0.9rem' }
                                             }} 
-                                            label="Award Reference" 
-                                            placeholder="AWD-XXXX"
-                                            InputLabelProps={{ shrink: true }}
-                                            value={(paymentData?.points?.awardReference ?? '')} 
-                                            inputProps={{ suppressHydrationWarning: true }} 
-                                            onChange={(e) => updateMethodField(itemKey, 'points', 'awardReference', e.target.value)} 
+                                            label="Award Master" 
+                                            placeholder="A123456"
+                                          InputLabelProps={{ shrink: true }}
+                                          value={(paymentData?.points?.awardReference ?? '')} 
+                                            inputProps={{ 
+                                              suppressHydrationWarning: true,
+                                              maxLength: 7
+                                            }} 
+                                            onChange={(e) => {
+                                              let value = e.target.value.toUpperCase().replace(/[^A0-9]/g, ''); // Only A and digits
+                                              
+                                              // Ensure it starts with A
+                                              if (value.length > 0 && !value.startsWith('A')) {
+                                                value = 'A' + value.replace(/A/g, '');
+                                              }
+                                              
+                                              // Limit to 7 characters (A + 6 digits)
+                                              if (value.length > 7) {
+                                                value = value.substring(0, 7);
+                                              }
+                                              
+                                              updateMethodField(itemKey, 'points', 'awardReference', value);
+                                            }} 
                                           />
                                         </Box>
 
-                                        <Box>
-                                          <TextField 
-                                            fullWidth
+                                        <Box sx={{ display: 'flex', gap: 2 }}>
+                                        <TextField 
                                             size="medium" 
                                             sx={{ 
+                                              flex: 1,
                                               '& .MuiInputBase-root': { height: 48 }, 
                                               '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
                                               '& .MuiInputLabel-root': { fontSize: '0.9rem' }
                                             }} 
-                                            label="Payment Amount" 
-                                            placeholder="$0.00"
+                                            label="Payment Amount ($)" 
+                                          placeholder="$0.00"
+                                          InputLabelProps={{ shrink: true }}
+                                          type="number" 
+                                          value={(paymentData?.points?.amount ?? '')} 
+                                          inputProps={{ suppressHydrationWarning: true }} 
+                                            onChange={(e) => {
+                                              console.log('🔄 Payment Amount onChange triggered');
+                                              console.log('📝 Input value:', e.target.value);
+                                              
+                                              const dollarAmount = parseFloat(e.target.value) || 0;
+                                              const pointsToUse = Math.round(dollarAmount * 50); // 50 points = $1
+                                              
+                                              console.log('💰 Dollar amount:', dollarAmount);
+                                              console.log('🎯 Points to use calculated:', pointsToUse);
+                                              
+                                              // Get available points from member check
+                                              const memberNumber = paymentData?.points?.memberNumber;
+                                              console.log('👤 Member number:', memberNumber);
+                                              
+                                              const member = frequentFlyers.find(f => f.memberNumber === memberNumber);
+                                              console.log('🔍 Member found:', member);
+                                              
+                                              if (member && pointsToUse > member.points) {
+                                                // Not enough points - limit to available points
+                                                const maxDollarAmount = (member.points / 50).toFixed(2);
+                                                console.log('⚠️ Limiting - not enough points');
+                                                console.log('📊 Max dollar amount:', maxDollarAmount);
+                                                console.log('📊 Member points:', member.points);
+                                                
+                                                updateMethodField(itemKey, 'points', 'amount', maxDollarAmount);
+                                                updateMethodField(itemKey, 'points', 'pointsToUse', member.points.toString());
+                                                console.log(`✅ Limited to ${member.points} points for $${maxDollarAmount}`);
+                                              } else {
+                                                // Update both fields
+                                                console.log('✅ Updating both fields normally');
+                                                console.log('📝 Setting amount to:', e.target.value);
+                                                console.log('📝 Setting pointsToUse to:', pointsToUse);
+                                                
+                                                updateMethodField(itemKey, 'points', 'amount', e.target.value);
+                                                updateMethodField(itemKey, 'points', 'pointsToUse', pointsToUse.toString());
+                                                console.log(`✅ Payment Amount: $${e.target.value} → Points to Use: ${pointsToUse}`);
+                                              }
+                                            }} 
+                                          />
+                                          <TextField 
+                                            size="medium" 
+                                            sx={{ 
+                                              flex: 1,
+                                              '& .MuiInputBase-root': { height: 48 }, 
+                                              '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
+                                              '& .MuiInputLabel-root': { fontSize: '0.9rem' }
+                                            }} 
+                                            label="Points to Use" 
+                                            placeholder="0"
                                             InputLabelProps={{ shrink: true }}
                                             type="number" 
-                                            value={(paymentData?.points?.amount ?? '')} 
+                                            value={(paymentData?.points?.pointsToUse ?? '')} 
                                             inputProps={{ suppressHydrationWarning: true }} 
-                                            onChange={(e) => updateMethodField(itemKey, 'points', 'amount', e.target.value)} 
+                                            onChange={(e) => {
+                                              console.log('🔄 Points to Use onChange triggered');
+                                              console.log('📝 Input value:', e.target.value);
+                                              
+                                              const pointsToUse = parseInt(e.target.value) || 0;
+                                              const dollarAmount = (pointsToUse / 50).toFixed(2); // 50 points = $1
+                                              
+                                              console.log('🎯 Points to use:', pointsToUse);
+                                              console.log('💰 Dollar amount calculated:', dollarAmount);
+                                              
+                                              // Get available points from member check
+                                              const memberNumber = paymentData?.points?.memberNumber;
+                                              console.log('👤 Member number:', memberNumber);
+                                              
+                                              const member = frequentFlyers.find(f => f.memberNumber === memberNumber);
+                                              console.log('🔍 Member found:', member);
+                                              
+                                              if (member && pointsToUse > member.points) {
+                                                // Not enough points - limit to available points
+                                                const maxDollarAmount = (member.points / 50).toFixed(2);
+                                                console.log('⚠️ Limiting - not enough points');
+                                                console.log('📊 Max dollar amount:', maxDollarAmount);
+                                                console.log('📊 Member points:', member.points);
+                                                
+                                                updateMethodField(itemKey, 'points', 'pointsToUse', member.points.toString());
+                                                updateMethodField(itemKey, 'points', 'amount', maxDollarAmount);
+                                                console.log(`✅ Limited to ${member.points} points for $${maxDollarAmount}`);
+                                              } else {
+                                                // Update both fields
+                                                console.log('✅ Updating both fields normally');
+                                                console.log('📝 Setting pointsToUse to:', e.target.value);
+                                                console.log('📝 Setting amount to:', dollarAmount);
+                                                
+                                                updateMethodField(itemKey, 'points', 'pointsToUse', e.target.value);
+                                                updateMethodField(itemKey, 'points', 'amount', dollarAmount);
+                                                console.log(`✅ Points to Use: ${e.target.value} → Payment Amount: $${dollarAmount}`);
+                                              }
+                                            }} 
                                           />
                                         </Box>
                                       </Box>

@@ -15,7 +15,11 @@ import {
   Divider,
   IconButton,
   Checkbox,
-  FormControlLabel
+  FormControlLabel,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel
 } from '@mui/material';
 import {
   Person as PersonIcon,
@@ -68,7 +72,12 @@ export default function PaymentPortal() {
   // Payment method assignments for each selected item
   const [itemPaymentMethods, setItemPaymentMethods] = useState<{[key: string]: {
     credit?: { amount: number; cardId: string };
-    vouchers?: { amount: number; voucherId: string }[];
+    vouchers?: { 
+      amount: number; 
+      uatpNumber: string; 
+      balance: number; 
+      expirationDate: string;
+    }[];
     points?: { amount: number; accountId: string };
   }}>({});
   // UI state: show credit card edit form in unified payment card
@@ -347,7 +356,9 @@ export default function PaymentPortal() {
             cardNumber: '', 
             holderName: '', 
             expiryDate: '', 
-            cvv: '' 
+            cvv: '',
+            idNumber: '',
+            installments: 1
           };
         } else {
           current[itemKey].credit.amount = remainingAmount;
@@ -365,8 +376,9 @@ export default function PaymentPortal() {
         // Only add a new voucher if the array doesn't have enough vouchers yet
         if (current[itemKey][key].length < voucherCountInForms + 1 && current[itemKey][key].length < 2) {
           current[itemKey][key].push({ 
-            voucherId: '', 
-            expiry: '', 
+            uatpNumber: '', 
+            balance: 0, 
+            expirationDate: '', 
             amount: remainingAmount 
           });
           console.log('🎫 Added new voucher, new length:', current[itemKey][key].length);
@@ -441,7 +453,11 @@ export default function PaymentPortal() {
         } else if (method === 'voucher') {
           // For vouchers, use the specific voucher index
           const idx = typeof voucherIndex === 'number' ? voucherIndex : 0;
-          currentAmountOfThisMethod = Number(methodsForItem?.vouchers?.[idx]?.amount) || 0;
+          if (field === 'amount') {
+            currentAmountOfThisMethod = Number(methodsForItem?.vouchers?.[idx]?.amount) || 0;
+          } else if (field === 'balance') {
+            currentAmountOfThisMethod = Number(methodsForItem?.vouchers?.[idx]?.balance) || 0;
+          }
         } else if (method === 'points') {
           currentAmountOfThisMethod = Number(methodsForItem?.points?.amount) || 0;
         }
@@ -460,6 +476,14 @@ export default function PaymentPortal() {
         }
         
         }
+      } else if (field === 'balance') {
+        // For balance field, allow any positive number without restriction
+        if (value === '') {
+          coercedAmount = '';
+        } else {
+          const numericNew = Number(value) || 0;
+          coercedAmount = Math.max(0, numericNew);
+        }
       }
       if (method === 'credit') {
         next[itemKey].credit = { 
@@ -468,7 +492,9 @@ export default function PaymentPortal() {
             cardNumber: '', 
             holderName: '', 
             expiryDate: '', 
-            cvv: '' 
+            cvv: '',
+            idNumber: '',
+            installments: 1
           }), 
           [field]: field === 'amount' ? (coercedAmount ?? 0) : value 
         };
@@ -477,14 +503,15 @@ export default function PaymentPortal() {
         const idx = typeof voucherIndex === 'number' ? voucherIndex : 0;
         console.log('🎫 Updating voucher:', { idx, listLength: list.length, field, value, coercedAmount, listBefore: [...list] });
         if (idx < list.length) {
-          list[idx] = { 
-            ...(list[idx] || { 
-              amount: 0, 
-              voucherId: '', 
-              expiry: '' 
-            }), 
-            [field]: field === 'amount' ? (coercedAmount ?? 0) : value 
-          };
+            list[idx] = { 
+              ...(list[idx] || { 
+                amount: 0, 
+                uatpNumber: '', 
+                balance: 0, 
+                expirationDate: '' 
+              }), 
+              [field]: field === 'amount' || field === 'balance' ? (coercedAmount ?? 0) : value 
+            };
           console.log('🎫 Updated voucher:', list[idx]);
         }
         next[itemKey].vouchers = list;
@@ -1390,35 +1417,67 @@ export default function PaymentPortal() {
                                         </IconButton>
                                       </Box>
                                     </Box>
-                                    {!expanded && (
-                                      <Typography variant="caption" color="text.secondary">
-                                        Click Edit to expand
-                                      </Typography>
-                                    )}
                                     {expanded && method === 'credit' && (
-                                      <Stack spacing={1}>
+                                      <Box sx={{ 
+                                        mt: 2, 
+                                        p: 3, 
+                                        bgcolor: 'grey.50', 
+                                        borderRadius: 2,
+                                        border: '1px solid',
+                                        borderColor: 'grey.200'
+                                      }}>
+                                        <Typography variant="subtitle2" sx={{ mb: 3, color: 'text.secondary', fontWeight: 600 }}>
+                                          Credit Card Details
+                                        </Typography>
+                                        
                                         {/* Card Type Indicator */}
                                         {(paymentData?.credit?.cardNumber ?? '').length > 0 && (
-                                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2.5 }}>
+                                            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
                                               Card Type:
                                             </Typography>
                                             <Chip 
                                               label={detectCardType(paymentData?.credit?.cardNumber ?? '')} 
                                               size="small" 
                                               color={detectCardType(paymentData?.credit?.cardNumber ?? '') === 'Unknown' ? 'default' : 'primary'}
-                                              sx={{ fontSize: '0.7rem', height: 20 }}
+                                              sx={{ fontSize: '0.75rem', height: 24, fontWeight: 500 }}
                                             />
                                           </Box>
                                         )}
                                         
-                                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+                                        {/* Payment Amount */}
+                                        <Box sx={{ mb: 2.5 }}>
                                           <TextField 
-                                            size="small" 
+                                            fullWidth
+                                            size="medium" 
                                             sx={{ 
-                                              flex: 2,
-                                              '& .MuiInputBase-root': { height: 36 }, 
-                                              '& .MuiInputBase-input': { py: 0.5, fontSize: '0.875rem' } 
+                                              '& .MuiInputBase-root': { height: 48 }, 
+                                              '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
+                                              '& .MuiInputLabel-root': { fontSize: '0.9rem' }
+                                            }} 
+                                            label="Payment Amount" 
+                                            placeholder="$0.00"
+                                            InputLabelProps={{ shrink: true }}
+                                            type="number" 
+                                            value={(() => {
+                                              const storedAmount = paymentData?.credit?.amount;
+                                              const fallbackAmount = getRemainingAmount(itemKey).remaining;
+                                              return (storedAmount === '' || storedAmount == null) ? fallbackAmount : storedAmount;
+                                            })()} 
+                                            inputProps={{ suppressHydrationWarning: true }} 
+                                            onChange={(e) => updateMethodField(itemKey, 'credit', 'amount', e.target.value)} 
+                                          />
+                                        </Box>
+
+                                        {/* Card Number */}
+                                        <Box sx={{ mb: 2.5 }}>
+                                          <TextField 
+                                            fullWidth
+                                            size="medium" 
+                                            sx={{ 
+                                              '& .MuiInputBase-root': { height: 48 }, 
+                                              '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
+                                              '& .MuiInputLabel-root': { fontSize: '0.9rem' }
                                             }} 
                                             label="Card Number" 
                                             placeholder="1234 5678 9012 3456"
@@ -1434,50 +1493,61 @@ export default function PaymentPortal() {
                                               updateMethodField(itemKey, 'credit', 'cardNumber', formatted);
                                             }} 
                                           />
-                                        <TextField 
-                                          size="small" 
-                                          sx={{ 
-                                            flex: 1.5,
-                                            '& .MuiInputBase-root': { height: 36 }, 
-                                            '& .MuiInputBase-input': { py: 0.5, fontSize: '0.875rem' } 
-                                          }} 
-                                          label="Cardholder Name" 
-                                          placeholder="Full name as on card"
-                                          InputLabelProps={{ shrink: true }}
-                                          value={(paymentData?.credit?.holderName ?? '')} 
-                                          inputProps={{ suppressHydrationWarning: true }} 
-                                          onChange={(e) => updateMethodField(itemKey, 'credit', 'holderName', e.target.value)} 
-                                        />
-                                        <TextField 
-                                          size="small" 
-                                          sx={{ 
-                                            flex: 0.8,
-                                            '& .MuiInputBase-root': { height: 36 }, 
-                                            '& .MuiInputBase-input': { py: 0.5, fontSize: '0.875rem' } 
-                                          }} 
-                                          label="Expiry" 
-                                          placeholder="MM/YY"
-                                          InputLabelProps={{ shrink: true }}
-                                          value={(paymentData?.credit?.expiryDate ?? '')} 
-                                          inputProps={{ 
-                                            suppressHydrationWarning: true,
-                                            maxLength: 5,
-                                            inputMode: 'numeric'
-                                          }} 
-                                          onChange={(e) => {
-                                            let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
-                                            if (value.length >= 2) {
-                                              value = value.substring(0, 2) + '/' + value.substring(2, 4);
-                                            }
-                                            updateMethodField(itemKey, 'credit', 'expiryDate', value);
-                                          }} 
-                                        />
+                                        </Box>
+
+                                        {/* Cardholder Name */}
+                                        <Box sx={{ mb: 2.5 }}>
                                           <TextField 
-                                            size="small" 
+                                            fullWidth
+                                            size="medium" 
                                             sx={{ 
-                                              flex: 0.7,
-                                              '& .MuiInputBase-root': { height: 36 }, 
-                                              '& .MuiInputBase-input': { py: 0.5, fontSize: '0.875rem' } 
+                                              '& .MuiInputBase-root': { height: 48 }, 
+                                              '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
+                                              '& .MuiInputLabel-root': { fontSize: '0.9rem' }
+                                            }} 
+                                            label="Cardholder Name" 
+                                            placeholder="Full name as on card"
+                                            InputLabelProps={{ shrink: true }}
+                                            value={(paymentData?.credit?.holderName ?? '')} 
+                                            inputProps={{ suppressHydrationWarning: true }} 
+                                            onChange={(e) => updateMethodField(itemKey, 'credit', 'holderName', e.target.value)} 
+                                          />
+                                        </Box>
+
+                                        {/* Expiry and CVV */}
+                                        <Box sx={{ display: 'flex', gap: 2, mb: 2.5 }}>
+                                          <TextField 
+                                            size="medium" 
+                                            sx={{ 
+                                              flex: 1,
+                                              '& .MuiInputBase-root': { height: 48 }, 
+                                              '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
+                                              '& .MuiInputLabel-root': { fontSize: '0.9rem' }
+                                            }} 
+                                            label="Expiry Date" 
+                                            placeholder="MM/YY"
+                                            InputLabelProps={{ shrink: true }}
+                                            value={(paymentData?.credit?.expiryDate ?? '')} 
+                                            inputProps={{ 
+                                              suppressHydrationWarning: true,
+                                              maxLength: 5,
+                                              inputMode: 'numeric'
+                                            }} 
+                                            onChange={(e) => {
+                                              let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+                                              if (value.length >= 2) {
+                                                value = value.substring(0, 2) + '/' + value.substring(2, 4);
+                                              }
+                                              updateMethodField(itemKey, 'credit', 'expiryDate', value);
+                                            }} 
+                                          />
+                                          <TextField 
+                                            size="medium" 
+                                            sx={{ 
+                                              flex: 1,
+                                              '& .MuiInputBase-root': { height: 48 }, 
+                                              '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
+                                              '& .MuiInputLabel-root': { fontSize: '0.9rem' }
                                             }} 
                                             label="CVV" 
                                             placeholder="123"
@@ -1493,120 +1563,266 @@ export default function PaymentPortal() {
                                               updateMethodField(itemKey, 'credit', 'cvv', value);
                                             }} 
                                           />
+                                        </Box>
+
+                                        {/* ID Number and Installments */}
+                                        <Box sx={{ display: 'flex', gap: 2 }}>
                                           <TextField 
-                                            size="small" 
+                                            size="medium" 
                                             sx={{ 
                                               flex: 1,
-                                              '& .MuiInputBase-root': { height: 36 }, 
-                                              '& .MuiInputBase-input': { py: 0.5, fontSize: '0.875rem' } 
+                                              '& .MuiInputBase-root': { height: 48 }, 
+                                              '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
+                                              '& .MuiInputLabel-root': { fontSize: '0.9rem' }
                                             }} 
-                                            label="Amount" 
-                                            placeholder="$0.00"
+                                            label="ID Number" 
+                                            placeholder="123456789"
                                             InputLabelProps={{ shrink: true }}
-                                            type="number" 
-                                            value={(() => {
-                                              const storedAmount = paymentData?.credit?.amount;
-                                              const fallbackAmount = getRemainingAmount(itemKey).remaining;
-                                              return (storedAmount === '' || storedAmount == null) ? fallbackAmount : storedAmount;
-                                            })()} 
-                                            inputProps={{ suppressHydrationWarning: true }} 
-                                            onChange={(e) => updateMethodField(itemKey, 'credit', 'amount', e.target.value)} 
+                                            value={(paymentData?.credit?.idNumber ?? '')} 
+                                            inputProps={{ 
+                                              suppressHydrationWarning: true,
+                                              maxLength: 9,
+                                              inputMode: 'numeric'
+                                            }} 
+                                            onChange={(e) => {
+                                              const value = e.target.value.replace(/\D/g, ''); // Only digits
+                                              updateMethodField(itemKey, 'credit', 'idNumber', value);
+                                            }} 
                                           />
-                                        </Stack>
-                                      </Stack>
+                                          <TextField 
+                                            size="medium" 
+                                            select
+                                            sx={{ 
+                                              flex: 1,
+                                              '& .MuiInputBase-root': { height: 48 }, 
+                                              '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
+                                              '& .MuiInputLabel-root': { fontSize: '0.9rem' }
+                                            }} 
+                                            label="Installments" 
+                                            value={(paymentData?.credit?.installments ?? 1)} 
+                                            onChange={(e) => updateMethodField(itemKey, 'credit', 'installments', e.target.value.toString())}
+                                            inputProps={{ suppressHydrationWarning: true }}
+                                          >
+                                            <MenuItem value={1}>1 Payment</MenuItem>
+                                            <MenuItem value={2}>2 Payments</MenuItem>
+                                            <MenuItem value={3}>3 Payments</MenuItem>
+                                            <MenuItem value={4}>4 Payments</MenuItem>
+                                            <MenuItem value={5}>5 Payments</MenuItem>
+                                          </TextField>
+                                        </Box>
+                                      </Box>
                                     )}
                                     {expanded && method === 'voucher' && (() => {
                                       const voucherIdx = formMethods.slice(0, idx).filter(m => m === 'voucher').length;
                                       return (
-                                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-                                          <TextField 
-                                            size="small" 
-                                            fullWidth 
-                                            label="Voucher Number" 
-                                            placeholder="VCH-0000"
-                                            InputLabelProps={{ shrink: true }}
-                                            value={(paymentData?.vouchers?.[voucherIdx]?.voucherId ?? '')} 
-                                            inputProps={{ 
-                                              suppressHydrationWarning: true,
-                                              maxLength: 15
-                                            }} 
-                                            sx={{ '& .MuiInputBase-root': { height: 36 }, '& .MuiInputBase-input': { py: 0.5, fontSize: '0.875rem' } }} 
-                                            onChange={(e) => updateMethodField(itemKey, 'voucher', 'voucherId', e.target.value, voucherIdx)} 
-                                          />
-                                          <TextField 
-                                            size="small" 
-                                            fullWidth 
-                                            label="Expiry" 
-                                            placeholder="MM/YY"
-                                            InputLabelProps={{ shrink: true }}
-                                            value={(paymentData?.vouchers?.[voucherIdx]?.expiry ?? '')} 
-                                            inputProps={{ 
-                                              suppressHydrationWarning: true,
-                                              maxLength: 5,
-                                              inputMode: 'numeric'
-                                            }} 
-                                            sx={{ '& .MuiInputBase-root': { height: 36 }, '& .MuiInputBase-input': { py: 0.5, fontSize: '0.875rem' } }} 
-                                            onChange={(e) => {
-                                              let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
-                                              if (value.length >= 2) {
-                                                value = value.substring(0, 2) + '/' + value.substring(2, 4);
-                                              }
-                                              updateMethodField(itemKey, 'voucher', 'expiry', value, voucherIdx);
-                                            }} 
-                                          />
-                                          <TextField 
-                                            size="small" 
-                                            fullWidth 
-                                            label="Amount" 
-                                            placeholder="$0.00"
-                                            InputLabelProps={{ shrink: true }}
-                                            type="number" 
-                                            value={(paymentData?.vouchers?.[voucherIdx]?.amount ?? '')} 
-                                            inputProps={{ suppressHydrationWarning: true }} 
-                                            sx={{ '& .MuiInputBase-root': { height: 36 }, '& .MuiInputBase-input': { py: 0.5, fontSize: '0.875rem' } }} 
-                                            onChange={(e) => updateMethodField(itemKey, 'voucher', 'amount', e.target.value, voucherIdx)} 
-                                          />
-                                        </Stack>
+                                        <Box sx={{ 
+                                          mt: 2, 
+                                          p: 3, 
+                                          bgcolor: 'grey.50', 
+                                          borderRadius: 2,
+                                          border: '1px solid',
+                                          borderColor: 'grey.200'
+                                        }}>
+                                          <Typography variant="subtitle2" sx={{ mb: 3, color: 'text.secondary', fontWeight: 600 }}>
+                                            UATP Voucher Details
+                                          </Typography>
+                                          
+                                          <Box sx={{ mb: 2.5 }}>
+                                            <TextField 
+                                              fullWidth
+                                              size="medium" 
+                                              sx={{ 
+                                                '& .MuiInputBase-root': { height: 48 }, 
+                                                '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
+                                                '& .MuiInputLabel-root': { fontSize: '0.9rem' }
+                                              }} 
+                                              label="UATP Number" 
+                                              placeholder="Enter UATP number"
+                                              InputLabelProps={{ shrink: true }}
+                                              value={(paymentData?.vouchers?.[voucherIdx]?.uatpNumber ?? '')} 
+                                              inputProps={{ 
+                                                suppressHydrationWarning: true,
+                                                maxLength: 20
+                                              }} 
+                                              onChange={(e) => updateMethodField(itemKey, 'voucher', 'uatpNumber', e.target.value, voucherIdx)} 
+                                            />
+                                          </Box>
+
+                                          <Box sx={{ mb: 2.5 }}>
+                                            <Button
+                                              variant="outlined"
+                                              size="medium"
+                                              fullWidth
+                                              sx={{ 
+                                                height: 48,
+                                                fontSize: '0.9rem',
+                                                fontWeight: 500,
+                                                textTransform: 'none',
+                                                borderColor: 'primary.main',
+                                                color: 'primary.main',
+                                                '&:hover': {
+                                                  borderColor: 'primary.dark',
+                                                  backgroundColor: 'primary.50'
+                                                }
+                                              }}
+                                              onClick={() => {
+                                                const uatpNumber = paymentData?.vouchers?.[voucherIdx]?.uatpNumber;
+                                                if (!uatpNumber || uatpNumber.trim() === '') {
+                                                  alert('Please enter UATP number first');
+                                                  return;
+                                                }
+                                                
+                                                // TODO: Implement voucher balance check API call
+                                                console.log('Checking voucher balance for:', uatpNumber);
+                                                
+                                                // For now, simulate a balance check with loading
+                                                const mockBalance = Math.floor(Math.random() * 1000) + 100;
+                                                updateMethodField(itemKey, 'voucher', 'balance', mockBalance.toString(), voucherIdx);
+                                                
+                                                // Show success message
+                                                console.log(`Voucher balance checked: $${mockBalance}`);
+                                              }}
+                                            >
+                                              Check Voucher Balance
+                                            </Button>
+                                          </Box>
+
+                                          <Box sx={{ display: 'flex', gap: 2, mb: 2.5 }}>
+                                            <TextField 
+                                              size="medium" 
+                                              sx={{ 
+                                                flex: 1,
+                                                '& .MuiInputBase-root': { height: 48 }, 
+                                                '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
+                                                '& .MuiInputLabel-root': { fontSize: '0.9rem' }
+                                              }} 
+                                              label="Balance" 
+                                              placeholder="$0.00"
+                                              InputLabelProps={{ shrink: true }}
+                                              type="number" 
+                                              value={(paymentData?.vouchers?.[voucherIdx]?.balance ?? '')} 
+                                              inputProps={{ suppressHydrationWarning: true }} 
+                                              onChange={(e) => updateMethodField(itemKey, 'voucher', 'balance', e.target.value, voucherIdx)} 
+                                            />
+                                            <TextField 
+                                              size="medium" 
+                                              sx={{ 
+                                                flex: 1,
+                                                '& .MuiInputBase-root': { height: 48 }, 
+                                                '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
+                                                '& .MuiInputLabel-root': { fontSize: '0.9rem' }
+                                              }} 
+                                              label="Amount" 
+                                              placeholder="$0.00"
+                                              InputLabelProps={{ shrink: true }}
+                                              type="number" 
+                                              value={(paymentData?.vouchers?.[voucherIdx]?.amount ?? '')} 
+                                              inputProps={{ suppressHydrationWarning: true }} 
+                                              onChange={(e) => updateMethodField(itemKey, 'voucher', 'amount', e.target.value, voucherIdx)} 
+                                            />
+                                          </Box>
+
+                                          <Box>
+                                            <TextField 
+                                              fullWidth
+                                              size="medium" 
+                                              sx={{ 
+                                                '& .MuiInputBase-root': { height: 48 }, 
+                                                '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
+                                                '& .MuiInputLabel-root': { fontSize: '0.9rem' }
+                                              }} 
+                                              label="Expiration Date" 
+                                              placeholder="MM/DD/YYYY"
+                                              InputLabelProps={{ shrink: true }}
+                                              value={(paymentData?.vouchers?.[voucherIdx]?.expirationDate ?? '')} 
+                                              inputProps={{ 
+                                                suppressHydrationWarning: true,
+                                                maxLength: 10
+                                              }} 
+                                              onChange={(e) => {
+                                                let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+                                                if (value.length >= 2) {
+                                                  value = value.substring(0, 2) + '/' + value.substring(2);
+                                                }
+                                                if (value.length >= 5) {
+                                                  value = value.substring(0, 5) + '/' + value.substring(5, 9);
+                                                }
+                                                updateMethodField(itemKey, 'voucher', 'expirationDate', value, voucherIdx);
+                                              }} 
+                                            />
+                                          </Box>
+                                        </Box>
                                       );
                                     })()}
                                     {expanded && method === 'points' && (
-                                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-                                        <TextField 
-                                          size="small" 
-                                          fullWidth 
-                                          label="Points" 
-                                          placeholder="0"
-                                          InputLabelProps={{ shrink: true }}
-                                          type="number" 
-                                          value={(paymentData?.points?.pointsAmount ?? 0)} 
-                                          inputProps={{ suppressHydrationWarning: true }} 
-                                          sx={{ '& .MuiInputBase-root': { height: 36 }, '& .MuiInputBase-input': { py: 0.5, fontSize: '0.875rem' } }} 
-                                          onChange={(e) => updateMethodField(itemKey, 'points', 'pointsAmount', e.target.value)} 
-                                        />
-                                        <TextField 
-                                          size="small" 
-                                          fullWidth 
-                                          label="Award Ref" 
-                                          placeholder="AWD-XXXX"
-                                          InputLabelProps={{ shrink: true }}
-                                          value={(paymentData?.points?.awardReference ?? '')} 
-                                          inputProps={{ suppressHydrationWarning: true }} 
-                                          sx={{ '& .MuiInputBase-root': { height: 36 }, '& .MuiInputBase-input': { py: 0.5, fontSize: '0.875rem' } }} 
-                                          onChange={(e) => updateMethodField(itemKey, 'points', 'awardReference', e.target.value)} 
-                                        />
-                                        <TextField 
-                                          size="small" 
-                                          fullWidth 
-                                          label="Amount" 
-                                          placeholder="$0.00"
-                                          InputLabelProps={{ shrink: true }}
-                                          type="number" 
-                                          value={(paymentData?.points?.amount ?? '')} 
-                                          inputProps={{ suppressHydrationWarning: true }} 
-                                          sx={{ '& .MuiInputBase-root': { height: 36 }, '& .MuiInputBase-input': { py: 0.5, fontSize: '0.875rem' } }} 
-                                          onChange={(e) => updateMethodField(itemKey, 'points', 'amount', e.target.value)} 
-                                        />
-                                      </Stack>
+                                      <Box sx={{ 
+                                        mt: 2, 
+                                        p: 3, 
+                                        bgcolor: 'grey.50', 
+                                        borderRadius: 2,
+                                        border: '1px solid',
+                                        borderColor: 'grey.200'
+                                      }}>
+                                        <Typography variant="subtitle2" sx={{ mb: 3, color: 'text.secondary', fontWeight: 600 }}>
+                                          Points Details
+                                        </Typography>
+                                        
+                                        <Box sx={{ mb: 2.5 }}>
+                                          <TextField 
+                                            fullWidth
+                                            size="medium" 
+                                            sx={{ 
+                                              '& .MuiInputBase-root': { height: 48 }, 
+                                              '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
+                                              '& .MuiInputLabel-root': { fontSize: '0.9rem' }
+                                            }} 
+                                            label="Points Amount" 
+                                            placeholder="0"
+                                            InputLabelProps={{ shrink: true }}
+                                            type="number" 
+                                            value={(paymentData?.points?.pointsAmount ?? 0)} 
+                                            inputProps={{ suppressHydrationWarning: true }} 
+                                            onChange={(e) => updateMethodField(itemKey, 'points', 'pointsAmount', e.target.value)} 
+                                          />
+                                        </Box>
+
+                                        <Box sx={{ mb: 2.5 }}>
+                                          <TextField 
+                                            fullWidth
+                                            size="medium" 
+                                            sx={{ 
+                                              '& .MuiInputBase-root': { height: 48 }, 
+                                              '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
+                                              '& .MuiInputLabel-root': { fontSize: '0.9rem' }
+                                            }} 
+                                            label="Award Reference" 
+                                            placeholder="AWD-XXXX"
+                                            InputLabelProps={{ shrink: true }}
+                                            value={(paymentData?.points?.awardReference ?? '')} 
+                                            inputProps={{ suppressHydrationWarning: true }} 
+                                            onChange={(e) => updateMethodField(itemKey, 'points', 'awardReference', e.target.value)} 
+                                          />
+                                        </Box>
+
+                                        <Box>
+                                          <TextField 
+                                            fullWidth
+                                            size="medium" 
+                                            sx={{ 
+                                              '& .MuiInputBase-root': { height: 48 }, 
+                                              '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
+                                              '& .MuiInputLabel-root': { fontSize: '0.9rem' }
+                                            }} 
+                                            label="Payment Amount" 
+                                            placeholder="$0.00"
+                                            InputLabelProps={{ shrink: true }}
+                                            type="number" 
+                                            value={(paymentData?.points?.amount ?? '')} 
+                                            inputProps={{ suppressHydrationWarning: true }} 
+                                            onChange={(e) => updateMethodField(itemKey, 'points', 'amount', e.target.value)} 
+                                          />
+                                        </Box>
+                                      </Box>
                                     )}
                                   </Paper>
                                 );})}

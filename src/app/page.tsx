@@ -320,9 +320,18 @@ export default function PaymentPortal() {
         return sum + passenger.ticket.price + passenger.ancillaries.seat.price + passenger.ancillaries.bag.price;
       }, 0);
 
+      // Clean data before saving to prevent undefined values
+      const cleanedReservation = {
+        ...newReservation,
+        createdBy: newReservation.createdBy || 'system',
+        lastModifiedBy: newReservation.lastModifiedBy || 'system',
+        createdAt: newReservation.createdAt || new Date(),
+        updatedAt: newReservation.updatedAt || new Date()
+      };
+
       // Save to database
       const { ReservationService } = await import('../lib/reservationService');
-      await ReservationService.createReservation(newReservation);
+      await ReservationService.createReservation(cleanedReservation);
       
       setNewReservationCode(newCode);
       setCurrentReservation(newReservation);
@@ -1412,7 +1421,7 @@ export default function PaymentPortal() {
               
               <Paper sx={{ p: 2, bgcolor: 'grey.100', m: 2, mt: 0 }}>
                 <Typography variant="body2" color="text.secondary">
-                  {passengersWithSelectedItems.length} passengers selected
+                  {selectedPassengers.length} passengers selected
                 </Typography>
               </Paper>
             </Card>

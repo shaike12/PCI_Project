@@ -36,7 +36,12 @@ export function PaymentMethodCreditForm({ itemKey, paymentData, updateMethodFiel
           type="number" 
           value={(storedAmount === '' || storedAmount == null) ? fallbackAmount : (typeof storedAmount === 'string' ? parseFloat(storedAmount) || 0 : storedAmount)} 
           inputProps={{ suppressHydrationWarning: true }} 
-          onChange={(e) => updateMethodField(itemKey, 'credit', 'amount', e.target.value)} 
+          onChange={(e) => {
+            const value = parseFloat(e.target.value) || 0;
+            if (value <= amounts.remaining) {
+              updateMethodField(itemKey, 'credit', 'amount', e.target.value);
+            }
+          }} 
         />
       </Box>
       

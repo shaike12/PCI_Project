@@ -38,7 +38,12 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
           type="number" 
           value={(storedAmount === '' || storedAmount == null) ? fallbackAmount : (typeof storedAmount === 'string' ? parseFloat(storedAmount) || 0 : storedAmount)} 
           inputProps={{ suppressHydrationWarning: true }} 
-          onChange={(e) => updateMethodField(itemKey, 'voucher', 'amount', e.target.value, voucherIndex)} 
+          onChange={(e) => {
+            const value = parseFloat(e.target.value) || 0;
+            if (value <= amounts.remaining) {
+              updateMethodField(itemKey, 'voucher', 'amount', e.target.value, voucherIndex);
+            }
+          }} 
         />
       </Box>
       

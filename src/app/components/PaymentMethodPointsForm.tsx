@@ -72,9 +72,11 @@ export function PaymentMethodPointsForm({ itemKey, paymentData, updateMethodFiel
           inputProps={{ suppressHydrationWarning: true }} 
           onChange={(e) => {
             const dollarAmount = parseFloat(e.target.value) || 0;
-            const pointsToUse = Math.round(dollarAmount * 50); // 50 points = $1
-            updateMethodField(itemKey, 'points', 'amount', e.target.value);
-            updateMethodField(itemKey, 'points', 'pointsToUse', pointsToUse.toString());
+            if (dollarAmount <= amounts.remaining) {
+              const pointsToUse = Math.round(dollarAmount * 50); // 50 points = $1
+              updateMethodField(itemKey, 'points', 'amount', e.target.value);
+              updateMethodField(itemKey, 'points', 'pointsToUse', pointsToUse.toString());
+            }
           }} 
         />
       </Box>

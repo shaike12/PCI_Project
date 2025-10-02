@@ -71,7 +71,8 @@ export function PaymentMethodCard({
           {!expanded && methodAmount > 0 && (
             <Box sx={{ flex: 1, mx: 2 }}>
               <Slider
-                value={methodAmount}
+                key={`${itemKey}-${method}-${idx}-slider`}
+                value={Math.max(0, methodAmount)}
                 min={0}
                 max={(() => {
                   const amounts = getRemainingAmount(itemKey);
@@ -80,21 +81,23 @@ export function PaymentMethodCard({
                     const pointsBalance = paymentData?.points?.balance;
                     if (pointsBalance && pointsBalance > 0) {
                       const maxFromPoints = pointsBalance / 50; // 50 points = $1
-                      return Math.min(methodAmount + amounts.remaining, maxFromPoints);
+                      return Math.max(0, Math.min(methodAmount + amounts.remaining, maxFromPoints));
                     }
                   }
-                  return methodAmount + amounts.remaining;
+                  return Math.max(0, methodAmount + amounts.remaining);
                 })()}
                 step={1}
                 onChange={(_e: Event, newValue: number | number[]) => {
                   const value = typeof newValue === 'number' ? newValue : newValue[0];
-                  if (method === 'credit') {
-                    updateMethodField(itemKey, 'credit', 'amount', value.toString());
-                  } else if (method === 'voucher') {
-                    const voucherIdx = formMethods.slice(0, idx).filter(m => m === 'voucher').length;
-                    updateMethodField(itemKey, 'voucher', 'amount', value.toString(), voucherIdx);
-                  } else if (method === 'points') {
-                    updateMethodField(itemKey, 'points', 'amount', value.toString());
+                  if (value !== undefined && value !== null && !isNaN(value)) {
+                    if (method === 'credit') {
+                      updateMethodField(itemKey, 'credit', 'amount', value.toString());
+                    } else if (method === 'voucher') {
+                      const voucherIdx = formMethods.slice(0, idx).filter(m => m === 'voucher').length;
+                      updateMethodField(itemKey, 'voucher', 'amount', value.toString(), voucherIdx);
+                    } else if (method === 'points') {
+                      updateMethodField(itemKey, 'points', 'amount', value.toString());
+                    }
                   }
                 }}
                 size="small"

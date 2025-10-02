@@ -50,6 +50,7 @@ import {
   toggleAllItemsForPassenger as toggleAllItemsForPassengerUtil,
   isItemSelected as isItemSelectedUtil
 } from './utils/passengerLogic';
+import { clearAllLocalStorage } from './utils/localStorage';
 
 
 interface Passenger {
@@ -94,6 +95,20 @@ export default function PaymentPortal() {
       setItemMethodForms({});
       setItemExpandedMethod({});
       console.log('🗑️ All payment methods cleared');
+    }
+  };
+
+  // Clear all localStorage data (including incorrect data)
+  const clearAllData = () => {
+    if (window.confirm('Are you sure you want to clear all saved data? This will remove all payment methods and selections.')) {
+      clearAllLocalStorage();
+      setItemPaymentMethods({});
+      setItemMethodForms({});
+      setItemExpandedMethod({});
+      setSelectedPassengers([]);
+      setSelectedItems({});
+      setActivePaymentPassenger('');
+      console.log('🗑️ All data cleared');
     }
   };
 
@@ -1138,6 +1153,7 @@ export default function PaymentPortal() {
                   <PaymentMethodsSummary 
                     itemPaymentMethods={itemPaymentMethods}
                     onClearAll={clearAllPaymentMethods}
+                    onClearAllData={clearAllData}
                   />
 
                   <TotalSummary 

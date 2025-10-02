@@ -63,3 +63,13 @@ export const clearProgressFromLocalStorage = (): void => {
     console.error('Error clearing progress from localStorage:', error);
   }
 };
+
+// Clear all localStorage data
+export const clearAllLocalStorage = (): void => {
+  try {
+    localStorage.clear();
+    console.log('🗑️ All localStorage data cleared');
+  } catch (error) {
+    console.error('Error clearing localStorage:', error);
+  }
+};

@@ -23,9 +23,10 @@ export type ItemPaymentMethods = Record<string, MethodsForItem>;
 interface PaymentMethodsSummaryProps {
   itemPaymentMethods: ItemPaymentMethods;
   onClearAll: () => void;
+  onClearAllData?: () => void;
 }
 
-export function PaymentMethodsSummary({ itemPaymentMethods, onClearAll }: PaymentMethodsSummaryProps) {
+export function PaymentMethodsSummary({ itemPaymentMethods, onClearAll, onClearAllData }: PaymentMethodsSummaryProps) {
   let totalCreditAmount = 0;
   let totalVoucherAmount = 0;
   let totalPointsAmount = 0;
@@ -105,6 +106,38 @@ export function PaymentMethodsSummary({ itemPaymentMethods, onClearAll }: Paymen
                 },
               }}
               title="Clear All Payment Methods"
+            >
+              <DeleteIcon fontSize="small" />
+            </Box>
+          )}
+          {onClearAllData && (
+            <Box
+              onClick={onClearAllData}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onClearAllData();
+                }
+              }}
+              sx={{
+                ml: 1,
+                color: 'warning.main',
+                border: 1,
+                borderColor: 'warning.main',
+                width: 32,
+                height: 32,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 1,
+                cursor: 'pointer',
+                '&:hover': {
+                  backgroundColor: 'warning.50',
+                  borderColor: 'warning.dark',
+                },
+              }}
+              title="Clear All Data (including incorrect data)"
             >
               <DeleteIcon fontSize="small" />
             </Box>

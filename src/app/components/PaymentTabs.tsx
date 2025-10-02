@@ -113,14 +113,40 @@ export function PaymentTabs(props: PaymentTabsProps) {
             }
           };
           
+          // Calculate total remaining amount for this passenger
+          const passengerRemaining = (selectedItems[pid] || []).reduce((total, itemType) => {
+            const itemKey = `${pid}-${itemType}`;
+            const amounts = getRemainingAmount(itemKey);
+            return total + amounts.remaining;
+          }, 0);
+          
           return (
             <Tab 
               key={pid}
               value={pid}
               label={
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  {unpaidItems.map(itemType => getIcon(itemType))}
-                  <span>{passenger.name}</span>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexDirection: 'column' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    {unpaidItems.map(itemType => getIcon(itemType))}
+                    <span>{passenger.name}</span>
+                  </Box>
+                  {passengerRemaining > 0 ? (
+                    <Typography variant="caption" sx={{ 
+                      color: 'error.main', 
+                      fontWeight: 'bold',
+                      fontSize: '0.7rem'
+                    }}>
+                      ${passengerRemaining.toLocaleString()} remaining
+                    </Typography>
+                  ) : (
+                    <Typography variant="caption" sx={{ 
+                      color: 'success.main', 
+                      fontWeight: 'bold',
+                      fontSize: '0.7rem'
+                    }}>
+                      Fully paid
+                    </Typography>
+                  )}
                 </Box>
               }
               sx={{

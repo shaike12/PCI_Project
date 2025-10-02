@@ -15,7 +15,8 @@ import {
   Grid,
   Container,
   IconButton,
-  Avatar
+  Avatar,
+  Button
 } from '@mui/material';
 import {
   Person as PersonIcon,
@@ -71,6 +72,8 @@ export default function PaymentPortal() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [currentReservation, setCurrentReservation] = useState<Reservation | null>(null);
   const [reservationCode, setReservationCode] = useState('');
+  const [newReservationCode, setNewReservationCode] = useState<string | null>(null);
+  const [isCreatingReservation, setIsCreatingReservation] = useState(false);
 
   // Handle payment confirmation
   const handleConfirmPayment = async () => {
@@ -186,6 +189,159 @@ export default function PaymentPortal() {
     } catch (error) {
       console.error('Error loading reservation:', error);
       alert('Failed to load reservation');
+    }
+  };
+
+  const handleCreateNewReservation = async () => {
+    if (isCreatingReservation) return;
+    
+    setIsCreatingReservation(true);
+    try {
+      // Generate random reservation code
+      const newCode = 'NEW' + Math.random().toString(36).substr(2, 6).toUpperCase();
+      
+      // Create new reservation with 3+ passengers
+      const newReservation: Reservation = {
+        id: `new-${Date.now()}`,
+        reservationCode: newCode,
+        passengers: [
+          {
+            id: '1',
+            name: 'John Smith',
+            ticket: {
+              status: 'Unpaid',
+              price: 450,
+              flightNumber: 'AA123',
+              seatNumber: '12A'
+            },
+            ancillaries: {
+              seat: {
+                status: 'Paid',
+                price: 50,
+                seatNumber: '12A',
+                seatType: 'Standard'
+              },
+              bag: {
+                status: 'Unpaid',
+                price: 75,
+                weight: 23,
+                bagType: 'Checked'
+              }
+            }
+          },
+          {
+            id: '2',
+            name: 'Sarah Johnson',
+            ticket: {
+              status: 'Paid',
+              price: 380,
+              flightNumber: 'AA123',
+              seatNumber: '12B'
+            },
+            ancillaries: {
+              seat: {
+                status: 'Unpaid',
+                price: 75,
+                seatNumber: '12B',
+                seatType: 'Premium'
+              },
+              bag: {
+                status: 'Paid',
+                price: 60,
+                weight: 20,
+                bagType: 'Checked'
+              }
+            }
+          },
+          {
+            id: '3',
+            name: 'Michael Brown',
+            ticket: {
+              status: 'Unpaid',
+              price: 520,
+              flightNumber: 'AA123',
+              seatNumber: '12C'
+            },
+            ancillaries: {
+              seat: {
+                status: 'Unpaid',
+                price: 100,
+                seatNumber: '12C',
+                seatType: 'Business'
+              },
+              bag: {
+                status: 'Unpaid',
+                price: 80,
+                weight: 25,
+                bagType: 'Checked'
+              }
+            }
+          },
+          {
+            id: '4',
+            name: 'Emily Davis',
+            ticket: {
+              status: 'Unpaid',
+              price: 420,
+              flightNumber: 'AA123',
+              seatNumber: '12D'
+            },
+            ancillaries: {
+              seat: {
+                status: 'Unpaid',
+                price: 50,
+                seatNumber: '12D',
+                seatType: 'Standard'
+              },
+              bag: {
+                status: 'Unpaid',
+                price: 0,
+                weight: 0,
+                bagType: 'Carry-on'
+              }
+            }
+          }
+        ],
+        total: 0, // Will be calculated
+        status: 'Active',
+        createdAt: new Date(),
+        createdBy: 'system',
+        lastModifiedBy: 'system',
+        updatedAt: new Date(),
+        metadata: {
+          source: 'Manual',
+          notes: 'New reservation created via portal',
+          tags: ['new', 'portal-created']
+        }
+      };
+
+      // Calculate total
+      newReservation.total = newReservation.passengers.reduce((sum, passenger) => {
+        return sum + passenger.ticket.price + passenger.ancillaries.seat.price + passenger.ancillaries.bag.price;
+      }, 0);
+
+      // Save to database
+      const { ReservationService } = await import('../lib/reservationService');
+      await ReservationService.createReservation(newReservation);
+      
+      setNewReservationCode(newCode);
+      setCurrentReservation(newReservation);
+      setReservationCode(newCode);
+      
+      // Clear selections
+      setSelectedPassengers([]);
+      setSelectedItems({});
+      setItemPaymentMethods({});
+      setItemMethodForms({});
+      setItemExpandedMethod({});
+      setActivePaymentPassenger('');
+      
+      alert(`New reservation created: ${newCode}`);
+    } catch (error) {
+      console.error('Error creating reservation:', error);
+      alert('Failed to create new reservation');
+    } finally {
+      setIsCreatingReservation(false);
     }
   };
 
@@ -714,7 +870,26 @@ export default function PaymentPortal() {
           <Typography variant="h3" component="h1" sx={{ fontWeight: 'bold', color: 'grey.800' }}>
           PCI
         </Typography>
-          <Box sx={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+          <Box sx={{ flex: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 2 }}>
+            {newReservationCode && (
+              <Typography variant="body2" sx={{ color: 'success.main', fontWeight: 'bold' }}>
+                Created: {newReservationCode}
+              </Typography>
+            )}
+            <Button
+              variant="contained"
+              color="primary"
+              size="small"
+              onClick={handleCreateNewReservation}
+              disabled={isCreatingReservation}
+              sx={{ 
+                minWidth: 120,
+                textTransform: 'none',
+                fontWeight: 'bold'
+              }}
+            >
+              {isCreatingReservation ? 'Creating...' : 'New Reservation'}
+            </Button>
             <UserMenu 
               onSyncToCloud={syncToFirebase}
               onSyncFromCloud={syncFromFirebase}

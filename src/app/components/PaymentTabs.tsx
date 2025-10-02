@@ -12,9 +12,7 @@ import CreditCardIcon from "@mui/icons-material/CreditCard";
 import CardGiftcardIcon from "@mui/icons-material/CardGiftcard";
 import StarIcon from "@mui/icons-material/Star";
 import type { Reservation } from "@/types/reservation";
-import { PaymentMethodCreditForm } from "./PaymentMethodCreditForm";
-import { PaymentMethodVoucherForm } from "./PaymentMethodVoucherForm";
-import { PaymentMethodPointsForm } from "./PaymentMethodPointsForm";
+import { ItemDetails } from "./ItemDetails";
 
 interface PaymentTabsProps {
   selectedItems: { [passengerId: string]: string[] };
@@ -164,275 +162,27 @@ export function PaymentTabs(props: PaymentTabsProps) {
               const paymentData = itemPaymentMethods[itemKey] || {};
 
               return (
-                <Paper key={`${tabsValue}-${itemType}`} sx={{ p: 1.5, border: 1, borderColor: 'grey.200' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      {icon}
-                      <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                        {title}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                      <Typography variant="body2" sx={{ fontWeight: 'bold', color }}>
-                        ${price.toLocaleString()}
-                      </Typography>
-                      {(() => {
-                        const amounts = getRemainingAmount(itemKey);
-                        const showAlways = true;
-                        if (showAlways || amounts.paid > 0) {
-                          return (
-                            <Typography variant="caption" sx={{ 
-                              color: amounts.remaining > 0 ? 'warning.main' : 'success.main',
-                              fontWeight: 'medium'
-                            }}>
-                              {amounts.remaining > 0 
-                                ? `Remaining: $${amounts.remaining.toLocaleString()}` 
-                                : 'Fully Paid'
-                              }
-                            </Typography>
-                          );
-                        }
-                        return null;
-                      })()}
-                    </Box>
-                  </Box>
-
-                  {formMethods.length === 0 && !isItemFullyPaid(itemKey) && (
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1, gap: 0.5 }}>
-                      <IconButton
-                        size="small"
-                        onClick={() => confirmAddMethod(itemKey, 'credit')}
-                        sx={{ 
-                          color: 'success.main',
-                          '&:hover': { bgcolor: 'success.light', color: 'white' },
-                          border: 1,
-                          borderColor: 'success.main',
-                          width: 32,
-                          height: 32
-                        }}
-                        title="Add Credit Card"
-                      >
-                        <CreditCardIcon sx={{ fontSize: 16 }} />
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        onClick={() => confirmAddMethod(itemKey, 'voucher')}
-                        sx={{ 
-                          color: 'warning.main',
-                          '&:hover': { bgcolor: 'warning.light', color: 'white' },
-                          border: 1,
-                          borderColor: 'warning.main',
-                          width: 32,
-                          height: 32
-                        }}
-                        title="Add Voucher"
-                      >
-                        <CardGiftcardIcon sx={{ fontSize: 16 }} />
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        onClick={() => confirmAddMethod(itemKey, 'points')}
-                        sx={{ 
-                          color: 'info.main',
-                          '&:hover': { bgcolor: 'info.light', color: 'white' },
-                          border: 1,
-                          borderColor: 'info.main',
-                          width: 32,
-                          height: 32
-                        }}
-                        title="Add Points"
-                      >
-                        <StarIcon sx={{ fontSize: 16 }} />
-                      </IconButton>
-                    </Box>
-                  )}
-
-                  {formMethods.map((method, idx) => {
-                    const expanded = itemExpandedMethod[itemKey] === idx;
-                    let methodAmount = 0;
-                    if (method === 'credit') {
-                      methodAmount = Number(paymentData?.credit?.amount) || 0;
-                    } else if (method === 'voucher') {
-                      const voucherIdx = formMethods.slice(0, idx).filter(m => m === 'voucher').length;
-                      methodAmount = Number(paymentData?.vouchers?.[voucherIdx]?.amount) || 0;
-                    } else if (method === 'points') {
-                      methodAmount = Number(paymentData?.points?.amount) || 0;
-                    }
-                    const isComplete = isPaymentMethodComplete(itemKey, method, method === 'voucher' ? formMethods.slice(0, idx).filter(m => m === 'voucher').length : 0);
-
-                    return (
-                      <Paper key={`${itemKey}-method-${idx}`} sx={{ 
-                        p: 1.5, 
-                        mt: 1, 
-                        border: 1, 
-                        borderColor: expanded ? 'primary.light' : (isComplete ? 'success.light' : 'warning.light'), 
-                        bgcolor: expanded ? 'white' : (isComplete ? 'success.50' : 'warning.50'),
-                        position: 'relative'
-                      }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: expanded ? 1 : 0 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 'medium' }}>
-                              {method === 'credit' ? 'Credit Card' : method === 'voucher' ? 'Voucher' : 'Points'}
-                            </Typography>
-                            {isComplete ? (
-                              <Box sx={{ width: 16, height: 16, borderRadius: '50%', backgroundColor: 'success.main', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '10px', fontWeight: 'bold' }}>✓</Box>
-                            ) : (
-                              <Box sx={{ width: 16, height: 16, borderRadius: '50%', backgroundColor: 'warning.main', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '10px', fontWeight: 'bold' }}>!</Box>
-                            )}
-                          </Box>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                            <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-                              ${methodAmount.toLocaleString()}
-                            </Typography>
-                            <IconButton 
-                              size="small" 
-                              onClick={() => {
-                                if (expanded) {
-                                  setItemExpandedMethod(prev => ({ ...prev, [itemKey]: null }));
-                                } else {
-                                  setItemExpandedMethod(prev => {
-                                    const newExpanded: { [key: string]: number | null } = {};
-                                    Object.keys(prev).forEach(key => { newExpanded[key] = null; });
-                                    newExpanded[itemKey] = idx;
-                                    return newExpanded;
-                                  });
-                                }
-                              }}
-                              sx={{ color: 'primary.main' }}
-                            >
-                              {expanded ? <ExpandLessIcon fontSize="small" /> : <EditIcon fontSize="small" />}
-                            </IconButton>
-                            <IconButton size="small" color="error" onClick={() => removeMethod(itemKey, idx)}>
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Box>
-                        </Box>
-
-                        {!expanded && methodAmount > 0 && (
-                          <Box sx={{ mt: 2, px: 1 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-                              <Typography variant="caption" sx={{ color: 'text.secondary', minWidth: 50 }}>Amount</Typography>
-                              <Slider
-                                value={methodAmount}
-                                min={0}
-                                max={(() => {
-                                  const amounts = getRemainingAmount(itemKey);
-                                  return methodAmount + amounts.remaining;
-                                })()}
-                                step={1}
-                                onChange={(_e: Event, newValue: number | number[]) => {
-                                  const value = typeof newValue === 'number' ? newValue : newValue[0];
-                                  if (method === 'credit') {
-                                    updateMethodField(itemKey, 'credit', 'amount', value.toString());
-                                  } else if (method === 'voucher') {
-                                    const voucherIdx = formMethods.slice(0, idx).filter(m => m === 'voucher').length;
-                                    updateMethodField(itemKey, 'voucher', 'amount', value.toString(), voucherIdx);
-                                  } else if (method === 'points') {
-                                    const pointsToUse = value * 50;
-                                    updateMethodField(itemKey, 'points', 'amount', value.toString());
-                                    updateMethodField(itemKey, 'points', 'pointsToUse', pointsToUse.toString());
-                                  }
-                                }}
-                                valueLabelDisplay="auto"
-                                valueLabelFormat={(value: number) => `$${value}`}
-                                sx={{ flex: 1 }}
-                              />
-                              <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 'bold', minWidth: 50, textAlign: 'right' }}>
-                                ${methodAmount}
-                              </Typography>
-                            </Box>
-                          </Box>
-                        )}
-
-                        {expanded && method === 'credit' && (
-                          <PaymentMethodCreditForm 
-                            itemKey={itemKey} 
-                            paymentData={paymentData}
-                            updateMethodField={updateMethodField}
-                            getRemainingAmount={getRemainingAmount}
-                          />
-                        )}
-
-                        {expanded && method === 'voucher' && (
-                          <PaymentMethodVoucherForm 
-                            itemKey={itemKey} 
-                            index={formMethods.slice(0, idx).filter(m => m === 'voucher').length}
-                            paymentData={paymentData}
-                            updateMethodField={updateMethodField}
-                            getRemainingAmount={getRemainingAmount}
-                          />
-                        )}
-
-                        {expanded && method === 'points' && (
-                          <PaymentMethodPointsForm 
-                            itemKey={itemKey} 
-                            paymentData={paymentData}
-                            updateMethodField={updateMethodField}
-                            getRemainingAmount={getRemainingAmount}
-                          />
-                        )}
-                      </Paper>
-                    );
-                  })}
-
-                  {/* Show additional "Add" buttons when there are existing methods but item isn't fully paid */}
-                  {formMethods.length >= 1 && formMethods.length < 3 && !isItemFullyPaid(itemKey) && (
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1, gap: 0.5 }}>
-                      {!formMethods.includes('credit') && (
-                        <IconButton
-                          size="small"
-                          onClick={() => confirmAddMethod(itemKey, 'credit')}
-                          sx={{ 
-                            color: 'success.main',
-                            '&:hover': { bgcolor: 'success.light', color: 'white' },
-                            border: 1,
-                            borderColor: 'success.main',
-                            width: 32,
-                            height: 32
-                          }}
-                          title="Add Credit Card"
-                        >
-                          <CreditCardIcon sx={{ fontSize: 16 }} />
-                        </IconButton>
-                      )}
-                      {formMethods.filter(m => m === 'voucher').length < 2 && (
-                        <IconButton
-                          size="small"
-                          onClick={() => confirmAddMethod(itemKey, 'voucher')}
-                          sx={{ 
-                            color: 'warning.main',
-                            '&:hover': { bgcolor: 'warning.light', color: 'white' },
-                            border: 1,
-                            borderColor: 'warning.main',
-                            width: 32,
-                            height: 32
-                          }}
-                          title="Add Voucher"
-                        >
-                          <CardGiftcardIcon sx={{ fontSize: 16 }} />
-                        </IconButton>
-                      )}
-                      {!formMethods.includes('points') && (
-                        <IconButton
-                          size="small"
-                          onClick={() => confirmAddMethod(itemKey, 'points')}
-                          sx={{ 
-                            color: 'info.main',
-                            '&:hover': { bgcolor: 'info.light', color: 'white' },
-                            border: 1,
-                            borderColor: 'info.main',
-                            width: 32,
-                            height: 32
-                          }}
-                          title="Add Points"
-                        >
-                          <StarIcon sx={{ fontSize: 16 }} />
-                        </IconButton>
-                      )}
-                    </Box>
-                  )}
-                </Paper>
+                <ItemDetails
+                  key={itemKey}
+                  itemKey={itemKey}
+                  itemType={itemType}
+                  title={title}
+                  price={price}
+                  color={color}
+                  icon={icon}
+                  formMethods={formMethods}
+                  paymentData={paymentData}
+                  itemExpandedMethod={itemExpandedMethod}
+                  getRemainingAmount={getRemainingAmount}
+                  isItemFullyPaid={isItemFullyPaid}
+                  isPaymentMethodComplete={isPaymentMethodComplete}
+                  updateMethodField={updateMethodField}
+                  setItemExpandedMethod={setItemExpandedMethod}
+                  removeMethod={removeMethod}
+                  confirmAddMethod={confirmAddMethod}
+                />
               );
+
             })}
           </Box>
         </Paper>
@@ -440,5 +190,3 @@ export function PaymentTabs(props: PaymentTabsProps) {
     </Box>
   );
 }
-
-

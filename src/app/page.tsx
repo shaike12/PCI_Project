@@ -197,8 +197,16 @@ export default function PaymentPortal() {
     
     setIsCreatingReservation(true);
     try {
-      // Generate random reservation code
-      const newCode = 'NEW' + Math.random().toString(36).substr(2, 6).toUpperCase();
+      // Generate random reservation code with 6 alphanumeric characters
+      const generateReservationCode = () => {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let result = '';
+        for (let i = 0; i < 6; i++) {
+          result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
+      };
+      const newCode = generateReservationCode();
       
       // Create new reservation with 3+ passengers
       const newReservation: Reservation = {

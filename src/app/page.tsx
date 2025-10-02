@@ -1,68 +1,31 @@
 'use client';
 
-import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Card,
   CardContent,
   Typography,
-  Button,
-  TextField,
   Chip,
   Paper,
   Grid,
   Container,
-  Divider,
   IconButton,
-  Checkbox,
-  FormControlLabel,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Badge,
   Avatar
 } from '@mui/material';
 import {
   Person as PersonIcon,
   CreditCard as CreditCardIcon,
-  AttachMoney as MoneyIcon,
   Check as CheckIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
   Flight as FlightIcon,
   EventSeat as SeatIcon,
   Luggage as BagIcon,
-  CardGiftcard as VoucherIcon,
-  Star as PointsIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
   ReceiptLong as ReceiptLongIcon,
-  TrendingUp as TrendingUpIcon,
-  TrendingDown as TrendingDownIcon,
-  AccountBalance as AccountBalanceIcon,
-  LocalAtm as LocalAtmIcon,
-  MonetizationOn as MonetizationOnIcon,
-  ShoppingCart as ShoppingCartIcon,
-  CheckCircle as CheckCircleIcon,
-  Pending as PendingIcon,
-  Warning as WarningIcon,
-  Info as InfoIcon,
-  Add as AddIcon,
-  Close as CloseIcon,
-  Payment as PaymentIcon,
-  Receipt as ReceiptIcon
+  ShoppingCart as ShoppingCartIcon
 } from '@mui/icons-material';
-import { Tabs, Tab, Stack, CircularProgress, Slider } from '@mui/material';
 import { PassengerHeader } from './components/PassengerHeader';
-import { PassengerList } from './components/PassengerList';
 import { PaymentMethodsSummary } from './components/PaymentMethodsSummary';
 import { TotalSummary } from './components/TotalSummary';
 import { ActionButtons } from './components/ActionButtons';
@@ -71,18 +34,15 @@ import { PaymentTabs } from './components/PaymentTabs';
 import { SelectedItemsBreakdown } from './components/SelectedItemsBreakdown';
 import { computeSelectedAmount } from './utils/paymentCalculations';
 import { 
-  validateCreditCard, 
   isPaymentMethodComplete, 
   getTotalPaidAmount, 
   isItemFullyPaid, 
-  copyCreditCardDetails, 
   removeMethod, 
   confirmAddMethod, 
   updateMethodField 
 } from './utils/paymentLogic';
 import {
   resolvePassengerIndex as resolvePassengerIndexUtil,
-  getPassengerNameById as getPassengerNameByIdUtil,
   getPassengerTabLabel as getPassengerTabLabelUtil,
   togglePassenger as togglePassengerUtil,
   toggleExpanded as toggleExpandedUtil,
@@ -90,26 +50,7 @@ import {
   toggleAllItemsForPassenger as toggleAllItemsForPassengerUtil,
   isItemSelected as isItemSelectedUtil
 } from './utils/passengerLogic';
-import {
-  detectCardType as detectCardTypeUtil,
-  getCardIcon as getCardIconUtil,
-  formatCardNumber as formatCardNumberUtil
-} from './utils/cardValidation';
-import {
-  saveProgressToLocalStorage as saveProgressToLocalStorageUtil,
-  loadProgressFromLocalStorage as loadProgressFromLocalStorageUtil,
-  clearProgressFromLocalStorage as clearProgressFromLocalStorageUtil
-} from './utils/localStorage';
 
-// Loading component for lazy loading
-const LoadingSpinner = () => (
-  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', p: 3 }}>
-    <CircularProgress size={24} />
-    <Typography variant="body2" sx={{ ml: 2, color: 'text.secondary' }}>
-      Loading...
-    </Typography>
-  </Box>
-);
 
 interface Passenger {
   id: string;
@@ -145,35 +86,6 @@ export default function PaymentPortal() {
     };
   }, []);
 
-  // Local storage functions for progress saving
-  const saveProgressToLocalStorage = () => {
-    const progressData = {
-      selectedPassengers,
-      selectedItems,
-      itemPaymentMethods,
-      itemMethodForms,
-      itemExpandedMethod,
-      timestamp: new Date().toISOString()
-    };
-    saveProgressToLocalStorageUtil(progressData);
-  };
-
-  const loadProgressFromLocalStorage = () => {
-    const savedProgress = loadProgressFromLocalStorageUtil();
-    if (savedProgress) {
-      setSelectedPassengers(savedProgress.selectedPassengers);
-      setSelectedItems(savedProgress.selectedItems);
-      setItemPaymentMethods(savedProgress.itemPaymentMethods);
-      setItemMethodForms(savedProgress.itemMethodForms);
-      setItemExpandedMethod(savedProgress.itemExpandedMethod);
-      return true;
-    }
-    return false;
-  };
-
-  const clearProgressFromLocalStorage = () => {
-    clearProgressFromLocalStorageUtil();
-  };
 
   // Clear all payment methods for all passengers
   const clearAllPaymentMethods = () => {
@@ -181,7 +93,6 @@ export default function PaymentPortal() {
       setItemPaymentMethods({});
       setItemMethodForms({});
       setItemExpandedMethod({});
-      setFieldErrors({});
       console.log('🗑️ All payment methods cleared');
     }
   };
@@ -225,11 +136,6 @@ export default function PaymentPortal() {
       awardReference: string;
     };
   }}>({});
-  // UI state: show credit card edit form in unified payment card
-  const [showEditCard, setShowEditCard] = useState(false);
-  
-  // Error states for form validation
-  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
   
   // UI: which method forms to show under each item (supports multiple)
   const [itemMethodForms, setItemMethodForms] = useState<{ [key: string]: Array<'credit' | 'voucher' | 'points'> }>({});
@@ -239,30 +145,6 @@ export default function PaymentPortal() {
   // Active passenger tab for payment methods section
   const [activePaymentPassenger, setActivePaymentPassenger] = useState<string>('');
   
-  // Reservation code state
-  const [reservationCode, setReservationCode] = useState<string>('');
-  const [isReservationLoaded, setIsReservationLoaded] = useState(false);
-  
-  // Mock frequent flyers data
-  const frequentFlyers = [
-    { memberNumber: '1234567', name: 'John Smith', points: 25000 },
-    { memberNumber: '2345678', name: 'Sarah Johnson', points: 18000 },
-    { memberNumber: '3456789', name: 'Michael Brown', points: 32000 }
-  ];
-  
-  // Helper function to set field error
-  const setFieldError = (fieldKey: string, error: string) => {
-    setFieldErrors(prev => ({ ...prev, [fieldKey]: error }));
-  };
-  
-  // Helper function to clear field error
-  const clearFieldError = (fieldKey: string) => {
-    setFieldErrors(prev => {
-      const newErrors = { ...prev };
-      delete newErrors[fieldKey];
-      return newErrors;
-    });
-  };
   
 
   useEffect(() => {
@@ -454,10 +336,6 @@ export default function PaymentPortal() {
     }
   }, [selectedItems]);
 
-  // getPassengerNameById is now imported from utils/passengerLogic
-  const getPassengerNameById = (pid: string) => {
-    return getPassengerNameByIdUtil(pid, reservation, resolvePassengerIndex);
-  };
 
   // getPassengerTabLabel is now imported from utils/passengerLogic
   const getPassengerTabLabel = (pid: string) => {
@@ -469,27 +347,6 @@ export default function PaymentPortal() {
     return isItemSelectedUtil(passengerId, itemType, selectedItems);
   };
 
-  // loadReservation function
-  const loadReservation = () => {
-    const trimmed = (reservationCode || '').trim();
-    if (!trimmed) {
-      console.log('⚠️ No reservation code provided');
-      return;
-    }
-    
-    console.log('📦 Loading reservation for code:', trimmed);
-    
-    // Clear existing state
-    setSelectedPassengers([]);
-    setExpandedPassengers([]);
-    setSelectedItems({});
-    setItemPaymentMethods({});
-    setItemMethodForms({});
-    setItemExpandedMethod({});
-    setFieldErrors({});
-    setIsReservationLoaded(true);
-    console.log('📦 Reservation loaded for code:', trimmed);
-  };
 
   // Wrapper functions for payment logic
   const getTotalPaidAmountWrapper = (itemKey: string) => {
@@ -529,43 +386,28 @@ export default function PaymentPortal() {
     );
   };
 
-  const copyCreditCardDetailsWrapper = (sourceItemKey: string) => {
-    copyCreditCardDetails(sourceItemKey, itemPaymentMethods, setItemPaymentMethods, selectedItems);
-  };
 
   const isPaymentMethodCompleteWrapper = (itemKey: string, method: string, methodIndex: number) => {
     return isPaymentMethodComplete(itemKey, method, methodIndex, itemPaymentMethods);
   };
 
-  // Card validation functions
-  const detectCardType = (cardNumber: string) => {
-    return detectCardTypeUtil(cardNumber);
-  };
-
-  const getCardIcon = (cardType: string) => {
-    return getCardIconUtil(cardType);
-  };
-
-  const formatCardNumber = (value: string) => {
-    return formatCardNumberUtil(value);
-  };
 
   // getRemainingAmount function
   const getRemainingAmount = (itemKey: string) => {
-    const [passengerId, itemType] = itemKey.split('-');
-    const passengerIndex = resolvePassengerIndex(passengerId);
+        const [passengerId, itemType] = itemKey.split('-');
+        const passengerIndex = resolvePassengerIndex(passengerId);
     const passenger = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
     if (!passenger) return { total: 0, paid: 0, remaining: 0 };
     
-    let itemPrice = 0;
-    if (itemType === 'ticket') {
-      itemPrice = passenger.ticket.price;
-    } else if (itemType === 'seat') {
-      itemPrice = passenger.ancillaries.seat.price;
-    } else if (itemType === 'bag') {
-      itemPrice = passenger.ancillaries.bag.price;
-    }
-    
+        let itemPrice = 0;
+        if (itemType === 'ticket') {
+          itemPrice = passenger.ticket.price;
+        } else if (itemType === 'seat') {
+          itemPrice = passenger.ancillaries.seat.price;
+        } else if (itemType === 'bag') {
+          itemPrice = passenger.ancillaries.bag.price;
+        }
+
     const totalPaid = getTotalPaidAmountWrapper(itemKey);
     
     return {
@@ -655,10 +497,10 @@ export default function PaymentPortal() {
                 </Box>
                 
                 <PassengerHeader
-                  reservationCode={reservationCode}
-                  onChangeReservationCode={(v) => setReservationCode(v)}
-                  onLoad={loadReservation}
-                  loadDisabled={!reservationCode.trim()}
+                  reservationCode=""
+                  onChangeReservationCode={() => {}}
+                  onLoad={() => {}}
+                  loadDisabled={true}
                   onToggleSelectAll={() => {
                     // Check if all available items are selected (only for passengers with unpaid items)
                     const passengersWithUnpaidItems = availablePassengers.filter(p => p.hasUnpaidItems);

@@ -80,7 +80,7 @@ export const toggleItem = (
     
     if (isSelected) {
       // Remove item
-      const newItems = passengerItems.filter(item => item !== itemType);
+      const newItems = passengerItems.filter((item: string) => item !== itemType);
       
       // If no items left, remove passenger from selectedPassengers
       if (newItems.length === 0) {
@@ -123,7 +123,7 @@ export const toggleAllItemsForPassenger = (
   if (!passengerData) return;
 
   const currentItems = selectedItems[passengerId] || [];
-  const unpaidItems = [];
+  const unpaidItems: string[] = [];
   
   if (passengerData.ticket.status !== 'Paid') unpaidItems.push('ticket');
   if (passengerData.ancillaries.seat.status !== 'Paid') unpaidItems.push('seat');

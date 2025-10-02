@@ -10,94 +10,39 @@ export const detectCardType = (cardNumber: string): string => {
   return 'Unknown';
 };
 
-// getCardIcon: Returns the appropriate icon component for each card type
-export const getCardIcon = (cardType: string) => {
+// getCardIconProps: Returns the appropriate icon props for each card type
+export const getCardIconProps = (cardType: string) => {
   switch (cardType) {
     case 'Visa':
-      return (
-        <Box sx={{
-          width: 24,
-          height: 16,
-          backgroundColor: '#1A1F71',
-          borderRadius: 2,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'white',
-          fontSize: '10px',
-          fontWeight: 'bold'
-        }}>
-          VISA
-        </Box>
-      );
+      return {
+        text: 'VISA',
+        backgroundColor: '#1A1F71',
+        fontSize: '10px'
+      };
     case 'Mastercard':
-      return (
-        <Box sx={{
-          width: 24,
-          height: 16,
-          backgroundColor: '#EB001B',
-          borderRadius: 2,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'white',
-          fontSize: '8px',
-          fontWeight: 'bold'
-        }}>
-          MC
-        </Box>
-      );
+      return {
+        text: 'MC',
+        backgroundColor: '#EB001B',
+        fontSize: '8px'
+      };
     case 'American Express':
-      return (
-        <Box sx={{
-          width: 24,
-          height: 16,
-          backgroundColor: '#006FCF',
-          borderRadius: 2,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'white',
-          fontSize: '8px',
-          fontWeight: 'bold'
-        }}>
-          AMEX
-        </Box>
-      );
+      return {
+        text: 'AMEX',
+        backgroundColor: '#006FCF',
+        fontSize: '8px'
+      };
     case 'Discover':
-      return (
-        <Box sx={{
-          width: 24,
-          height: 16,
-          backgroundColor: '#FF6000',
-          borderRadius: 2,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'white',
-          fontSize: '8px',
-          fontWeight: 'bold'
-        }}>
-          DISC
-        </Box>
-      );
+      return {
+        text: 'DISC',
+        backgroundColor: '#FF6000',
+        fontSize: '8px'
+      };
     default:
-      return (
-        <Box sx={{
-          width: 24,
-          height: 16,
-          backgroundColor: 'grey.400',
-          borderRadius: 2,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'white',
-          fontSize: '8px',
-          fontWeight: 'bold'
-        }}>
-          ?
-        </Box>
-      );
+      return {
+        text: '?',
+        backgroundColor: 'grey.400',
+        fontSize: '8px'
+      };
   }
 };
 

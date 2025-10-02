@@ -1,6 +1,7 @@
 "use client";
 
-import { Box, TextField, Typography } from "@mui/material";
+import { Box, TextField, Typography, InputAdornment, FormControl, InputLabel, Select, MenuItem } from "@mui/material";
+import { detectCardType, formatCardNumber } from "../utils/cardValidation";
 
 interface PaymentMethodCreditFormProps {
   itemKey: string;
@@ -14,35 +15,146 @@ export function PaymentMethodCreditForm({ itemKey, paymentData, updateMethodFiel
   const storedAmount = paymentData?.credit?.amount;
   const fallbackAmount = amounts.remaining;
 
+  const renderBrandAdornment = (cardType: string) => {
+    switch (cardType) {
+      case 'Visa':
+        return (
+          <Box sx={{
+            ml: 1,
+            px: 1,
+            height: 24,
+            minWidth: 40,
+            borderRadius: 0.75,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            bgcolor: '#1A1F71',
+            color: '#fff',
+            fontWeight: 800,
+            fontSize: '10px',
+            letterSpacing: 1
+          }}>
+            VISA
+          </Box>
+        );
+      case 'Mastercard':
+        return (
+          <Box sx={{ ml: 1, display: 'flex', alignItems: 'center', height: 24 }}>
+            <Box sx={{ position: 'relative', width: 36, height: 24 }}>
+              <Box sx={{
+                position: 'absolute',
+                top: '50%',
+                left: 8,
+                transform: 'translateY(-50%)',
+                width: 14,
+                height: 14,
+                borderRadius: '50%',
+                bgcolor: '#EB001B'
+              }} />
+              <Box sx={{
+                position: 'absolute',
+                top: '50%',
+                left: 16,
+                transform: 'translateY(-50%)',
+                width: 14,
+                height: 14,
+                borderRadius: '50%',
+                bgcolor: '#FF5F00'
+              }} />
+            </Box>
+          </Box>
+        );
+      case 'American Express':
+        return (
+          <Box sx={{
+            ml: 1,
+            px: 1,
+            height: 24,
+            minWidth: 46,
+            borderRadius: 0.75,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            bgcolor: '#006FCF',
+            color: '#fff',
+            fontWeight: 800,
+            fontSize: '9px',
+            letterSpacing: 0.5
+          }}>
+            AMEX
+          </Box>
+        );
+      case 'Discover':
+        return (
+          <Box sx={{
+            ml: 1,
+            px: 1,
+            height: 24,
+            minWidth: 54,
+            borderRadius: 0.75,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            bgcolor: '#111',
+            color: '#fff',
+            fontWeight: 800,
+            fontSize: '9px'
+          }}>
+            DISCOVER
+          </Box>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <Box sx={{ mt: 2, p: 3, bgcolor: 'grey.50', borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
       <Typography variant="subtitle2" sx={{ mb: 3, color: 'text.secondary', fontWeight: 600 }}>
         Credit Card Details
       </Typography>
       
-      {/* Payment Amount */}
-      <Box sx={{ mb: 2.5 }}>
-        <TextField 
-          fullWidth
-          size="medium" 
-          sx={{ 
-            '& .MuiInputBase-root': { height: 48 }, 
-            '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
-            '& .MuiInputLabel-root': { fontSize: '0.9rem' }
-          }} 
-          label="Payment Amount" 
-          placeholder="$0.00"
-          InputLabelProps={{ shrink: true }}
-          type="number" 
-          value={(storedAmount === '' || storedAmount == null) ? fallbackAmount : (typeof storedAmount === 'string' ? parseFloat(storedAmount) || 0 : storedAmount)} 
-          inputProps={{ suppressHydrationWarning: true }} 
-          onChange={(e) => {
-            const value = parseFloat(e.target.value) || 0;
-            if (value <= amounts.remaining) {
-              updateMethodField(itemKey, 'credit', 'amount', e.target.value);
-            }
-          }} 
-        />
+      {/* Payment Amount and Number of Payments */}
+      <Box sx={{ display: 'flex', gap: 2, mb: 2.5 }}>
+        <Box sx={{ flex: 2 }}>
+          <TextField 
+            fullWidth
+            size="medium" 
+            sx={{ 
+              '& .MuiInputBase-root': { height: 48 }, 
+              '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
+              '& .MuiInputLabel-root': { fontSize: '0.9rem' }
+            }} 
+            label="Payment Amount" 
+            placeholder="$0.00"
+            InputLabelProps={{ shrink: true }}
+            type="number" 
+            value={(storedAmount === '' || storedAmount == null) ? fallbackAmount : (typeof storedAmount === 'string' ? parseFloat(storedAmount) || 0 : storedAmount)} 
+            inputProps={{ suppressHydrationWarning: true }} 
+            onChange={(e) => {
+              const value = parseFloat(e.target.value) || 0;
+              if (value <= amounts.remaining) {
+                updateMethodField(itemKey, 'credit', 'amount', e.target.value);
+              }
+            }} 
+          />
+        </Box>
+        <Box sx={{ flex: 1 }}>
+          <FormControl fullWidth size="medium" sx={{ '& .MuiInputBase-root': { height: 48 } }}>
+            <InputLabel sx={{ fontSize: '0.9rem' }}>Payments</InputLabel>
+            <Select
+              value={paymentData?.credit?.numberOfPayments || '1'}
+              label="Payments"
+              onChange={(e) => updateMethodField(itemKey, 'credit', 'numberOfPayments', e.target.value)}
+            >
+              <MenuItem value="1">1 Payment</MenuItem>
+              <MenuItem value="2">2 Payments</MenuItem>
+              <MenuItem value="3">3 Payments</MenuItem>
+              <MenuItem value="4">4 Payments</MenuItem>
+              <MenuItem value="5">5 Payments</MenuItem>
+            </Select>
+          </FormControl>
+        </Box>
       </Box>
       
       {/* Card Number */}
@@ -64,30 +176,66 @@ export function PaymentMethodCreditForm({ itemKey, paymentData, updateMethodFiel
             maxLength: 19,
             inputMode: 'numeric'
           }} 
+          InputProps={{
+            endAdornment: (
+              <InputAdornment position="end">
+                {renderBrandAdornment(detectCardType(String(paymentData?.credit?.cardNumber ?? '')))}
+              </InputAdornment>
+            )
+          }}
           onChange={(e) => {
-            const formatted = e.target.value.replace(/\D/g, '').replace(/(\d{4})(?=\d)/g, '$1 ');
+            const raw = e.target.value;
+            const formatted = formatCardNumber(raw);
             updateMethodField(itemKey, 'credit', 'cardNumber', formatted);
           }} 
         />
       </Box>
 
-      {/* Cardholder Name */}
-      <Box sx={{ mb: 2.5 }}>
-        <TextField 
-          fullWidth
-          size="medium" 
-          sx={{ 
-            '& .MuiInputBase-root': { height: 48 }, 
-            '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
-            '& .MuiInputLabel-root': { fontSize: '0.9rem' }
-          }} 
-          label="Cardholder Name" 
-          placeholder="Full name as on card"
-          InputLabelProps={{ shrink: true }}
-          value={(paymentData?.credit?.holderName ?? '')} 
-          inputProps={{ suppressHydrationWarning: true }} 
-          onChange={(e) => updateMethodField(itemKey, 'credit', 'holderName', e.target.value)} 
-        />
+      {/* Cardholder Name and ID */}
+      <Box sx={{ display: 'flex', gap: 2, mb: 2.5 }}>
+        <Box sx={{ flex: 2 }}>
+          <TextField 
+            fullWidth
+            size="medium" 
+            sx={{ 
+              '& .MuiInputBase-root': { height: 48 }, 
+              '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
+              '& .MuiInputLabel-root': { fontSize: '0.9rem' }
+            }} 
+            label="Cardholder Name" 
+            placeholder="Full name as on card"
+            InputLabelProps={{ shrink: true }}
+            value={(paymentData?.credit?.holderName ?? '')} 
+            inputProps={{ suppressHydrationWarning: true }} 
+            onChange={(e) => updateMethodField(itemKey, 'credit', 'holderName', e.target.value)} 
+          />
+        </Box>
+        <Box sx={{ flex: 1 }}>
+          <TextField 
+            fullWidth
+            size="medium" 
+            sx={{ 
+              '& .MuiInputBase-root': { height: 48 }, 
+              '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
+              '& .MuiInputLabel-root': { fontSize: '0.9rem' }
+            }} 
+            label="ID Number" 
+            placeholder="123456789"
+            InputLabelProps={{ shrink: true }}
+            value={(paymentData?.credit?.idNumber ?? '')} 
+            inputProps={{ 
+              suppressHydrationWarning: true,
+              maxLength: 9,
+              inputMode: 'numeric'
+            }} 
+            onChange={(e) => {
+              const value = e.target.value.replace(/\D/g, ''); // Only digits
+              if (value.length <= 9) {
+                updateMethodField(itemKey, 'credit', 'idNumber', value);
+              }
+            }} 
+          />
+        </Box>
       </Box>
 
       {/* Expiry and CVV */}

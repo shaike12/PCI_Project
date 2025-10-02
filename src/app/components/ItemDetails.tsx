@@ -24,6 +24,7 @@ interface ItemDetailsProps {
   setItemExpandedMethod: (updater: (prev: { [key: string]: number | null }) => { [key: string]: number | null }) => void;
   removeMethod: (itemKey: string, formIndex: number) => void;
   confirmAddMethod: (itemKey: string, method: 'credit' | 'voucher' | 'points') => void;
+  onCopyMethod?: (itemKey: string, method: 'credit' | 'voucher' | 'points') => void;
 }
 
 export function ItemDetails({
@@ -42,7 +43,8 @@ export function ItemDetails({
   updateMethodField,
   setItemExpandedMethod,
   removeMethod,
-  confirmAddMethod
+  confirmAddMethod,
+  onCopyMethod
 }: ItemDetailsProps) {
   const amounts = getRemainingAmount(itemKey);
   const showAlways = true;
@@ -106,6 +108,7 @@ export function ItemDetails({
                   getRemainingAmount={getRemainingAmount}
                   setItemExpandedMethod={setItemExpandedMethod}
                   removeMethod={removeMethod}
+                  onCopyMethod={onCopyMethod}
                 />
               ))}
 

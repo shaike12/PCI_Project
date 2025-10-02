@@ -33,6 +33,7 @@ interface PaymentTabsProps {
   setItemExpandedMethod: (updater: (prev: { [key: string]: number | null }) => { [key: string]: number | null }) => void;
   removeMethod: (itemKey: string, formIndex: number) => void;
   toggleItem: (passengerId: string, itemType: string) => void;
+  onCopyMethod?: (itemKey: string, method: 'credit' | 'voucher' | 'points') => void;
 }
 
 export function PaymentTabs(props: PaymentTabsProps) {
@@ -52,7 +53,8 @@ export function PaymentTabs(props: PaymentTabsProps) {
     updateMethodField,
     setItemExpandedMethod,
     removeMethod,
-    toggleItem
+    toggleItem,
+    onCopyMethod
   } = props;
 
   // Safely resolve a passenger index
@@ -109,6 +111,7 @@ export function PaymentTabs(props: PaymentTabsProps) {
           const getIcon = (itemType: string, isPaid: boolean = false) => {
             const iconProps = { fontSize: 16, mr: 0.5 };
             const isActiveTab = activePaymentPassenger === pid;
+            const isItemSelected = selectedItems[pid]?.includes(itemType) || false;
             const tooltipTitle = isPaid ? 'Paid already' : (isActiveTab ? 'Click to toggle selection' : 'Select tab to edit');
             
             const handleIconClick = (e: React.MouseEvent) => {
@@ -118,6 +121,12 @@ export function PaymentTabs(props: PaymentTabsProps) {
               }
             };
             
+            const color = (() => {
+              if (isPaid) return 'grey.500';            // paid = grey
+              if (isItemSelected) return 'primary.main'; // selected = primary
+              return 'grey.400';                         // unselected = light grey
+            })();
+            
             switch (itemType) {
               case 'ticket': 
                 return (
@@ -125,7 +134,7 @@ export function PaymentTabs(props: PaymentTabsProps) {
                     <FlightIcon 
                       sx={{ 
                         ...iconProps, 
-                        color: isPaid ? 'grey.500' : (isActiveTab ? 'inherit' : 'grey.400'),
+                        color,
                         cursor: (isPaid || !isActiveTab) ? 'default' : 'pointer',
                         '&:hover': (isPaid || !isActiveTab) ? {} : { opacity: 0.7 }
                       }} 
@@ -139,7 +148,7 @@ export function PaymentTabs(props: PaymentTabsProps) {
                     <EventSeatIcon 
                       sx={{ 
                         ...iconProps, 
-                        color: isPaid ? 'grey.500' : (isActiveTab ? 'inherit' : 'grey.400'),
+                        color,
                         cursor: (isPaid || !isActiveTab) ? 'default' : 'pointer',
                         '&:hover': (isPaid || !isActiveTab) ? {} : { opacity: 0.7 }
                       }} 
@@ -153,7 +162,7 @@ export function PaymentTabs(props: PaymentTabsProps) {
                     <LuggageIcon 
                       sx={{ 
                         ...iconProps, 
-                        color: isPaid ? 'grey.500' : (isActiveTab ? 'inherit' : 'grey.400'),
+                        color,
                         cursor: (isPaid || !isActiveTab) ? 'default' : 'pointer',
                         '&:hover': (isPaid || !isActiveTab) ? {} : { opacity: 0.7 }
                       }} 
@@ -286,6 +295,7 @@ export function PaymentTabs(props: PaymentTabsProps) {
                   setItemExpandedMethod={setItemExpandedMethod}
                   removeMethod={removeMethod}
                   confirmAddMethod={confirmAddMethod}
+                  onCopyMethod={onCopyMethod}
                 />
               );
 

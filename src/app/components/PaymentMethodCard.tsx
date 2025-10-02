@@ -4,6 +4,7 @@ import { Box, Paper, Typography, IconButton, Slider } from "@mui/material";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { PaymentMethodCreditForm } from "./PaymentMethodCreditForm";
 import { PaymentMethodVoucherForm } from "./PaymentMethodVoucherForm";
 import { PaymentMethodPointsForm } from "./PaymentMethodPointsForm";
@@ -20,6 +21,7 @@ interface PaymentMethodCardProps {
   getRemainingAmount: (itemKey: string) => { total: number; paid: number; remaining: number };
   setItemExpandedMethod: (updater: (prev: { [key: string]: number | null }) => { [key: string]: number | null }) => void;
   removeMethod: (itemKey: string, formIndex: number) => void;
+  onCopyMethod?: (itemKey: string, method: 'credit' | 'voucher' | 'points') => void;
 }
 
 export function PaymentMethodCard({
@@ -33,7 +35,8 @@ export function PaymentMethodCard({
   updateMethodField,
   getRemainingAmount,
   setItemExpandedMethod,
-  removeMethod
+  removeMethod,
+  onCopyMethod
 }: PaymentMethodCardProps) {
   const expanded = itemExpandedMethod[itemKey] === idx;
   
@@ -145,6 +148,19 @@ export function PaymentMethodCard({
           >
             {expanded ? <ExpandLessIcon fontSize="small" /> : <EditIcon fontSize="small" />}
           </IconButton>
+          {onCopyMethod && (
+            <IconButton 
+              size="small" 
+              onClick={() => onCopyMethod(itemKey, method)}
+              sx={{ 
+                color: 'info.main',
+                '&:hover': { bgcolor: 'info.light', color: 'white' }
+              }}
+              title="Copy payment method to other passengers"
+            >
+              <ContentCopyIcon fontSize="small" />
+            </IconButton>
+          )}
           <IconButton 
             size="small" 
             onClick={() => removeMethod(itemKey, idx)}

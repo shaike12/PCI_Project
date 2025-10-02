@@ -37,6 +37,7 @@ import { ActionButtons } from './components/ActionButtons';
 import { MOCK_RESERVATION, Reservation } from '@/types/reservation';
 import { PaymentTabs } from './components/PaymentTabs';
 import { SelectedItemsBreakdown } from './components/SelectedItemsBreakdown';
+import { CopyPaymentMethodModal } from './components/CopyPaymentMethodModal';
 import { computeSelectedAmount } from './utils/paymentCalculations';
 import { 
   isPaymentMethodComplete, 
@@ -74,6 +75,11 @@ export default function PaymentPortal() {
   const [reservationCode, setReservationCode] = useState('');
   const [newReservationCode, setNewReservationCode] = useState<string | null>(null);
   const [isCreatingReservation, setIsCreatingReservation] = useState(false);
+  
+  // Copy payment method modal state
+  const [copyModalOpen, setCopyModalOpen] = useState(false);
+  const [copySourceItemKey, setCopySourceItemKey] = useState<string>('');
+  const [copySourceMethod, setCopySourceMethod] = useState<'credit' | 'voucher' | 'points'>('credit');
 
   // Handle payment confirmation
   const handleConfirmPayment = async () => {
@@ -345,6 +351,7 @@ export default function PaymentPortal() {
       setCurrentReservation(newReservation);
       setReservationCode(newCode);
       
+      
       // Clear selections
       setSelectedPassengers([]);
       setSelectedItems({});
@@ -510,10 +517,45 @@ export default function PaymentPortal() {
   }, [itemPaymentMethods]);
 
   const isItemFullyPaidWrapper = (itemKey: string) => {
+    // First check if item is marked as paid in the database
+    const [passengerId, itemType] = itemKey.split('-');
+    const passengerIndex = resolvePassengerIndex(passengerId);
+    const passenger = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
+    
+    if (passenger) {
+      let dbStatus = '';
+      let itemPrice = 0;
+    if (itemType === 'ticket') {
+        dbStatus = passenger.ticket.status;
+      itemPrice = passenger.ticket.price;
+    } else if (itemType === 'seat') {
+        dbStatus = passenger.ancillaries.seat.status;
+      itemPrice = passenger.ancillaries.seat.price;
+    } else if (itemType === 'bag') {
+        dbStatus = passenger.ancillaries.bag.status;
+      itemPrice = passenger.ancillaries.bag.price;
+    }
+    
+      
+      // If item has price 0, consider it fully paid regardless of status
+      if (itemPrice === 0) {
+        return true;
+      }
+      
+      // If marked as paid in database, consider it fully paid
+      if (dbStatus === 'Paid') {
+        return true;
+      }
+    }
+    
+    // Otherwise, check local payment methods
     return isItemFullyPaid(itemKey, itemPaymentMethods, reservation, resolvePassengerIndex);
   };
 
   const confirmAddMethodWrapper = (itemKey: string, method: 'credit' | 'voucher' | 'points') => {
+    // Collapse all other payment methods before adding new one
+    setItemExpandedMethod({});
+    
     confirmAddMethod(
       itemKey, 
       method, 
@@ -540,6 +582,134 @@ export default function PaymentPortal() {
       setItemPaymentMethods, 
       setItemExpandedMethod
     );
+  };
+
+  // Copy payment method functionality
+  const handleCopyMethod = (itemKey: string, method: 'credit' | 'voucher' | 'points') => {
+    setCopySourceItemKey(itemKey);
+    setCopySourceMethod(method);
+    setCopyModalOpen(true);
+  };
+
+  const handleCopyConfirm = (selectedPassengerIds: string[], copyToAll: boolean) => {
+    const sourcePaymentData = itemPaymentMethods[copySourceItemKey];
+    if (!sourcePaymentData) return;
+
+    const targetPassengerIds = copyToAll ? selectedPassengers : selectedPassengerIds;
+    
+    targetPassengerIds.forEach(passengerId => {
+      const isSourcePassenger = passengerId === copySourceItemKey.split('-')[0];
+      
+      // Get all item types for this passenger
+      const passengerItems = selectedItems[passengerId] || [];
+      
+      passengerItems.forEach(itemType => {
+        const targetItemKey = `${passengerId}-${itemType}`;
+        
+        // For source passenger, skip the exact item we're copying from
+        if (isSourcePassenger && targetItemKey === copySourceItemKey) {
+          return; // Skip the exact source item
+        }
+        
+        // Check if there's remaining balance for this item
+        const remainingAmount = getRemainingAmount(targetItemKey);
+        if (remainingAmount.remaining <= 0) {
+          return; // Skip if no remaining balance
+        }
+        
+        // Copy the payment method data
+        if (copySourceMethod === 'credit' && sourcePaymentData.credit) {
+          const creditData = sourcePaymentData.credit;
+          setItemPaymentMethods(prev => ({
+          ...prev,
+            [targetItemKey]: {
+              ...prev[targetItemKey],
+              credit: {
+                amount: remainingAmount.remaining, // Copy the full remaining amount
+                cardId: creditData.cardId || '',
+                cardNumber: (creditData as any).cardNumber || '',
+                expiryDate: (creditData as any).expiryDate || '',
+                cvv: (creditData as any).cvv || '',
+                holderName: (creditData as any).holderName || '',
+                idNumber: (creditData as any).idNumber || '',
+                numberOfPayments: (creditData as any).numberOfPayments || '1'
+              }
+            }
+          }));
+          
+          // Add credit method to forms if not already present
+          setItemMethodForms(prev => {
+            const currentForms = prev[targetItemKey] || [];
+            if (!currentForms.includes('credit')) {
+    return {
+                ...prev,
+                [targetItemKey]: [...currentForms, 'credit']
+              };
+            }
+            return prev;
+          });
+        } else if (copySourceMethod === 'voucher' && sourcePaymentData.vouchers) {
+          // Update voucher amounts to match remaining balance
+          const updatedVouchers = (sourcePaymentData.vouchers || []).map((voucher: any, index: number) => ({
+            ...voucher,
+            amount: index === 0 ? remainingAmount.remaining : 0 // Set first voucher to full amount, others to 0
+          }));
+          
+          setItemPaymentMethods(prev => ({
+            ...prev,
+            [targetItemKey]: {
+              ...prev[targetItemKey],
+              vouchers: updatedVouchers
+            }
+          }));
+          
+          // Add voucher methods to forms
+          setItemMethodForms(prev => {
+            const currentForms = prev[targetItemKey] || [];
+            const voucherCount = sourcePaymentData.vouchers?.length || 0;
+            const newForms = [...currentForms];
+            for (let i = 0; i < voucherCount; i++) {
+              if (!newForms.includes('voucher')) {
+                newForms.push('voucher');
+              }
+            }
+            return {
+              ...prev,
+              [targetItemKey]: newForms
+            };
+          });
+        } else if (copySourceMethod === 'points' && sourcePaymentData.points) {
+          const pointsData = sourcePaymentData.points;
+          setItemPaymentMethods(prev => ({
+            ...prev,
+            [targetItemKey]: {
+              ...prev[targetItemKey],
+              points: {
+                amount: remainingAmount.remaining, // Copy the full remaining amount
+                accountId: (pointsData as any).accountId || '',
+                memberNumber: (pointsData as any).memberNumber || '',
+                pointsToUse: Math.round(remainingAmount.remaining * 50), // Calculate points based on remaining amount
+                awardReference: (pointsData as any).awardReference || ''
+              }
+            }
+          }));
+          
+          // Add points method to forms if not already present
+    setItemMethodForms(prev => {
+            const currentForms = prev[targetItemKey] || [];
+            if (!currentForms.includes('points')) {
+    return {
+                ...prev,
+                [targetItemKey]: [...currentForms, 'points']
+              };
+            }
+            return prev;
+          });
+        }
+      });
+    });
+    
+    setCopyModalOpen(false);
   };
 
   const isPaymentMethodCompleteWrapper = (itemKey: string, method: string, methodIndex: number) => {
@@ -802,13 +972,35 @@ export default function PaymentPortal() {
     if (!passenger) return { total: 0, paid: 0, remaining: 0 };
     
         let itemPrice = 0;
+        let dbStatus = '';
         if (itemType === 'ticket') {
           itemPrice = passenger.ticket.price;
+          dbStatus = passenger.ticket.status;
         } else if (itemType === 'seat') {
           itemPrice = passenger.ancillaries.seat.price;
+          dbStatus = passenger.ancillaries.seat.status;
         } else if (itemType === 'bag') {
           itemPrice = passenger.ancillaries.bag.price;
+          dbStatus = passenger.ancillaries.bag.status;
         }
+
+    // If item has price 0, return fully paid regardless of status
+    if (itemPrice === 0) {
+      return {
+        total: 0,
+        paid: 0,
+        remaining: 0
+      };
+    }
+
+    // If marked as paid in database, return fully paid
+    if (dbStatus === 'Paid') {
+      return {
+        total: itemPrice,
+        paid: itemPrice,
+        remaining: 0
+      };
+    }
 
     const totalPaid = getTotalPaidAmountWrapper(itemKey);
     
@@ -1160,16 +1352,16 @@ export default function PaymentPortal() {
                                 <Box
                                   sx={{
                                     position: 'relative',
-                                    cursor: passengerData.ancillaries.bag.status === 'Paid' ? 'not-allowed' : 'pointer',
+                                    cursor: passengerData.ancillaries.bag.status === 'Paid' || passengerData.ancillaries.bag.price === 0 ? 'not-allowed' : 'pointer',
                                     transition: 'all 0.2s',
                                     '&:hover': {
-                                      transform: passengerData.ancillaries.bag.status === 'Paid' ? 'none' : 'scale(1.1)'
+                                      transform: passengerData.ancillaries.bag.status === 'Paid' || passengerData.ancillaries.bag.price === 0 ? 'none' : 'scale(1.1)'
                                     }
                                   }}
-                                  title={passengerData.ancillaries.bag.status === 'Paid' ? 'Baggage Already Paid' : (isItemSelected(passenger.id, 'bag') ? 'Click to deselect Baggage' : 'Click to select Baggage')}
+                                  title={passengerData.ancillaries.bag.status === 'Paid' || passengerData.ancillaries.bag.price === 0 ? 'Baggage Already Paid' : (isItemSelected(passenger.id, 'bag') ? 'Click to deselect Baggage' : 'Click to select Baggage')}
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    if (passengerData.ancillaries.bag.status !== 'Paid') {
+                                    if (passengerData.ancillaries.bag.status !== 'Paid' && passengerData.ancillaries.bag.price !== 0) {
                                       toggleItem(passenger.id, 'bag');
                                     }
                                   }}
@@ -1178,10 +1370,10 @@ export default function PaymentPortal() {
                                     sx={{
                                       fontSize: 20,
                                       color: (() => {
-                                        if (passengerData.ancillaries.bag.status === 'Paid') return 'grey.500';
+                                        if (passengerData.ancillaries.bag.status === 'Paid' || passengerData.ancillaries.bag.price === 0) return 'grey.500';
                                         return isItemSelected(passenger.id, 'bag') ? 'warning.main' : 'warning.main';
                                       })(),
-                                      opacity: passengerData.ancillaries.bag.status === 'Paid' ? 0.3 : 1,
+                                      opacity: passengerData.ancillaries.bag.status === 'Paid' || passengerData.ancillaries.bag.price === 0 ? 0.3 : 1,
                                       zIndex: 2,
                                       position: 'relative'
                                     }}
@@ -1464,6 +1656,7 @@ export default function PaymentPortal() {
                   setItemExpandedMethod={setItemExpandedMethod}
                   removeMethod={removeMethodWrapper}
                   toggleItem={toggleItem}
+                  onCopyMethod={handleCopyMethod}
                 />
 
                 {/* No items selected message */}
@@ -1647,6 +1840,23 @@ export default function PaymentPortal() {
       <AuthModal 
         open={showAuthModal}
         onClose={() => setShowAuthModal(false)}
+      />
+      
+      {/* Copy Payment Method Modal */}
+      <CopyPaymentMethodModal
+        open={copyModalOpen}
+        onClose={() => setCopyModalOpen(false)}
+        onConfirm={handleCopyConfirm}
+        passengers={reservation.passengers.map((p, idx) => ({
+          id: (idx + 1).toString(), // Use 1-based ID to match passengerId format
+          fullName: p.name || `Passenger ${idx + 1}`,
+          hasUnpaidItems: true
+        }))}
+        selectedPassengers={selectedPassengers}
+        sourceItemKey={copySourceItemKey}
+        paymentMethodType={copySourceMethod}
+        getRemainingAmount={getRemainingAmount}
+        selectedItems={selectedItems}
       />
     </Box>
   );

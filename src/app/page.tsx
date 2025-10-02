@@ -708,17 +708,19 @@ export default function PaymentPortal() {
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50', p: 2 }}>
       <Container maxWidth="xl" sx={{display: 'flex', flexDirection: 'column' }}>
-        <Typography variant="h3" component="h1" align="center" sx={{ mb: 4, fontWeight: 'bold', color: 'grey.800' }}>
+        {/* Header with PCI title and User Menu */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+          <Box sx={{ flex: 1 }}></Box>
+          <Typography variant="h3" component="h1" sx={{ fontWeight: 'bold', color: 'grey.800' }}>
           PCI
         </Typography>
-        
-        {/* User Menu at the top */}
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-          <UserMenu 
-            onSyncToCloud={syncToFirebase}
-            onSyncFromCloud={syncFromFirebase}
-            onShowAuthModal={() => setShowAuthModal(true)}
-          />
+          <Box sx={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+            <UserMenu 
+              onSyncToCloud={syncToFirebase}
+              onSyncFromCloud={syncFromFirebase}
+              onShowAuthModal={() => setShowAuthModal(true)}
+            />
+          </Box>
         </Box>
 
         <Grid container spacing={3} sx={{ flex: 1, height: '100%' }}>

@@ -217,16 +217,30 @@ export const confirmAddMethod = (
 
   // First, add the payment method data structure
   setItemPaymentMethods((current: any) => {
+    // Ensure the itemKey exists in current
+    if (!current[itemKey]) {
+      current[itemKey] = {
+        credit: undefined,
+        vouchers: [],
+        points: undefined
+      };
+    }
+    
     const key = method === 'voucher' ? 'vouchers' : method;
     
     if (method === 'voucher') {
+      // Initialize vouchers array if it doesn't exist
+      if (!current[itemKey].vouchers) {
+        current[itemKey].vouchers = [];
+      }
+      
       // Calculate which voucher index this should be based on existing form entries
       const voucherCountInForms = (itemMethodForms[itemKey] || []).filter((m: string) => m === 'voucher').length;
-      console.log('🎫 Voucher count in forms:', voucherCountInForms, 'Vouchers in array:', current[itemKey][key].length);
+      console.log('🎫 Voucher count in forms:', voucherCountInForms, 'Vouchers in array:', current[itemKey].vouchers.length);
       
       // Only add a new voucher if the array doesn't have enough vouchers yet
-      if (current[itemKey][key].length < voucherCountInForms + 1 && current[itemKey][key].length < 2) {
-        current[itemKey][key].push({ 
+      if (current[itemKey].vouchers.length < voucherCountInForms + 1 && current[itemKey].vouchers.length < 2) {
+        current[itemKey].vouchers.push({ 
           uatpNumber: '', 
           balance: 0, 
           expirationDate: '', 

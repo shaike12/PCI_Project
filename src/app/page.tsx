@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Box,
   Card,
@@ -200,6 +200,48 @@ export default function PaymentPortal() {
   
   const total = useMemo(() => flightPrice + additionalServices, [flightPrice, additionalServices]);
 
+  // Wrapper functions for payment logic (moved up to avoid initialization order issues)
+  const getTotalPaidAmountWrapper = useCallback((itemKey: string) => {
+    return getTotalPaidAmount(itemKey, itemPaymentMethods);
+  }, [itemPaymentMethods]);
+
+  const isItemFullyPaidWrapper = (itemKey: string) => {
+    return isItemFullyPaid(itemKey, itemPaymentMethods, reservation, resolvePassengerIndex);
+  };
+
+  const confirmAddMethodWrapper = (itemKey: string, method: 'credit' | 'voucher' | 'points') => {
+    confirmAddMethod(
+      itemKey, 
+      method, 
+      itemMethodForms, 
+      itemPaymentMethods, 
+      setItemMethodForms, 
+      setItemPaymentMethods, 
+      setItemExpandedMethod, 
+      getRemainingAmount
+    );
+  };
+
+  const updateMethodFieldWrapper = (itemKey: string, method: 'credit' | 'voucher' | 'points', field: string, value: string, voucherIndex?: number) => {
+    updateMethodField(itemKey, method, field, value, voucherIndex, itemPaymentMethods, setItemPaymentMethods);
+  };
+
+  const removeMethodWrapper = (itemKey: string, formIndex: number) => {
+    removeMethod(
+      itemKey, 
+      formIndex, 
+      itemMethodForms, 
+      itemPaymentMethods, 
+      setItemMethodForms, 
+      setItemPaymentMethods, 
+      setItemExpandedMethod
+    );
+  };
+
+  const isPaymentMethodCompleteWrapper = (itemKey: string, method: string, methodIndex: number) => {
+    return isPaymentMethodComplete(itemKey, method, methodIndex, itemPaymentMethods);
+  };
+
   // Calculate payment progress
   const paymentProgress = useMemo(() => {
     if (total === 0) return 0;
@@ -213,7 +255,7 @@ export default function PaymentPortal() {
       return sum + passengerPaid;
     }, 0);
     return (paidAmount / total) * 100;
-  }, [passengersWithSelectedItems, selectedItems, total]);
+  }, [passengersWithSelectedItems, selectedItems, total, getTotalPaidAmountWrapper]);
 
   // togglePassenger is now imported from utils/passengerLogic
   const togglePassenger = (passengerId: string) => {
@@ -348,48 +390,6 @@ export default function PaymentPortal() {
   };
 
 
-  // Wrapper functions for payment logic
-  const getTotalPaidAmountWrapper = (itemKey: string) => {
-    return getTotalPaidAmount(itemKey, itemPaymentMethods);
-  };
-
-  const isItemFullyPaidWrapper = (itemKey: string) => {
-    return isItemFullyPaid(itemKey, itemPaymentMethods, reservation, resolvePassengerIndex);
-  };
-
-  const confirmAddMethodWrapper = (itemKey: string, method: 'credit' | 'voucher' | 'points') => {
-    confirmAddMethod(
-      itemKey, 
-      method, 
-      itemMethodForms, 
-      itemPaymentMethods, 
-      setItemMethodForms, 
-      setItemPaymentMethods, 
-      setItemExpandedMethod, 
-      getRemainingAmount
-    );
-  };
-
-  const updateMethodFieldWrapper = (itemKey: string, method: 'credit' | 'voucher' | 'points', field: string, value: string, voucherIndex?: number) => {
-    updateMethodField(itemKey, method, field, value, voucherIndex, itemPaymentMethods, setItemPaymentMethods);
-  };
-
-  const removeMethodWrapper = (itemKey: string, formIndex: number) => {
-    removeMethod(
-      itemKey, 
-      formIndex, 
-      itemMethodForms, 
-      itemPaymentMethods, 
-      setItemMethodForms, 
-      setItemPaymentMethods, 
-      setItemExpandedMethod
-    );
-  };
-
-
-  const isPaymentMethodCompleteWrapper = (itemKey: string, method: string, methodIndex: number) => {
-    return isPaymentMethodComplete(itemKey, method, methodIndex, itemPaymentMethods);
-  };
 
 
   // getRemainingAmount function

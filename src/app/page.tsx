@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useFirebase } from '../hooks/useFirebase';
 import { useReservations } from '../hooks/useReservations';
 import AuthModal from './components/AuthModal';
+import UserMenu from './components/UserMenu';
 import {
   Box,
   Card,
@@ -711,6 +712,14 @@ export default function PaymentPortal() {
           PCI
         </Typography>
         
+        {/* User Menu at the top */}
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+          <UserMenu 
+            onSyncToCloud={syncToFirebase}
+            onSyncFromCloud={syncFromFirebase}
+            onShowAuthModal={() => setShowAuthModal(true)}
+          />
+        </Box>
 
         <Grid container spacing={3} sx={{ flex: 1, height: '100%' }}>
           {/* סקשן נוסעים - שמאל - 25% */}
@@ -729,9 +738,6 @@ export default function PaymentPortal() {
                   onChangeReservationCode={setReservationCode}
                   onLoad={handleLoadReservation}
                   loadDisabled={!reservationCode.trim()}
-                  onSyncToCloud={syncToFirebase}
-                  onSyncFromCloud={syncFromFirebase}
-                  onShowAuthModal={() => setShowAuthModal(true)}
                   onToggleSelectAll={() => {
                     // Check if all available items are selected (only for passengers with unpaid items)
                     const passengersWithUnpaidItems = availablePassengers.filter(p => p.hasUnpaidItems);

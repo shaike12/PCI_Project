@@ -1,8 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Box, Button, TextField, AppBar, Toolbar, Typography } from '@mui/material';
-import UserMenu from './UserMenu';
+import { Box, Button, TextField } from '@mui/material';
 
 type PassengerHeaderProps = {
   reservationCode: string;
@@ -11,9 +10,6 @@ type PassengerHeaderProps = {
   loadDisabled?: boolean;
   onToggleSelectAll: () => void;
   isAllSelected: boolean;
-  onSyncToCloud?: () => void;
-  onSyncFromCloud?: () => void;
-  onShowAuthModal?: () => void;
 };
 
 export const PassengerHeader: React.FC<PassengerHeaderProps> = ({
@@ -22,27 +18,10 @@ export const PassengerHeader: React.FC<PassengerHeaderProps> = ({
   onLoad,
   loadDisabled = false,
   onToggleSelectAll,
-  isAllSelected,
-  onSyncToCloud,
-  onSyncFromCloud,
-  onShowAuthModal
+  isAllSelected
 }) => {
   return (
-    <>
-      <AppBar position="static" color="default" elevation={1}>
-        <Toolbar>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Payment Portal
-          </Typography>
-          <UserMenu 
-            onSyncToCloud={onSyncToCloud}
-            onSyncFromCloud={onSyncFromCloud}
-            onShowAuthModal={onShowAuthModal}
-          />
-        </Toolbar>
-      </AppBar>
-      
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2, mt: 2 }}>
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
         <TextField
           size="small"
           label="Reservation Number"
@@ -84,7 +63,6 @@ export const PassengerHeader: React.FC<PassengerHeaderProps> = ({
           {isAllSelected ? 'Deselect All' : 'Select All'}
         </Button>
       </Box>
-    </>
   );
 };
 

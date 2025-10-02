@@ -61,7 +61,15 @@ import {
   Receipt as ReceiptIcon
 } from '@mui/icons-material';
 import { Tabs, Tab, Stack, CircularProgress, Slider } from '@mui/material';
+import { PassengerHeader } from './components/PassengerHeader';
+import { PassengerList } from './components/PassengerList';
+import { PaymentMethodsSummary } from './components/PaymentMethodsSummary';
+import { TotalSummary } from './components/TotalSummary';
+import { ActionButtons } from './components/ActionButtons';
 import { MOCK_RESERVATION, Reservation } from '@/types/reservation';
+import { PaymentTabs } from './components/PaymentTabs';
+import { SelectedItemsBreakdown } from './components/SelectedItemsBreakdown';
+import { computeSelectedAmount } from './utils/paymentCalculations';
 
 // Loading component for lazy loading
 const LoadingSpinner = () => (
@@ -250,10 +258,25 @@ export default function PaymentPortal() {
   // Memoized calculations for better performance
   const passengersWithSelectedItems = useMemo(() => Object.keys(selectedItems), [selectedItems]);
   
+  const resolvePassengerIndex = (passengerId: string): number => {
+    if (!passengerId) return -1;
+    if (/^\d+$/.test(passengerId)) {
+      const idx = Number(passengerId) - 1;
+      return reservation.passengers[idx] ? idx : -1;
+    }
+    const match = passengerId.match(/\d+/);
+    if (match) {
+      const idx = Number(match[0]) - 1;
+      return reservation.passengers[idx] ? idx : -1;
+    }
+    return -1;
+  };
+
   const flightPrice = useMemo(() => {
     return passengersWithSelectedItems.reduce((sum, passengerId) => {
-      const passengerIndex = parseInt(passengerId) - 1;
-      const passenger = reservation.passengers[passengerIndex];
+      const passengerIndex = resolvePassengerIndex(passengerId);
+      const passenger = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
+      if (!passenger) return sum;
       const selectedPassengerItems = selectedItems[passengerId] || [];
       
       // Only count ticket price if ticket is selected and not paid
@@ -266,8 +289,9 @@ export default function PaymentPortal() {
   
   const additionalServices = useMemo(() => {
     return passengersWithSelectedItems.reduce((sum, passengerId) => {
-      const passengerIndex = parseInt(passengerId) - 1;
-      const passenger = reservation.passengers[passengerIndex];
+      const passengerIndex = resolvePassengerIndex(passengerId);
+      const passenger = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
+      if (!passenger) return sum;
       const selectedPassengerItems = selectedItems[passengerId] || [];
       
       let passengerTotal = 0;
@@ -369,7 +393,8 @@ export default function PaymentPortal() {
   // Toggle select all/deselect all unpaid items for a passenger
   const toggleAllItemsForPassenger = (passengerId: string) => {
     const passengerIndex = resolvePassengerIndex(passengerId);
-    const passengerData = reservation.passengers[passengerIndex];
+    const passengerData = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
+    if (!passengerData) return;
     const unpaidItems: string[] = [];
     if (passengerData.ticket.status !== 'Paid') unpaidItems.push('ticket');
     if (passengerData.ancillaries.seat.status !== 'Paid') unpaidItems.push('seat');
@@ -557,7 +582,8 @@ export default function PaymentPortal() {
   const getRemainingAmount = (itemKey: string) => {
     const [passengerId, itemType] = itemKey.split('-');
     const passengerIndex = resolvePassengerIndex(passengerId);
-    const passenger = reservation.passengers[passengerIndex];
+    const passenger = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
+    if (!passenger) return { total: 0, paid: 0, remaining: 0 };
     let itemPrice = 0;
     
     if (itemType === 'ticket') {
@@ -673,7 +699,8 @@ export default function PaymentPortal() {
   const isItemFullyPaid = (itemKey: string) => {
     const [passengerId, itemType] = itemKey.split('-');
     const passengerIndex = resolvePassengerIndex(passengerId);
-    const passenger = reservation.passengers[passengerIndex];
+    const passenger = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
+    if (!passenger) return false;
     let itemPrice = 0;
     
     if (itemType === 'ticket') {
@@ -717,7 +744,8 @@ export default function PaymentPortal() {
     // Get the item price
     const [passengerId, itemType] = itemKey.split('-');
     const passengerIndex = resolvePassengerIndex(passengerId);
-    const passenger = reservation.passengers[passengerIndex];
+    const passenger = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
+    if (!passenger) return;
     let itemPrice = 0;
     
     if (itemType === 'ticket') {
@@ -862,7 +890,8 @@ export default function PaymentPortal() {
         } else {
         const [passengerId, itemType] = itemKey.split('-');
         const passengerIndex = resolvePassengerIndex(passengerId);
-        const passenger = reservation.passengers[passengerIndex];
+        const passenger = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
+        if (!passenger) return prev;
         let itemPrice = 0;
         if (itemType === 'ticket') {
           itemPrice = passenger.ticket.price;
@@ -976,23 +1005,7 @@ export default function PaymentPortal() {
     });
   };
 
-  // Helper: resolve passenger index from possibly non-numeric ids (e.g., 'p1', 'passenger-2')
-  function resolvePassengerIndex(passengerId: string): number {
-    if (!passengerId) return 0;
-    // Try direct numeric
-    if (/^\d+$/.test(passengerId)) {
-      const idx = Number(passengerId) - 1;
-      return reservation.passengers[idx] ? idx : 0;
-    }
-    // Extract first number found
-    const match = passengerId.match(/\d+/);
-    if (match) {
-      const idx = Number(match[0]) - 1;
-      return reservation.passengers[idx] ? idx : 0;
-    }
-    // Fallback
-    return 0;
-  }
+  // (removed duplicate resolvePassengerIndex; using the single definition above)
 
 
 
@@ -1101,7 +1114,8 @@ export default function PaymentPortal() {
             // Get the item price for amount calculation
             const [targetPassengerId, targetItemType] = targetItemKey.split('-');
             const targetPassengerIndex = resolvePassengerIndex(targetPassengerId);
-            const targetPassenger = reservation.passengers[targetPassengerIndex];
+            const targetPassenger = targetPassengerIndex >= 0 ? reservation.passengers[targetPassengerIndex] : undefined;
+            if (!targetPassenger) return newMethods;
             let targetItemPrice = 0;
             if (targetItemType === 'ticket') {
               targetItemPrice = targetPassenger.ticket.price;
@@ -1207,8 +1221,9 @@ export default function PaymentPortal() {
     const passengersWithItems = Object.entries(selectedItems)
       .filter(([pid, items]) => {
         if (!items || items.length === 0) return false;
-        const idx = parseInt(pid) - 1;
-        const p = reservation.passengers[idx];
+        const idx = resolvePassengerIndex(pid);
+        const p = idx >= 0 ? reservation.passengers[idx] : undefined;
+        if (!p) return false;
         const hasUnpaid = p.ticket.status !== 'Paid' || p.ancillaries.seat.status !== 'Paid' || p.ancillaries.bag.status !== 'Paid';
         return hasUnpaid;
       })
@@ -1223,13 +1238,13 @@ export default function PaymentPortal() {
   }, [selectedItems]);
 
   const getPassengerNameById = (pid: string) => {
-    const idx = parseInt(pid) - 1;
-    return reservation.passengers[idx]?.name || pid;
+    const idx = resolvePassengerIndex(pid);
+    return idx >= 0 ? (reservation.passengers[idx]?.name || pid) : pid;
   };
 
   const getPassengerTabLabel = (pid: string) => {
-    const idx = parseInt(pid) - 1;
-    const passenger = reservation.passengers[idx];
+    const idx = resolvePassengerIndex(pid);
+    const passenger = idx >= 0 ? reservation.passengers[idx] : undefined;
     const passengerName = passenger?.name || pid;
     
     // Calculate total amount for selected items
@@ -1237,6 +1252,7 @@ export default function PaymentPortal() {
     let totalAmount = 0;
     
     selectedPassengerItems.forEach(itemType => {
+      if (!passenger) return;
       if (itemType === 'ticket' && passenger.ticket.status !== 'Paid') {
         totalAmount += passenger.ticket.price;
       } else if (itemType === 'seat' && passenger.ancillaries.seat.status !== 'Paid') {
@@ -1316,8 +1332,9 @@ export default function PaymentPortal() {
     return Object.entries(selectedItems)
       .filter(([pid, items]) => {
         if (!items || items.length === 0) return false;
-        const idx = parseInt(pid) - 1;
-        const p = reservation.passengers[idx];
+        const idx = resolvePassengerIndex(pid);
+        const p = idx >= 0 ? reservation.passengers[idx] : undefined;
+        if (!p) return false;
         return p.ticket.status !== 'Paid' || p.ancillaries.seat.status !== 'Paid' || p.ancillaries.bag.status !== 'Paid';
       })
       .map(([pid]) => pid);
@@ -1345,8 +1362,9 @@ export default function PaymentPortal() {
     }> = [];
 
     Object.entries(selectedItems).forEach(([passengerId, items]) => {
-      const passengerIndex = parseInt(passengerId) - 1;
-      const passengerData = reservation.passengers[passengerIndex];
+      const passengerIndex = resolvePassengerIndex(passengerId);
+      const passengerData = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
+      if (!passengerData) return;
       
       items.forEach(itemType => {
         const itemKey = `${passengerId}-${itemType}`;
@@ -1407,33 +1425,18 @@ export default function PaymentPortal() {
                   </Typography>
                 </Box>
                 
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
-                  <TextField
-                    size="small"
-                    label="Reservation Number"
-                    placeholder="Enter reservation code"
-                    value={reservationCode}
-                    onChange={(e) => setReservationCode(e.target.value)}
-                    InputLabelProps={{ shrink: true }}
-                    sx={{ width: 200 }}
-                  />
-                <Button
-                    variant="contained"
-                    size="small"
-                    onClick={loadReservation}
-                    disabled={!reservationCode.trim()}
-                  >
-                    Load
-                  </Button>
-                  <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={() => {
+                <PassengerHeader
+                  reservationCode={reservationCode}
+                  onChangeReservationCode={(v) => setReservationCode(v)}
+                  onLoad={loadReservation}
+                  loadDisabled={!reservationCode.trim()}
+                  onToggleSelectAll={() => {
                     // Check if all available items are selected (only for passengers with unpaid items)
                     const passengersWithUnpaidItems = availablePassengers.filter(p => p.hasUnpaidItems);
                     const allAvailableItemsSelected = passengersWithUnpaidItems.every(passenger => {
-                      const passengerIndex = parseInt(passenger.id) - 1;
-                      const passengerData = reservation.passengers[passengerIndex];
+                      const passengerIndex = resolvePassengerIndex(passenger.id);
+                      const passengerData = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
+                      if (!passengerData) return false;
                       const passengerItems = selectedItems[passenger.id] || [];
                       
                       // Check if all unpaid items for this passenger are selected
@@ -1452,8 +1455,9 @@ export default function PaymentPortal() {
                       // Select all unpaid items
                       const newSelectedItems: {[key: string]: string[]} = {};
                       availablePassengers.forEach(passenger => {
-                        const passengerIndex = parseInt(passenger.id) - 1;
-                        const passengerData = reservation.passengers[passengerIndex];
+                        const passengerIndex = resolvePassengerIndex(passenger.id);
+                        const passengerData = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
+                        if (!passengerData) return;
                         const itemsToSelect = [];
                         
                         if (passengerData.ticket.status !== 'Paid') itemsToSelect.push('ticket');
@@ -1467,25 +1471,12 @@ export default function PaymentPortal() {
                       setSelectedItems(newSelectedItems);
                     }
                   }}
-                  sx={{ 
-                    borderColor: 'primary.main',
-                    color: 'primary.main',
-                      minWidth: 'auto',
-                      px: 0.75,
-                      py: 0.25,
-                      fontSize: '0.7rem',
-                      lineHeight: 1.2,
-                    '&:hover': {
-                      borderColor: 'primary.dark',
-                      bgcolor: 'primary.50'
-                    }
-                  }}
-                >
-                  {(() => {
+                  isAllSelected={(() => {
                     // Check if all available items are selected
                     const allAvailableItemsSelected = availablePassengers.every(passenger => {
-                      const passengerIndex = parseInt(passenger.id) - 1;
-                      const passengerData = reservation.passengers[passengerIndex];
+                      const passengerIndex = resolvePassengerIndex(passenger.id);
+                      const passengerData = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
+                      if (!passengerData) return false;
                       const passengerItems = selectedItems[passenger.id] || [];
                       
                       const unpaidItems = [];
@@ -1495,11 +1486,9 @@ export default function PaymentPortal() {
                       
                       return unpaidItems.every(item => passengerItems.includes(item));
                     });
-                    
-                      return allAvailableItemsSelected ? 'Deselect All' : 'Select All';
-                  })()}
-                </Button>
-                </Box>
+                      return allAvailableItemsSelected;
+                    })()}
+                />
                 
                 <Box sx={{ flex: 1, overflowY: 'auto', mb: 2 }}>
                   {availablePassengers.map((passenger) => {
@@ -1956,1163 +1945,23 @@ export default function PaymentPortal() {
                 </Box>
                 
                 {/* Payment Tabs per selected passengers */}
-                {Object.values(selectedItems).flat().length > 0 && (
-                  <Box sx={{ mb: 2, minHeight: 0, display: 'flex', flexDirection: 'column', flex: 1 }}>
-                    <Tabs
-                      value={activePaymentPassenger || false}
-                      onChange={(_, v) => setActivePaymentPassenger(v)}
-                      variant="scrollable"
-                      scrollButtons="auto"
-                      allowScrollButtonsMobile
-                      sx={{ borderBottom: 1, borderColor: 'divider' }}
-                    >
-                      {Object.entries(selectedItems)
-                        .filter(([pid, items]) => {
-                          if (!items || items.length === 0) return false;
-                          const idx = parseInt(pid) - 1;
-                          const p = reservation.passengers[idx];
-                          const hasUnpaid = p.ticket.status !== 'Paid' || p.ancillaries.seat.status !== 'Paid' || p.ancillaries.bag.status !== 'Paid';
-                          return hasUnpaid;
-                        })
-                        .map(([pid]) => (
-                          <Tab 
-                            key={pid} 
-                            value={pid} 
-                            label={getPassengerTabLabel(pid)}
-                            sx={{
-                              transition: 'all 0.3s ease-in-out',
-                              '&.Mui-selected': {
-                                backgroundColor: 'primary.50',
-                                color: 'primary.main',
-                                fontWeight: 600,
-                                borderRadius: 1,
-                                transform: 'translateY(-1px)',
-                                boxShadow: '0 2px 8px rgba(25, 118, 210, 0.15)'
-                              },
-                              '&:hover': {
-                                backgroundColor: 'grey.50',
-                                transform: 'translateY(-1px)'
-                              }
-                            }}
-                          />
-                        ))}
-                    </Tabs>
-
-                    {activePaymentPassenger && activePaymentPassenger !== '' && (
-                      <Paper sx={{ 
-                        p: 2, 
-                        mt: 2, 
-                        border: 1, 
-                        borderColor: 'grey.300', 
-                        bgcolor: 'white', 
-                        minHeight: 0, 
-                        flex: 1, 
-                        display: 'flex', 
-                        flexDirection: 'column',
-                        animation: 'slideIn 0.3s ease-out',
-                        transition: 'all 0.3s ease-in-out'
-                      }}>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, flex: 1, overflowY: 'auto', pr: 1 }}>
-                          {(selectedItems[activePaymentPassenger] || []).map((itemType) => {
-                            const pIndex = parseInt(activePaymentPassenger) - 1;
-                            const p = reservation.passengers[pIndex];
-                            let title = '';
-                            let price = 0;
-                            let color: any = 'primary.main';
-                            let icon: any = <FlightIcon sx={{ fontSize: 18, mr: 1 }} />;
-                            if (itemType === 'ticket') {
-                              title = 'Flight Ticket';
-                              price = p.ticket.price;
-                              color = 'success.main';
-                              icon = <FlightIcon sx={{ fontSize: 18, mr: 1 }} />;
-                            } else if (itemType === 'seat') {
-                              title = 'Seat Selection';
-                              price = p.ancillaries.seat.price;
-                              color = 'info.main';
-                              icon = <SeatIcon sx={{ fontSize: 18, mr: 1 }} />;
-                            } else if (itemType === 'bag') {
-                              title = 'Baggage';
-                              price = p.ancillaries.bag.price;
-                              color = 'warning.main';
-                              icon = <BagIcon sx={{ fontSize: 18, mr: 1 }} />;
-                            }
-
-                            const itemKey = `${activePaymentPassenger}-${itemType}`;
-                            const formMethods = itemMethodForms[itemKey] || [];
-                            return (
-                              <Paper key={`${activePaymentPassenger}-${itemType}`} sx={{ p: 1.5, border: 1, borderColor: 'grey.200' }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                    {icon}
-                                    <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                                      {title}
-                                    </Typography>
-                                  </Box>
-                                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                                    <Typography variant="body2" sx={{ fontWeight: 'bold', color }}>
-                                      ${price.toLocaleString()}
-                                    </Typography>
-                                    {(() => {
-                                      const amounts = getRemainingAmount(itemKey);
-                                      // Always show remaining indicator while editing forms
-                                      const showAlways = true;
-                                      if (showAlways || amounts.paid > 0) {
-                                        return (
-                                          <Typography variant="caption" sx={{ 
-                                            color: amounts.remaining > 0 ? 'warning.main' : 'success.main',
-                                            fontWeight: 'medium'
-                                          }}>
-                                            {amounts.remaining > 0 
-                                              ? `Remaining: $${amounts.remaining.toLocaleString()}` 
-                                              : 'Fully Paid'
-                                            }
-                                          </Typography>
-                                        );
-                                      }
-                                      return null;
-                                    })()}
-                                  </Box>
-                                </Box>
-
-                                {/* Add payment method trigger */}
-                                {formMethods.length === 0 && !isItemFullyPaid(itemKey) && (
-                                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1, gap: 0.5 }}>
-                                    <IconButton
-                                      size="small"
-                                      onClick={() => confirmAddMethod(itemKey, 'credit')}
-                                      sx={{ 
-                                        color: 'success.main',
-                                        '&:hover': { bgcolor: 'success.light', color: 'white' },
-                                        border: 1,
-                                        borderColor: 'success.main',
-                                        width: 32,
-                                        height: 32
-                                      }}
-                                      title="Add Credit Card"
-                                    >
-                                      <CreditCardIcon sx={{ fontSize: 16 }} />
-                                    </IconButton>
-                                    <IconButton
-                                      size="small"
-                                      onClick={() => confirmAddMethod(itemKey, 'voucher')}
-                                      sx={{ 
-                                        color: 'warning.main',
-                                        '&:hover': { bgcolor: 'warning.light', color: 'white' },
-                                        border: 1,
-                                        borderColor: 'warning.main',
-                                        width: 32,
-                                        height: 32
-                                      }}
-                                      title="Add Voucher"
-                                    >
-                                      <VoucherIcon sx={{ fontSize: 16 }} />
-                                    </IconButton>
-                                    <IconButton
-                                      size="small"
-                                      onClick={() => confirmAddMethod(itemKey, 'points')}
-                                      sx={{ 
-                                        color: 'info.main',
-                                        '&:hover': { bgcolor: 'info.light', color: 'white' },
-                                        border: 1,
-                                        borderColor: 'info.main',
-                                        width: 32,
-                                        height: 32
-                                      }}
-                                      title="Add Points"
-                                    >
-                                      <PointsIcon sx={{ fontSize: 16 }} />
-                                    </IconButton>
-                                  </Box>
-                                )}
-
-                                {/* Dynamic forms for chosen methods */}
-                                {formMethods.map((method, idx) => {
-                                  const expanded = itemExpandedMethod[itemKey] === idx;
-                                  const paymentData = (itemPaymentMethods as any)[itemKey] || {};
-                                  let methodAmount = 0;
-                                  if (method === 'credit') {
-                                    methodAmount = Number(paymentData?.credit?.amount) || 0;
-                                  } else if (method === 'voucher') {
-                                    // For vouchers, compute this form's voucher index
-                                    const voucherIdx = formMethods.slice(0, idx).filter(m => m === 'voucher').length;
-                                    methodAmount = Number(paymentData?.vouchers?.[voucherIdx]?.amount) || 0;
-                                  } else if (method === 'points') {
-                                    methodAmount = Number(paymentData?.points?.amount) || 0;
-                                  }
-                                  const isComplete = isPaymentMethodComplete(itemKey, method, method === 'voucher' ? formMethods.slice(0, idx).filter(m => m === 'voucher').length : 0);
-                                  
-                                  return (
-                                  <Paper key={`${itemKey}-method-${idx}`} sx={{ 
-                                    p: 1.5, 
-                                    mt: 1, 
-                                    border: 1, 
-                                    borderColor: expanded ? 'primary.light' : (isComplete ? 'success.light' : 'warning.light'), 
-                                    bgcolor: expanded ? 'white' : (isComplete ? 'success.50' : 'warning.50'),
-                                    position: 'relative'
-                                  }}>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: expanded ? 1 : 0 }}>
-                                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                      <Typography variant="subtitle2" sx={{ fontWeight: 'medium' }}>
-                                        {method === 'credit' ? 'Credit Card' : method === 'voucher' ? 'Voucher' : 'Points'}
-                                      </Typography>
-                                        {isComplete ? (
-                                          <Box sx={{ 
-                                            width: 16, 
-                                            height: 16, 
-                                            borderRadius: '50%', 
-                                            backgroundColor: 'success.main', 
-                                            display: 'flex', 
-                                            alignItems: 'center', 
-                                            justifyContent: 'center',
-                                            color: 'white',
-                                            fontSize: '10px',
-                                            fontWeight: 'bold'
-                                          }}>
-                                            ✓
-                                          </Box>
-                                        ) : (
-                                          <Box sx={{ 
-                                            width: 16, 
-                                            height: 16, 
-                                            borderRadius: '50%', 
-                                            backgroundColor: 'warning.main', 
-                                            display: 'flex', 
-                                            alignItems: 'center', 
-                                            justifyContent: 'center',
-                                            color: 'white',
-                                            fontSize: '10px',
-                                            fontWeight: 'bold'
-                                          }}>
-                                            !
-                                          </Box>
-                                        )}
-                                      </Box>
-                                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                        <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-                                          ${methodAmount.toLocaleString()}
-                                        </Typography>
-                                        <IconButton 
-                                          size="small" 
-                                          onClick={() => {
-                                            if (expanded) {
-                                              // If currently expanded, just collapse this one
-                                              setItemExpandedMethod(prev => ({ ...prev, [itemKey]: null }));
-                                            } else {
-                                              // If not expanded, expand this one and collapse all others
-                                              setItemExpandedMethod(prev => {
-                                                const newExpanded: { [key: string]: number | null } = {};
-                                                // Collapse all items first
-                                                Object.keys(prev).forEach(key => {
-                                                  newExpanded[key] = null;
-                                                });
-                                                // Expand the clicked method
-                                                newExpanded[itemKey] = idx;
-                                                return newExpanded;
-                                              });
-                                            }
-                                          }}
-                                          sx={{ color: 'primary.main' }}
-                                        >
-                                          {expanded ? <ExpandLessIcon fontSize="small" /> : <EditIcon fontSize="small" />}
-                                        </IconButton>
-                                        <IconButton 
-                                          size="small" 
-                                          color="error" 
-                                          onClick={() => removeMethod(itemKey, idx)}
-                                        >
-                                          <DeleteIcon fontSize="small" />
-                                        </IconButton>
-                                      </Box>
-                                    </Box>
-                                    
-                                    {/* Amount Slider when collapsed and payment method has data */}
-                                    {!expanded && isComplete && (
-                                      <Box sx={{ mt: 2, px: 1 }}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-                                          <Typography variant="caption" sx={{ color: 'text.secondary', minWidth: 50 }}>
-                                            Amount
-                                      </Typography>
-                                          <Slider
-                                            value={methodAmount}
-                                            min={0}
-                                            max={(() => {
-                                              const amounts = getRemainingAmount(itemKey);
-                                              return methodAmount + amounts.remaining;
-                                            })()}
-                                            step={1}
-                                            onChange={(_e: Event, newValue: number | number[]) => {
-                                              const value = typeof newValue === 'number' ? newValue : newValue[0];
-                                              if (method === 'credit') {
-                                                updateMethodField(itemKey, 'credit', 'amount', value.toString());
-                                              } else if (method === 'voucher') {
-                                                const voucherIdx = formMethods.slice(0, idx).filter(m => m === 'voucher').length;
-                                                updateMethodField(itemKey, 'voucher', 'amount', value.toString(), voucherIdx);
-                                              } else if (method === 'points') {
-                                                // For points, update both amount and pointsToUse
-                                                const pointsToUse = value * 50;
-                                                updateMethodField(itemKey, 'points', 'amount', value.toString());
-                                                updateMethodField(itemKey, 'points', 'pointsToUse', pointsToUse.toString());
-                                              }
-                                            }}
-                                            valueLabelDisplay="auto"
-                                            valueLabelFormat={(value: number) => `$${value}`}
-                                            sx={{
-                                              flex: 1,
-                                              '& .MuiSlider-thumb': {
-                                                width: 20,
-                                                height: 20,
-                                                backgroundColor: 'primary.main',
-                                                '&:hover': {
-                                                  boxShadow: '0 0 0 8px rgba(25, 118, 210, 0.16)'
-                                                }
-                                              },
-                                              '& .MuiSlider-track': {
-                                                backgroundColor: 'primary.main',
-                                                border: 'none'
-                                              },
-                                              '& .MuiSlider-rail': {
-                                                backgroundColor: 'grey.300'
-                                              },
-                                              '& .MuiSlider-valueLabel': {
-                                                backgroundColor: 'primary.main',
-                                                fontSize: '0.75rem'
-                                              }
-                                            }}
-                                          />
-                                          <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 'bold', minWidth: 50, textAlign: 'right' }}>
-                                            ${methodAmount}
-                                          </Typography>
-                                        </Box>
-                                      </Box>
-                                    )}
-                                    
-                                    {expanded && method === 'credit' && (
-                                      <Box sx={{ 
-                                        mt: 2, 
-                                        p: 3, 
-                                        bgcolor: 'grey.50', 
-                                        borderRadius: 2,
-                                        border: '1px solid',
-                                        borderColor: 'grey.200'
-                                      }}>
-                                        <Typography variant="subtitle2" sx={{ mb: 3, color: 'text.secondary', fontWeight: 600 }}>
-                                          Credit Card Details
-                                            </Typography>
-                                        
-                                        {/* Payment Amount */}
-                                        <Box sx={{ mb: 2.5 }}>
-                                          <TextField 
-                                            fullWidth
-                                            size="medium" 
-                                            sx={{ 
-                                              '& .MuiInputBase-root': { height: 48 }, 
-                                              '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
-                                              '& .MuiInputLabel-root': { fontSize: '0.9rem' }
-                                            }} 
-                                            label="Payment Amount" 
-                                            placeholder="$0.00"
-                                            InputLabelProps={{ shrink: true }}
-                                            type="number" 
-                                            value={(() => {
-                                              const storedAmount = paymentData?.credit?.amount;
-                                              const fallbackAmount = getRemainingAmount(itemKey).remaining;
-                                              return (storedAmount === '' || storedAmount == null) ? fallbackAmount : storedAmount;
-                                            })()} 
-                                            inputProps={{ suppressHydrationWarning: true }} 
-                                            onChange={(e) => updateMethodField(itemKey, 'credit', 'amount', e.target.value)} 
-                                            />
-                                          </Box>
-                                        
-                                        {/* Card Number */}
-                                        <Box sx={{ mb: 2.5 }}>
-                                          <Box sx={{ position: 'relative' }}>
-                                          <TextField 
-                                              fullWidth
-                                              size="medium" 
-                                            sx={{ 
-                                                '& .MuiInputBase-root': { 
-                                                  height: 48,
-                                                  paddingRight: (paymentData?.credit?.cardNumber ?? '').length > 0 ? '80px' : '16px'
-                                                }, 
-                                                '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
-                                                '& .MuiInputLabel-root': { fontSize: '0.9rem' }
-                                            }} 
-                                            label="Card Number" 
-                                            placeholder="1234 5678 9012 3456"
-                                            InputLabelProps={{ shrink: true }}
-                                            value={(paymentData?.credit?.cardNumber ?? '')} 
-                                            inputProps={{ 
-                                              suppressHydrationWarning: true,
-                                              maxLength: 19,
-                                              inputMode: 'numeric'
-                                            }} 
-                                            onChange={(e) => {
-                                              const formatted = formatCardNumber(e.target.value);
-                                              updateMethodField(itemKey, 'credit', 'cardNumber', formatted);
-                                              
-                                              // Validate card number and show error if invalid
-                                              const errorKey = `${itemKey}-credit-card`;
-                                              if (formatted.length >= 13 && !validateCreditCard(formatted)) {
-                                                setFieldError(errorKey, 'Invalid card number');
-                                              } else {
-                                                clearFieldError(errorKey);
-                                              }
-                                            }} 
-                                          />
-                                            {(paymentData?.credit?.cardNumber ?? '').length > 0 && (
-                                              <Box sx={{
-                                                position: 'absolute',
-                                                right: 12,
-                                                top: '50%',
-                                                transform: 'translateY(-50%)',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                pointerEvents: 'none'
-                                              }}>
-                                                <Box sx={{
-                                                  display: 'flex',
-                                                  alignItems: 'center',
-                                                  gap: 0.5
-                                                }}>
-                                                  {getCardIcon(detectCardType(paymentData?.credit?.cardNumber ?? ''))}
-                                                  <Typography variant="caption" sx={{
-                                                    fontSize: '0.7rem',
-                                                    fontWeight: 600,
-                                                    color: detectCardType(paymentData?.credit?.cardNumber ?? '') === 'Unknown' ? 'text.secondary' : 'primary.main'
-                                                  }}>
-                                                    {detectCardType(paymentData?.credit?.cardNumber ?? '')}
-                                                  </Typography>
-                                                </Box>
-                                              </Box>
-                                            )}
-                                          </Box>
-                                          {fieldErrors[`${itemKey}-credit-card`] && (
-                                            <Typography 
-                                              variant="caption" 
-                                              sx={{ 
-                                                color: 'error.main', 
-                                                mt: 0.5, 
-                                                display: 'block', 
-                                                fontSize: '0.75rem' 
-                                              }}
-                                            >
-                                              {fieldErrors[`${itemKey}-credit-card`]}
-                                            </Typography>
-                                          )}
-                                        </Box>
-
-                                        {/* Cardholder Name */}
-                                        <Box sx={{ mb: 2.5 }}>
-                                        <TextField 
-                                            fullWidth
-                                            size="medium" 
-                                          sx={{ 
-                                              '& .MuiInputBase-root': { height: 48 }, 
-                                              '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
-                                              '& .MuiInputLabel-root': { fontSize: '0.9rem' }
-                                          }} 
-                                          label="Cardholder Name" 
-                                          placeholder="Full name as on card"
-                                          InputLabelProps={{ shrink: true }}
-                                          value={(paymentData?.credit?.holderName ?? '')} 
-                                          inputProps={{ suppressHydrationWarning: true }} 
-                                          onChange={(e) => updateMethodField(itemKey, 'credit', 'holderName', e.target.value)} 
-                                        />
-                                        </Box>
-
-                                        {/* Expiry and CVV */}
-                                        <Box sx={{ display: 'flex', gap: 2, mb: 2.5 }}>
-                                        <TextField 
-                                            size="medium" 
-                                          sx={{ 
-                                              flex: 1,
-                                              '& .MuiInputBase-root': { height: 48 }, 
-                                              '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
-                                              '& .MuiInputLabel-root': { fontSize: '0.9rem' }
-                                            }} 
-                                            label="Expiry Date" 
-                                          placeholder="MM/YY"
-                                          InputLabelProps={{ shrink: true }}
-                                          value={(paymentData?.credit?.expiryDate ?? '')} 
-                                          inputProps={{ 
-                                            suppressHydrationWarning: true,
-                                            maxLength: 5,
-                                            inputMode: 'numeric'
-                                          }} 
-                                          onChange={(e) => {
-                                            let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
-                                            if (value.length >= 2) {
-                                              value = value.substring(0, 2) + '/' + value.substring(2, 4);
-                                            }
-                                            updateMethodField(itemKey, 'credit', 'expiryDate', value);
-                                          }} 
-                                        />
-                                          <TextField 
-                                            size="medium" 
-                                            sx={{ 
-                                              flex: 1,
-                                              '& .MuiInputBase-root': { height: 48 }, 
-                                              '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
-                                              '& .MuiInputLabel-root': { fontSize: '0.9rem' }
-                                            }} 
-                                            label="CVV/Confirmation Number" 
-                                            placeholder="123"
-                                            InputLabelProps={{ shrink: true }}
-                                            value={(paymentData?.credit?.cvv ?? '')} 
-                                            inputProps={{ 
-                                              suppressHydrationWarning: true,
-                                              maxLength: 4,
-                                              inputMode: 'numeric'
-                                            }} 
-                                            onChange={(e) => {
-                                              const value = e.target.value.replace(/\D/g, ''); // Only digits
-                                              updateMethodField(itemKey, 'credit', 'cvv', value);
-                                            }} 
-                                          />
-                                        </Box>
-
-                                        {/* ID Number and Installments */}
-                                        <Box sx={{ display: 'flex', gap: 2 }}>
-                                          <TextField 
-                                            size="medium" 
-                                            sx={{ 
-                                              flex: 1,
-                                              '& .MuiInputBase-root': { height: 48 }, 
-                                              '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
-                                              '& .MuiInputLabel-root': { fontSize: '0.9rem' }
-                                            }} 
-                                            label="ID Number" 
-                                            placeholder="123456789"
-                                            InputLabelProps={{ shrink: true }}
-                                            value={(paymentData?.credit?.idNumber ?? '')} 
-                                            inputProps={{ 
-                                              suppressHydrationWarning: true,
-                                              maxLength: 9,
-                                              inputMode: 'numeric'
-                                            }} 
-                                            onChange={(e) => {
-                                              const value = e.target.value.replace(/\D/g, ''); // Only digits
-                                              updateMethodField(itemKey, 'credit', 'idNumber', value);
-                                            }} 
-                                          />
-                                          <TextField 
-                                            size="medium" 
-                                            select
-                                            sx={{ 
-                                              flex: 1,
-                                              '& .MuiInputBase-root': { height: 48 }, 
-                                              '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
-                                              '& .MuiInputLabel-root': { fontSize: '0.9rem' }
-                                            }} 
-                                            label="Installments" 
-                                            value={(paymentData?.credit?.installments ?? 1)} 
-                                            onChange={(e) => updateMethodField(itemKey, 'credit', 'installments', e.target.value.toString())}
-                                            inputProps={{ suppressHydrationWarning: true }}
-                                          >
-                                            <MenuItem value={1}>1 Payment</MenuItem>
-                                            <MenuItem value={2}>2 Payments</MenuItem>
-                                            <MenuItem value={3}>3 Payments</MenuItem>
-                                            <MenuItem value={4}>4 Payments</MenuItem>
-                                            <MenuItem value={5}>5 Payments</MenuItem>
-                                          </TextField>
-                                        </Box>
-
-                                        {/* Copy Credit Card Button */}
-                                        <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
-                                          <Button
-                                            variant="outlined"
-                                            size="small"
-                                            startIcon={<AddIcon />}
-                                            onClick={() => copyCreditCardDetails(itemKey)}
-                                            sx={{
-                                              fontSize: '0.8rem',
-                                              fontWeight: 500,
-                                              textTransform: 'none',
-                                              borderColor: 'primary.main',
-                                              color: 'primary.main',
-                                              '&:hover': {
-                                                borderColor: 'primary.dark',
-                                                backgroundColor: 'primary.50'
-                                              }
-                                            }}
-                                          >
-                                            Copy Credit Card to All Passengers
-                                          </Button>
-                                        </Box>
-                                      </Box>
-                                    )}
-                                    {expanded && method === 'voucher' && (() => {
-                                      const voucherIdx = formMethods.slice(0, idx).filter(m => m === 'voucher').length;
-                                      return (
-                                        <Box sx={{ 
-                                          mt: 2, 
-                                          p: 3, 
-                                          bgcolor: 'grey.50', 
-                                          borderRadius: 2,
-                                          border: '1px solid',
-                                          borderColor: 'grey.200'
-                                        }}>
-                                          <Typography variant="subtitle2" sx={{ mb: 3, color: 'text.secondary', fontWeight: 600 }}>
-                                            UATP Voucher Details
-                                          </Typography>
-                                          
-                                          <Box sx={{ mb: 2.5 }}>
-                                          <TextField 
-                                            fullWidth 
-                                              size="medium" 
-                                              sx={{ 
-                                                '& .MuiInputBase-root': { height: 48 }, 
-                                                '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
-                                                '& .MuiInputLabel-root': { fontSize: '0.9rem' }
-                                              }} 
-                                              label="UATP Number" 
-                                              placeholder="1114-XXXXXXXXX"
-                                            InputLabelProps={{ shrink: true }}
-                                              value={(paymentData?.vouchers?.[voucherIdx]?.uatpNumber ?? '')} 
-                                            inputProps={{ 
-                                              suppressHydrationWarning: true,
-                                              maxLength: 15
-                                            }} 
-                                              onChange={(e) => {
-                                                let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
-                                                
-                                                // Clear error when user starts typing
-                                                const errorKey = `${itemKey}-voucher-${voucherIdx}-uatp`;
-                                                clearFieldError(errorKey);
-                                                
-                                                // If field is empty, allow it to be empty
-                                                if (value.length === 0) {
-                                                  updateMethodField(itemKey, 'voucher', 'uatpNumber', '', voucherIdx);
-                                                  return;
-                                                }
-                                                
-                                                // Only add 1114 if user is typing something that doesn't start with 1114
-                                                // and the current value is not already a partial 1114 (like 111, 11, 1)
-                                                if (!value.startsWith('1114') && !value.startsWith('111') && !value.startsWith('11') && !value.startsWith('1')) {
-                                                  value = '1114' + value;
-                                                }
-                                                
-                                                // Limit to 14 digits (1114 + 10 more digits)
-                                                if (value.length > 14) {
-                                                  value = value.substring(0, 14);
-                                                }
-                                                
-                                                // Format as 1114-XXXXXXXXX
-                                                let formatted = value;
-                                                if (value.length > 4) {
-                                                  formatted = value.substring(0, 4) + '-' + value.substring(4);
-                                                }
-                                                
-                                                updateMethodField(itemKey, 'voucher', 'uatpNumber', formatted, voucherIdx);
-                                              }}
-                                            />
-                                            {fieldErrors[`${itemKey}-voucher-${voucherIdx}-uatp`] && (
-                                              <Typography 
-                                                variant="caption" 
-                                                sx={{ 
-                                                  color: 'error.main', 
-                                                  mt: 0.5, 
-                                                  display: 'block',
-                                                  fontSize: '0.75rem'
-                                                }}
-                                              >
-                                                {fieldErrors[`${itemKey}-voucher-${voucherIdx}-uatp`]}
-                                              </Typography>
-                                            )}
-                                          </Box>
-
-                                          <Box sx={{ display: 'flex', gap: 2, mb: 2.5 }}>
-                                            <Box sx={{ flex: 1, position: 'relative' }}>
-                                          <TextField 
-                                                size="medium" 
-                                            fullWidth 
-                                                sx={{ 
-                                                  '& .MuiInputBase-root': { height: 48, paddingRight: '120px' }, 
-                                                  '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
-                                                  '& .MuiInputLabel-root': { fontSize: '0.9rem' }
-                                                }} 
-                                                label="Balance" 
-                                                placeholder="$0.00"
-                                            InputLabelProps={{ shrink: true }}
-                                                type="number" 
-                                                value={(paymentData?.vouchers?.[voucherIdx]?.balance ?? '')} 
-                                                inputProps={{ suppressHydrationWarning: true }} 
-                                                onChange={(e) => updateMethodField(itemKey, 'voucher', 'balance', e.target.value, voucherIdx)} 
-                                              />
-                                              <Button
-                                                variant="outlined"
-                                                size="small"
-                                                sx={{ 
-                                                  position: 'absolute',
-                                                  right: 8,
-                                                  top: '50%',
-                                                  transform: 'translateY(-50%)',
-                                                  height: 32,
-                                                  minWidth: 'auto',
-                                                  px: 1.5,
-                                                  fontSize: '0.75rem',
-                                                  fontWeight: 500,
-                                                  textTransform: 'none',
-                                                  borderColor: 'primary.main',
-                                                  color: 'primary.main',
-                                                  '&:hover': {
-                                                    borderColor: 'primary.dark',
-                                                    backgroundColor: 'primary.50'
-                                                  }
-                                                }}
-                                                onClick={() => {
-                                                  const uatpNumber = paymentData?.vouchers?.[voucherIdx]?.uatpNumber;
-                                                  const errorKey = `${itemKey}-voucher-${voucherIdx}-uatp`;
-                                                  
-                                                  // Clear any existing error
-                                                  clearFieldError(errorKey);
-                                                  
-                                                  if (!uatpNumber || uatpNumber.trim() === '') {
-                                                    setFieldError(errorKey, 'Please enter UATP number first');
-                                                    return;
-                                                  }
-                                                  
-                                                  // Validate UATP number format (1114-XXXXXXXXX, 15 characters total)
-                                                  if (uatpNumber.length !== 15 || !uatpNumber.startsWith('1114-') || !/^1114-\d{10}$/.test(uatpNumber)) {
-                                                    setFieldError(errorKey, 'UATP number must be in format 1114-XXXXXXXXX (15 characters total)');
-                                                    return;
-                                                  }
-                                                  
-                                                  // TODO: Implement voucher balance check API call
-                                                  console.log('Checking voucher balance for:', uatpNumber);
-                                                  
-                                                  // For now, simulate a balance check with loading
-                                                  const mockBalance = Math.floor(Math.random() * 1000) + 100;
-                                                  updateMethodField(itemKey, 'voucher', 'balance', mockBalance.toString(), voucherIdx);
-                                                  
-                                                  // Check if current amount is greater than balance, and adjust if needed
-                                                  const currentAmount = Number(paymentData?.vouchers?.[voucherIdx]?.amount) || 0;
-                                                  if (currentAmount > mockBalance) {
-                                                    updateMethodField(itemKey, 'voucher', 'amount', mockBalance.toString(), voucherIdx);
-                                                    console.log(`Amount adjusted from $${currentAmount} to $${mockBalance} (voucher balance)`);
-                                                  }
-                                                  
-                                                  // Show success message
-                                                  console.log(`Voucher balance checked: $${mockBalance}`);
-                                                }}
-                                              >
-                                                Check
-                                              </Button>
-                                            </Box>
-                                          <TextField 
-                                              size="medium" 
-                                              sx={{ 
-                                                flex: 1,
-                                                '& .MuiInputBase-root': { height: 48 }, 
-                                                '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
-                                                '& .MuiInputLabel-root': { fontSize: '0.9rem' }
-                                              }} 
-                                            label="Amount" 
-                                            placeholder="$0.00"
-                                            InputLabelProps={{ shrink: true }}
-                                            type="number" 
-                                            value={(paymentData?.vouchers?.[voucherIdx]?.amount ?? '')} 
-                                            inputProps={{ suppressHydrationWarning: true }} 
-                                            onChange={(e) => updateMethodField(itemKey, 'voucher', 'amount', e.target.value, voucherIdx)} 
-                                          />
-                                          </Box>
-
-                                          <Box>
-                                            <TextField 
-                                              fullWidth
-                                              size="medium" 
-                                              sx={{ 
-                                                '& .MuiInputBase-root': { height: 48 }, 
-                                                '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
-                                                '& .MuiInputLabel-root': { fontSize: '0.9rem' }
-                                              }} 
-                                              label="Expiration Date" 
-                                              placeholder="MM/YY"
-                                              InputLabelProps={{ shrink: true }}
-                                              value={(paymentData?.vouchers?.[voucherIdx]?.expirationDate ?? '')} 
-                                              inputProps={{ 
-                                                suppressHydrationWarning: true,
-                                                maxLength: 5
-                                              }} 
-                                              onChange={(e) => {
-                                                let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
-                                                
-                                                // Limit to 4 digits (MMYY)
-                                                if (value.length > 4) {
-                                                  value = value.substring(0, 4);
-                                                }
-                                                
-                                                // Format as MM/YY
-                                                if (value.length >= 2) {
-                                                  value = value.substring(0, 2) + '/' + value.substring(2);
-                                                }
-                                                
-                                                updateMethodField(itemKey, 'voucher', 'expirationDate', value, voucherIdx);
-                                              }} 
-                                            />
-                                          </Box>
-                                        </Box>
-                                      );
-                                    })()}
-                                    {expanded && method === 'points' && (
-                                      <Box sx={{ 
-                                        mt: 2, 
-                                        p: 3, 
-                                        bgcolor: 'grey.50', 
-                                        borderRadius: 2,
-                                        border: '1px solid',
-                                        borderColor: 'grey.200'
-                                      }}>
-                                        <Typography variant="subtitle2" sx={{ mb: 3, color: 'text.secondary', fontWeight: 600 }}>
-                                          Points Details
-                                        </Typography>
-                                        
-                                        <Box sx={{ mb: 2.5 }}>
-                                          <Box sx={{ position: 'relative' }}>
-                                        <TextField 
-                                          fullWidth 
-                                              size="medium" 
-                                              sx={{ 
-                                                '& .MuiInputBase-root': { height: 48, paddingRight: '120px' }, 
-                                                '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
-                                                '& .MuiInputLabel-root': { fontSize: '0.9rem' }
-                                              }} 
-                                              label="Member Number" 
-                                              placeholder="Enter member number"
-                                          InputLabelProps={{ shrink: true }}
-                                              value={(paymentData?.points?.memberNumber ?? '')} 
-                                              inputProps={{ 
-                                                suppressHydrationWarning: true,
-                                                maxLength: 9
-                                              }} 
-                                              onChange={(e) => {
-                                                let value = e.target.value.replace(/\D/g, ''); // Only digits
-                                                
-                                                // Limit to 7-9 digits
-                                                if (value.length > 9) {
-                                                  value = value.substring(0, 9);
-                                                }
-                                                
-                                                // Clear error when user starts typing
-                                                const errorKey = `${itemKey}-points-member`;
-                                                clearFieldError(errorKey);
-                                                
-                                                updateMethodField(itemKey, 'points', 'memberNumber', value);
-                                              }} 
-                                            />
-                                            <Button
-                                              variant="outlined"
-                                          size="small" 
-                                              sx={{ 
-                                                position: 'absolute',
-                                                right: 8,
-                                                top: '50%',
-                                                transform: 'translateY(-50%)',
-                                                height: 32,
-                                                minWidth: 'auto',
-                                                px: 1.5,
-                                                fontSize: '0.75rem',
-                                                fontWeight: 500,
-                                                textTransform: 'none',
-                                                borderColor: 'primary.main',
-                                                color: 'primary.main',
-                                                '&:hover': {
-                                                  borderColor: 'primary.dark',
-                                                  backgroundColor: 'primary.50'
-                                                }
-                                              }}
-                                              onClick={() => {
-                                                const memberNumber = paymentData?.points?.memberNumber;
-                                                const errorKey = `${itemKey}-points-member`;
-                                                
-                                                // Clear any existing error
-                                                clearFieldError(errorKey);
-                                                
-                                                if (!memberNumber || memberNumber.trim() === '') {
-                                                  setFieldError(errorKey, 'Please enter member number first');
-                                                  return;
-                                                }
-                                                
-                                                // Validate member number length (7-9 digits)
-                                                if (memberNumber.length < 7 || memberNumber.length > 9) {
-                                                  setFieldError(errorKey, 'Member number must be 7-9 digits');
-                                                  return;
-                                                }
-                                                
-                                                // Check if member exists in frequent flyers
-                                                const member = frequentFlyers.find(f => f.memberNumber === memberNumber);
-                                                
-                                                if (member) {
-                                                  // Member found - update points to use with member's available points
-                                                  const currentPaymentAmount = Number(paymentData?.points?.amount) || 0;
-                                                  const requiredPoints = Math.round(currentPaymentAmount * 50); // 50 points = $1
-                                                  
-                                                  if (requiredPoints > member.points) {
-                                                    // Not enough points - use all available points
-                                                    const maxPaymentAmount = (member.points / 50).toFixed(2);
-                                                    updateMethodField(itemKey, 'points', 'amount', maxPaymentAmount);
-                                                    updateMethodField(itemKey, 'points', 'pointsToUse', member.points.toString());
-                                                    console.log(`Member found: ${member.name} with ${member.points} points. Using all ${member.points} points for $${maxPaymentAmount}`);
-                                                  } else {
-                                                    // Enough points - use required points
-                                                    updateMethodField(itemKey, 'points', 'pointsToUse', requiredPoints.toString());
-                                                    console.log(`Member found: ${member.name} with ${member.points} points. Using ${requiredPoints} points for $${currentPaymentAmount}`);
-                                                  }
-                                                } else {
-                                                  // Member not found - simulate random points
-                                                  const mockPoints = Math.floor(Math.random() * 50000) + 1000;
-                                                  const currentPaymentAmount = Number(paymentData?.points?.amount) || 0;
-                                                  const requiredPoints = Math.round(currentPaymentAmount * 50);
-                                                  
-                                                  if (requiredPoints > mockPoints) {
-                                                    // Not enough points - use all available points
-                                                    const maxPaymentAmount = (mockPoints / 50).toFixed(2);
-                                                    updateMethodField(itemKey, 'points', 'amount', maxPaymentAmount);
-                                                    updateMethodField(itemKey, 'points', 'pointsToUse', mockPoints.toString());
-                                                    console.log(`Member not found, simulated ${mockPoints} points. Using all ${mockPoints} points for $${maxPaymentAmount}`);
-                                                  } else {
-                                                    // Enough points - use required points
-                                                    updateMethodField(itemKey, 'points', 'pointsToUse', requiredPoints.toString());
-                                                    console.log(`Member not found, simulated ${mockPoints} points. Using ${requiredPoints} points for $${currentPaymentAmount}`);
-                                                  }
-                                                }
-                                              }}
-                                            >
-                                              Check
-                                            </Button>
-                                          </Box>
-                                          {fieldErrors[`${itemKey}-points-member`] && (
-                                            <Typography 
-                                              variant="caption" 
-                                              sx={{ 
-                                                color: 'error.main', 
-                                                mt: 0.5, 
-                                                display: 'block',
-                                                fontSize: '0.75rem'
-                                              }}
-                                            >
-                                              {fieldErrors[`${itemKey}-points-member`]}
-                                            </Typography>
-                                          )}
-                                        </Box>
-
-                                        <Box sx={{ mb: 2.5 }}>
-                                          <TextField 
-                                          fullWidth 
-                                            size="medium" 
-                                            sx={{ 
-                                              '& .MuiInputBase-root': { height: 48 }, 
-                                              '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
-                                              '& .MuiInputLabel-root': { fontSize: '0.9rem' }
-                                            }} 
-                                            label="Award Master" 
-                                            placeholder="A123456"
-                                          InputLabelProps={{ shrink: true }}
-                                          value={(paymentData?.points?.awardReference ?? '')} 
-                                            inputProps={{ 
-                                              suppressHydrationWarning: true,
-                                              maxLength: 7
-                                            }} 
-                                            onChange={(e) => {
-                                              let value = e.target.value.toUpperCase().replace(/[^A0-9]/g, ''); // Only A and digits
-                                              
-                                              // Ensure it starts with A
-                                              if (value.length > 0 && !value.startsWith('A')) {
-                                                value = 'A' + value.replace(/A/g, '');
-                                              }
-                                              
-                                              // Limit to 7 characters (A + 6 digits)
-                                              if (value.length > 7) {
-                                                value = value.substring(0, 7);
-                                              }
-                                              
-                                              updateMethodField(itemKey, 'points', 'awardReference', value);
-                                            }} 
-                                          />
-                                        </Box>
-
-                                        <Box sx={{ display: 'flex', gap: 2 }}>
-                                        <TextField 
-                                            size="medium" 
-                                            sx={{ 
-                                              flex: 1,
-                                              '& .MuiInputBase-root': { height: 48 }, 
-                                              '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
-                                              '& .MuiInputLabel-root': { fontSize: '0.9rem' }
-                                            }} 
-                                            label="Payment Amount ($)" 
-                                          placeholder="$0.00"
-                                          InputLabelProps={{ shrink: true }}
-                                          type="number" 
-                                          value={(paymentData?.points?.amount ?? '')} 
-                                          inputProps={{ suppressHydrationWarning: true }} 
-                                            onChange={(e) => {
-                                              console.log('🔄 Payment Amount onChange triggered');
-                                              console.log('📝 Input value:', e.target.value);
-                                              
-                                              const dollarAmount = parseFloat(e.target.value) || 0;
-                                              const pointsToUse = Math.round(dollarAmount * 50); // 50 points = $1
-                                              
-                                              console.log('💰 Dollar amount:', dollarAmount);
-                                              console.log('🎯 Points to use calculated:', pointsToUse);
-                                              
-                                              // Get available points from member check
-                                              const memberNumber = paymentData?.points?.memberNumber;
-                                              console.log('👤 Member number:', memberNumber);
-                                              
-                                              const member = frequentFlyers.find(f => f.memberNumber === memberNumber);
-                                              console.log('🔍 Member found:', member);
-                                              
-                                              if (member && pointsToUse > member.points) {
-                                                // Not enough points - limit to available points
-                                                const maxDollarAmount = (member.points / 50).toFixed(2);
-                                                console.log('⚠️ Limiting - not enough points');
-                                                console.log('📊 Max dollar amount:', maxDollarAmount);
-                                                console.log('📊 Member points:', member.points);
-                                                
-                                                updateMethodField(itemKey, 'points', 'amount', maxDollarAmount);
-                                                updateMethodField(itemKey, 'points', 'pointsToUse', member.points.toString());
-                                                console.log(`✅ Limited to ${member.points} points for $${maxDollarAmount}`);
-                                              } else {
-                                                // Update both fields
-                                                console.log('✅ Updating both fields normally');
-                                                console.log('📝 Setting amount to:', e.target.value);
-                                                console.log('📝 Setting pointsToUse to:', pointsToUse);
-                                                
-                                                updateMethodField(itemKey, 'points', 'amount', e.target.value);
-                                                updateMethodField(itemKey, 'points', 'pointsToUse', pointsToUse.toString());
-                                                console.log(`✅ Payment Amount: $${e.target.value} → Points to Use: ${pointsToUse}`);
-                                              }
-                                            }} 
-                                          />
-                                          <TextField 
-                                            size="medium" 
-                                            sx={{ 
-                                              flex: 1,
-                                              '& .MuiInputBase-root': { height: 48 }, 
-                                              '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
-                                              '& .MuiInputLabel-root': { fontSize: '0.9rem' }
-                                            }} 
-                                            label="Points to Use" 
-                                            placeholder="0"
-                                            InputLabelProps={{ shrink: true }}
-                                            type="number" 
-                                            value={(paymentData?.points?.pointsToUse ?? '')} 
-                                            inputProps={{ suppressHydrationWarning: true }} 
-                                            onChange={(e) => {
-                                              console.log('🔄 Points to Use onChange triggered');
-                                              console.log('📝 Input value:', e.target.value);
-                                              
-                                              const pointsToUse = parseInt(e.target.value) || 0;
-                                              const dollarAmount = (pointsToUse / 50).toFixed(2); // 50 points = $1
-                                              
-                                              console.log('🎯 Points to use:', pointsToUse);
-                                              console.log('💰 Dollar amount calculated:', dollarAmount);
-                                              
-                                              // Get available points from member check
-                                              const memberNumber = paymentData?.points?.memberNumber;
-                                              console.log('👤 Member number:', memberNumber);
-                                              
-                                              const member = frequentFlyers.find(f => f.memberNumber === memberNumber);
-                                              console.log('🔍 Member found:', member);
-                                              
-                                              if (member && pointsToUse > member.points) {
-                                                // Not enough points - limit to available points
-                                                const maxDollarAmount = (member.points / 50).toFixed(2);
-                                                console.log('⚠️ Limiting - not enough points');
-                                                console.log('📊 Max dollar amount:', maxDollarAmount);
-                                                console.log('📊 Member points:', member.points);
-                                                
-                                                updateMethodField(itemKey, 'points', 'pointsToUse', member.points.toString());
-                                                updateMethodField(itemKey, 'points', 'amount', maxDollarAmount);
-                                                console.log(`✅ Limited to ${member.points} points for $${maxDollarAmount}`);
-                                              } else {
-                                                // Update both fields
-                                                console.log('✅ Updating both fields normally');
-                                                console.log('📝 Setting pointsToUse to:', e.target.value);
-                                                console.log('📝 Setting amount to:', dollarAmount);
-                                                
-                                                updateMethodField(itemKey, 'points', 'pointsToUse', e.target.value);
-                                                updateMethodField(itemKey, 'points', 'amount', dollarAmount);
-                                                console.log(`✅ Points to Use: ${e.target.value} → Payment Amount: $${dollarAmount}`);
-                                              }
-                                            }} 
-                                          />
-                                        </Box>
-                                      </Box>
-                                    )}
-                                  </Paper>
-                                );})}
-
-                                {/* Allow adding more methods if constraints allow */}
-                                {formMethods.length >= 1 && formMethods.length < 3 && !isItemFullyPaid(itemKey) && (
-                                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1, gap: 0.5 }}>
-                                    {!formMethods.includes('credit') && (
-                                      <IconButton
-                                        size="small"
-                                        onClick={() => confirmAddMethod(itemKey, 'credit')}
-                                        sx={{ 
-                                          color: 'success.main',
-                                          '&:hover': { bgcolor: 'success.light', color: 'white' },
-                                          border: 1,
-                                          borderColor: 'success.main',
-                                          width: 32,
-                                          height: 32
-                                        }}
-                                        title="Add Credit Card"
-                                      >
-                                        <CreditCardIcon sx={{ fontSize: 16 }} />
-                                      </IconButton>
-                                    )}
-                                    {formMethods.filter(m => m === 'voucher').length < 2 && (
-                                      <IconButton
-                                        size="small"
-                                        onClick={() => confirmAddMethod(itemKey, 'voucher')}
-                                        sx={{ 
-                                          color: 'warning.main',
-                                          '&:hover': { bgcolor: 'warning.light', color: 'white' },
-                                          border: 1,
-                                          borderColor: 'warning.main',
-                                          width: 32,
-                                          height: 32
-                                        }}
-                                        title="Add Voucher"
-                                      >
-                                        <VoucherIcon sx={{ fontSize: 16 }} />
-                                      </IconButton>
-                                    )}
-                                    {!formMethods.includes('points') && (
-                                      <IconButton
-                                        size="small"
-                                        onClick={() => confirmAddMethod(itemKey, 'points')}
-                                        sx={{ 
-                                          color: 'info.main',
-                                          '&:hover': { bgcolor: 'info.light', color: 'white' },
-                                          border: 1,
-                                          borderColor: 'info.main',
-                                          width: 32,
-                                          height: 32
-                                        }}
-                                        title="Add Points"
-                                      >
-                                        <PointsIcon sx={{ fontSize: 16 }} />
-                                      </IconButton>
-                                    )}
-                                  </Box>
-                                )}
-                              </Paper>
-                            );
-                          })}
-                        </Box>
-                        <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
-                          <Button variant="contained" onClick={goToNextPassenger} disabled={!activePaymentPassenger || activePaymentPassenger === '' || paymentTabPids.indexOf(activePaymentPassenger) === paymentTabPids.length - 1}>
-                            Next Passenger
-                          </Button>
-                        </Box>
-                      </Paper>
-                    )}
-                  </Box>
-                )}
+                <PaymentTabs
+                  selectedItems={selectedItems}
+                  activePaymentPassenger={activePaymentPassenger}
+                  setActivePaymentPassenger={setActivePaymentPassenger}
+                  reservation={reservation}
+                  itemMethodForms={itemMethodForms}
+                  itemPaymentMethods={itemPaymentMethods}
+                  itemExpandedMethod={itemExpandedMethod}
+                  getPassengerTabLabel={getPassengerTabLabel}
+                  getRemainingAmount={getRemainingAmount}
+                  isItemFullyPaid={isItemFullyPaid}
+                  confirmAddMethod={confirmAddMethod}
+                  isPaymentMethodComplete={isPaymentMethodComplete}
+                  updateMethodField={updateMethodField}
+                  setItemExpandedMethod={setItemExpandedMethod}
+                  removeMethod={removeMethod}
+                />
 
                 {/* No items selected message */}
                 {getSelectedItemsDetails().length === 0 && (
@@ -3194,470 +2043,41 @@ export default function PaymentPortal() {
                           height: '100%',
                           backgroundColor: paymentProgress === 100 ? 'success.main' : 'primary.main',
                           borderRadius: 4,
-                          transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                          position: 'relative',
-                          '&::after': {
-                            content: '""',
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            background: paymentProgress === 100 
-                              ? 'linear-gradient(90deg, #2e7d32 0%, #4caf50 100%)'
-                              : 'linear-gradient(90deg, #1976d2 0%, #42a5f5 100%)',
-                            borderRadius: 4
-                          }
+                          transition: 'all 0.3s ease-in-out'
                         }} />
                       </Box>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', px: 0.5 }}>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          Paid: ${totalPaidAmount.toLocaleString()}
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
+                          Total: ${total.toLocaleString()}
                         </Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          Remaining: ${(total - totalPaidAmount).toLocaleString()}
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
+                          Selected: ${computeSelectedAmount(reservation, selectedItems).toLocaleString()}
                         </Typography>
                       </Box>
                     </Box>
                   )}
-                  
-                {/* Content */}
-                <Box sx={{ flex: 1, overflow: 'auto', p: 3 }}>
-                  {/* Reservation Number Loader */}
-                  <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    <TextField
-                      size="small"
-                      label="Reservation Number"
-                      placeholder="Enter reservation code"
-                      value={reservationCode}
-                      onChange={(e) => setReservationCode(e.target.value)}
-                      InputLabelProps={{ shrink: true }}
-                      sx={{ width: 260 }}
-                    />
-                    <Button
-                      variant="contained"
-                      size="small"
-                      onClick={loadReservation}
-                      disabled={!reservationCode.trim()}
-                    >
-                      Load Reservation
-                    </Button>
-                  </Box>
-                  {/* Reservation Overview */}
-                  <Accordion defaultExpanded sx={{ mb: 2, boxShadow: 'none', border: '1px solid', borderColor: 'divider' }}>
-                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <InfoIcon sx={{ mr: 1, color: 'info.main' }} />
-                        <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                          Reservation Overview
-                    </Typography>
-                  </Box>
-                    </AccordionSummary>
-                    <AccordionDetails>
-                      <List dense>
-                        <ListItem sx={{ px: 0 }}>
-                          <ListItemIcon sx={{ minWidth: 36 }}>
-                            <FlightIcon color="primary" />
-                          </ListItemIcon>
-                          <ListItemText 
-                            primary="Flight Price" 
-                            secondary={`${passengersWithSelectedItems.length} passengers selected`}
-                          />
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            ${flightPrice.toLocaleString()}
-                          </Typography>
-                        </ListItem>
-                        <ListItem sx={{ px: 0 }}>
-                          <ListItemIcon sx={{ minWidth: 36 }}>
-                            <TrendingUpIcon color="secondary" />
-                          </ListItemIcon>
-                          <ListItemText 
-                            primary="Ancillary" 
-                            secondary="Seats, baggage, meals"
-                          />
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            ${additionalServices.toLocaleString()}
-                          </Typography>
-                        </ListItem>
-                      </List>
-                    </AccordionDetails>
-                  </Accordion>
-                  
-                  {/* Selected Items Breakdown */}
-                  {(() => {
-                    let selectedTickets = 0;
-                    let selectedSeats = 0;
-                    let selectedBags = 0;
-                    let totalSelected = 0;
-                    let totalPaid = 0;
-                    let totalRemaining = 0;
 
-                    Object.entries(selectedItems).forEach(([passengerId, items]) => {
-                      const passengerIndex = parseInt(passengerId) - 1;
-                      const passengerData = reservation.passengers[passengerIndex];
-                      
-                      items.forEach(item => {
-                        switch(item) {
-                          case 'ticket':
-                            if (passengerData.ticket.status !== 'Paid') {
-                              selectedTickets += passengerData.ticket.price;
-                              totalSelected += passengerData.ticket.price;
-                            } else {
-                              totalPaid += passengerData.ticket.price;
-                            }
-                            break;
-                          case 'seat':
-                            if (passengerData.ancillaries.seat.status !== 'Paid') {
-                              selectedSeats += passengerData.ancillaries.seat.price;
-                              totalSelected += passengerData.ancillaries.seat.price;
-                            } else {
-                              totalPaid += passengerData.ancillaries.seat.price;
-                            }
-                            break;
-                          case 'bag':
-                            if (passengerData.ancillaries.bag.status !== 'Paid') {
-                              selectedBags += passengerData.ancillaries.bag.price;
-                              totalSelected += passengerData.ancillaries.bag.price;
-                            } else {
-                              totalPaid += passengerData.ancillaries.bag.price;
-                            }
-                            break;
-                        }
-                      });
-                    });
+                  {/* Items Summary */}
+                  <Box sx={{ flex: 1, overflow: 'auto' }}>
+                  <SelectedItemsBreakdown 
+                    selectedItems={selectedItems}
+                    reservation={reservation}
+                  />
 
-                    totalRemaining = totalSelected;
+                  <PaymentMethodsSummary 
+                    itemPaymentMethods={itemPaymentMethods}
+                    onClearAll={clearAllPaymentMethods}
+                  />
 
-                    return (
-                      <Accordion defaultExpanded sx={{ mb: 2, boxShadow: 'none', border: '1px solid', borderColor: 'divider' }}>
-                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                            <Badge badgeContent={Object.values(selectedItems).flat().length} color="primary">
-                              <ShoppingCartIcon sx={{ mr: 1, color: 'primary.main' }} />
-                            </Badge>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 600, flex: 1 }}>
-                              Selected Items
-                            </Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main' }}>
-                              ${totalSelected.toLocaleString()}
-                            </Typography>
-                          </Box>
-                        </AccordionSummary>
-                        <AccordionDetails>
-                          <List dense>
-                            {selectedTickets > 0 && (
-                              <ListItem sx={{ px: 0 }}>
-                                <ListItemIcon sx={{ minWidth: 36 }}>
-                                  <FlightIcon color="primary" />
-                                </ListItemIcon>
-                                <ListItemText 
-                                  primary="Flight Tickets" 
-                                  secondary={`${Object.entries(selectedItems).filter(([_, items]) => items.includes('ticket')).length} selected`}
-                                />
-                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                  ${selectedTickets.toLocaleString()}
-                                </Typography>
-                              </ListItem>
-                        )}
-                        
-                        {selectedSeats > 0 && (
-                              <ListItem sx={{ px: 0 }}>
-                                <ListItemIcon sx={{ minWidth: 36 }}>
-                                  <SeatIcon color="secondary" />
-                                </ListItemIcon>
-                                <ListItemText 
-                                  primary="Seat Selection" 
-                                  secondary={`${Object.entries(selectedItems).filter(([_, items]) => items.includes('seat')).length} selected`}
-                                />
-                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                              ${selectedSeats.toLocaleString()}
-                            </Typography>
-                              </ListItem>
-                        )}
-                        
-                        {selectedBags > 0 && (
-                              <ListItem sx={{ px: 0 }}>
-                                <ListItemIcon sx={{ minWidth: 36 }}>
-                                  <BagIcon color="success" />
-                                </ListItemIcon>
-                                <ListItemText 
-                                  primary="Baggage" 
-                                  secondary={`${Object.entries(selectedItems).filter(([_, items]) => items.includes('bag')).length} selected`}
-                                />
-                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                              ${selectedBags.toLocaleString()}
-                            </Typography>
-                              </ListItem>
-                            )}
-                            
-                            {totalSelected === 0 && (
-                              <ListItem sx={{ px: 0 }}>
-                                <ListItemIcon sx={{ minWidth: 36 }}>
-                                  <InfoIcon color="disabled" />
-                                </ListItemIcon>
-                                <ListItemText 
-                                  primary="No items selected" 
-                                  secondary="Select passengers and items to see details"
-                                />
-                              </ListItem>
-                            )}
-                          </List>
-                        </AccordionDetails>
-                      </Accordion>
-                    );
-                  })()}
-
-                  {/* Payment Methods Summary */}
-                  {(() => {
-                    let totalCreditAmount = 0;
-                    let totalVoucherAmount = 0;
-                    let totalPointsAmount = 0;
-                    let totalPointsUsed = 0;
-                    let totalPaymentMethods = 0;
-
-                    Object.entries(itemPaymentMethods).forEach(([itemKey, methods]) => {
-                      if (methods.credit) {
-                        totalCreditAmount += methods.credit.amount;
-                        totalPaymentMethods++;
-                      }
-                      if (methods.vouchers) {
-                        methods.vouchers.forEach(voucher => {
-                          totalVoucherAmount += voucher.amount;
-                          totalPaymentMethods++;
-                        });
-                      }
-                      if (methods.points) {
-                        totalPointsAmount += methods.points.amount;
-                        totalPointsUsed += methods.points.pointsToUse || 0;
-                        totalPaymentMethods++;
-                      }
-                    });
-
-                    const totalPaymentAmount = totalCreditAmount + totalVoucherAmount + totalPointsAmount;
-
-                    return totalPaymentMethods > 0 ? (
-                      <Accordion sx={{ mb: 2, boxShadow: 'none', border: '1px solid', borderColor: 'divider' }}>
-                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                            {totalPaymentMethods > 0 ? (
-                              <Badge badgeContent={totalPaymentMethods} color="success">
-                                <PaymentIcon sx={{ mr: 1, color: 'success.main' }} />
-                              </Badge>
-                            ) : (
-                              <PaymentIcon sx={{ mr: 1, color: 'success.main' }} />
-                            )}
-                            <Typography variant="subtitle2" sx={{ fontWeight: 600, flex: 1 }}>
-                              Payment Methods
-                            </Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 600, color: 'success.main' }}>
-                              ${totalPaymentAmount.toLocaleString()}
-                            </Typography>
-                            {totalPaymentMethods > 0 && (
-                              <IconButton
-                                size="small"
-                                onClick={(e) => {
-                                  e.stopPropagation(); // Prevent accordion from expanding/collapsing
-                                  clearAllPaymentMethods();
-                                }}
-                                sx={{
-                                  ml: 2,
-                                  color: 'error.main',
-                                  border: 1,
-                                  borderColor: 'error.main',
-                                  width: 32,
-                                  height: 32,
-                                  '&:hover': {
-                                    backgroundColor: 'error.50',
-                                    borderColor: 'error.dark'
-                                  }
-                                }}
-                                title="Clear All Payment Methods"
-                              >
-                                <DeleteIcon fontSize="small" />
-                              </IconButton>
-                            )}
-                          </Box>
-                        </AccordionSummary>
-                        <AccordionDetails>
-                          <List dense>
-                            {totalCreditAmount > 0 && (
-                              <ListItem sx={{ px: 0 }}>
-                                <ListItemIcon sx={{ minWidth: 36 }}>
-                                  <CreditCardIcon color="primary" />
-                                </ListItemIcon>
-                                <ListItemText 
-                                  primary="Credit Card" 
-                                  secondary="Visa, Mastercard, Amex"
-                                />
-                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                  ${totalCreditAmount.toLocaleString()}
-                                </Typography>
-                              </ListItem>
-                            )}
-                            
-                            {totalVoucherAmount > 0 && (
-                              <ListItem sx={{ px: 0 }}>
-                                <ListItemIcon sx={{ minWidth: 36 }}>
-                                  <VoucherIcon color="secondary" />
-                                </ListItemIcon>
-                                <ListItemText 
-                                  primary="Vouchers" 
-                                  secondary="UATP vouchers"
-                                />
-                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                  ${totalVoucherAmount.toLocaleString()}
-                                </Typography>
-                              </ListItem>
-                            )}
-                            
-                            {totalPointsAmount > 0 && (
-                              <ListItem sx={{ px: 0 }}>
-                                <ListItemIcon sx={{ minWidth: 36 }}>
-                                  <PointsIcon color="warning" />
-                                </ListItemIcon>
-                                <ListItemText 
-                                  primary="Points" 
-                                  secondary={`${totalPointsUsed.toLocaleString()} points (50 points = $1)`}
-                                />
-                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                  ${totalPointsAmount.toLocaleString()}
-                                </Typography>
-                              </ListItem>
-                            )}
-                          </List>
-                        </AccordionDetails>
-                      </Accordion>
-                    ) : null;
-                  })()}
-
-                  {/* Total Summary */}
-                  <Paper sx={{ p: 3, bgcolor: 'grey.50', border: '2px solid', borderColor: 'primary.main' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <AccountBalanceIcon sx={{ mr: 1, color: 'primary.main' }} />
-                      <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
-                        Total Summary
-                      </Typography>
-                    </Box>
-                    
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                      <Typography variant="body2" color="text.secondary">
-                              Reservation Total
-                            </Typography>
-                      <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                              ${total.toLocaleString()}
-                            </Typography>
-                          </Box>
-                    
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        Selected Items
-                      </Typography>
-                      <Typography variant="body1" sx={{ fontWeight: 600, color: 'primary.main' }}>
-                        ${(() => {
-                          let totalSelected = 0;
-                          Object.entries(selectedItems).forEach(([passengerId, items]) => {
-                            const passengerIndex = parseInt(passengerId) - 1;
-                            const passengerData = reservation.passengers[passengerIndex];
-                            
-                            items.forEach(item => {
-                              switch(item) {
-                                case 'ticket':
-                                  if (passengerData.ticket.status !== 'Paid') {
-                                    totalSelected += passengerData.ticket.price;
-                                  }
-                                  break;
-                                case 'seat':
-                                  if (passengerData.ancillaries.seat.status !== 'Paid') {
-                                    totalSelected += passengerData.ancillaries.seat.price;
-                                  }
-                                  break;
-                                case 'bag':
-                                  if (passengerData.ancillaries.bag.status !== 'Paid') {
-                                    totalSelected += passengerData.ancillaries.bag.price;
-                                  }
-                                  break;
-                              }
-                            });
-                          });
-                          return totalSelected;
-                        })().toLocaleString()}
-                      </Typography>
-                    </Box>
-                    
-                    <Divider sx={{ my: 2 }} />
-                    
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                        Amount to Pay
-                      </Typography>
-                      <Typography variant="h5" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                        ${(() => {
-                          let totalSelected = 0;
-                          Object.entries(selectedItems).forEach(([passengerId, items]) => {
-                            const passengerIndex = parseInt(passengerId) - 1;
-                            const passengerData = reservation.passengers[passengerIndex];
-                            
-                            items.forEach(item => {
-                              switch(item) {
-                                case 'ticket':
-                                  if (passengerData.ticket.status !== 'Paid') {
-                                    totalSelected += passengerData.ticket.price;
-                                  }
-                                  break;
-                                case 'seat':
-                                  if (passengerData.ancillaries.seat.status !== 'Paid') {
-                                    totalSelected += passengerData.ancillaries.seat.price;
-                                  }
-                                  break;
-                                case 'bag':
-                                  if (passengerData.ancillaries.bag.status !== 'Paid') {
-                                    totalSelected += passengerData.ancillaries.bag.price;
-                                  }
-                                  break;
-                              }
-                            });
-                          });
-                          return totalSelected;
-                        })().toLocaleString()}
-                      </Typography>
-                    </Box>
-                  </Paper>
+                  <TotalSummary 
+                    reservationTotal={total}
+                    selectedAmount={computeSelectedAmount(reservation, selectedItems)}
+                  />
                 </Box>
 
-                {/* Action Buttons */}
-                <Box sx={{ p: 3, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
-                    <Button
-                      fullWidth
-                      variant="contained"
-                      size="large"
-                    startIcon={<CheckCircleIcon />}
-                      sx={{ 
-                      mb: 2,
-                      bgcolor: 'primary.main',
-                      '&:hover': { bgcolor: 'primary.dark' },
-                      fontWeight: 600,
-                      py: 1.5
-                    }}
-                    disabled={Object.values(selectedItems).flat().length === 0}
-                    >
-                      Confirm Payment
-                    </Button>
-                    
-                    <Button
-                      fullWidth
-                      variant="outlined"
-                    size="large"
-                    startIcon={<CloseIcon />}
-                    sx={{ 
-                      borderColor: 'grey.300', 
-                      color: 'text.secondary',
-                      fontWeight: 500,
-                      py: 1.5
-                    }}
-                    >
-                      Cancel
-                    </Button>
-                </Box>
+                <ActionButtons 
+                  confirmDisabled={Object.values(selectedItems).flat().length === 0}
+                />
               </CardContent>
             </Card>
           </Grid>

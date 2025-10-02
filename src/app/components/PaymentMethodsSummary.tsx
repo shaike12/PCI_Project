@@ -59,13 +59,26 @@ export function PaymentMethodsSummary({ itemPaymentMethods, onClearAll, onClearA
     <Accordion sx={{ mb: 2, boxShadow: "none", border: "1px solid", borderColor: "divider" }}>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}> 
         <Box sx={{ display: "flex", alignItems: "center", width: "100%" }}>
-          {totalPaymentMethods > 0 ? (
-            <Badge badgeContent={totalPaymentMethods} color="success">
-              <PaymentIcon sx={{ mr: 1, color: "success.main" }} />
-            </Badge>
-          ) : (
-            <PaymentIcon sx={{ mr: 1, color: "success.main" }} />
-          )}
+          <Box sx={{ display: "flex", alignItems: "center", mr: 1 }}>
+            <PaymentIcon sx={{ color: "success.main" }} />
+            {totalPaymentMethods > 0 && (
+              <Typography variant="caption" sx={{ 
+                ml: 0.5, 
+                color: "success.main", 
+                fontWeight: "bold",
+                backgroundColor: "success.light",
+                borderRadius: "50%",
+                width: 18,
+                height: 18,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "0.7rem"
+              }}>
+                {totalPaymentMethods}
+              </Typography>
+            )}
+          </Box>
           <Typography variant="subtitle2" sx={{ fontWeight: 600, flex: 1 }}>
             Payment Methods
           </Typography>
@@ -163,7 +176,7 @@ export function PaymentMethodsSummary({ itemPaymentMethods, onClearAll, onClearA
               <ListItemIcon sx={{ minWidth: 36 }}>
                 <CardGiftcardIcon color="secondary" />
               </ListItemIcon>
-              <ListItemText primary="Vouchers" secondary="UATP vouchers" />
+              <ListItemText primary="UATP Voucher" secondary="UATP vouchers" />
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
                 ${totalVoucherAmount.toLocaleString()}
               </Typography>

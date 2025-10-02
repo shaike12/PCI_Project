@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, Paper, Tabs, Tab, Typography, IconButton, Slider } from "@mui/material";
+import { Box, Paper, Tabs, Tab, Typography, IconButton, Slider, Tooltip } from "@mui/material";
 import type { ReactNode } from "react";
 import FlightIcon from "@mui/icons-material/Flight";
 import EventSeatIcon from "@mui/icons-material/EventSeat";
@@ -32,6 +32,7 @@ interface PaymentTabsProps {
   updateMethodField: (itemKey: string, method: "credit" | "voucher" | "points", field: string, value: string, voucherIndex?: number) => void;
   setItemExpandedMethod: (updater: (prev: { [key: string]: number | null }) => { [key: string]: number | null }) => void;
   removeMethod: (itemKey: string, formIndex: number) => void;
+  toggleItem: (passengerId: string, itemType: string) => void;
 }
 
 export function PaymentTabs(props: PaymentTabsProps) {
@@ -51,6 +52,7 @@ export function PaymentTabs(props: PaymentTabsProps) {
     updateMethodField,
     setItemExpandedMethod,
     removeMethod,
+    toggleItem
   } = props;
 
   // Safely resolve a passenger index
@@ -104,11 +106,61 @@ export function PaymentTabs(props: PaymentTabsProps) {
           if (passenger.ancillaries.seat.status !== 'Paid') unpaidItems.push('seat');
           if (passenger.ancillaries.bag.status !== 'Paid') unpaidItems.push('bag');
           
-          const getIcon = (itemType: string) => {
+          const getIcon = (itemType: string, isPaid: boolean = false) => {
+            const iconProps = { fontSize: 16, mr: 0.5 };
+            const isActiveTab = activePaymentPassenger === pid;
+            const tooltipTitle = isPaid ? 'Paid already' : (isActiveTab ? 'Click to toggle selection' : 'Select tab to edit');
+            
+            const handleIconClick = (e: React.MouseEvent) => {
+              e.stopPropagation();
+              if (!isPaid && isActiveTab) {
+                toggleItem(pid, itemType);
+              }
+            };
+            
             switch (itemType) {
-              case 'ticket': return <FlightIcon sx={{ fontSize: 16, mr: 0.5 }} />;
-              case 'seat': return <EventSeatIcon sx={{ fontSize: 16, mr: 0.5 }} />;
-              case 'bag': return <LuggageIcon sx={{ fontSize: 16, mr: 0.5 }} />;
+              case 'ticket': 
+                return (
+                  <Tooltip title={tooltipTitle} arrow>
+                    <FlightIcon 
+                      sx={{ 
+                        ...iconProps, 
+                        color: isPaid ? 'grey.500' : (isActiveTab ? 'inherit' : 'grey.400'),
+                        cursor: (isPaid || !isActiveTab) ? 'default' : 'pointer',
+                        '&:hover': (isPaid || !isActiveTab) ? {} : { opacity: 0.7 }
+                      }} 
+                      onClick={handleIconClick}
+                    />
+                  </Tooltip>
+                );
+              case 'seat': 
+                return (
+                  <Tooltip title={tooltipTitle} arrow>
+                    <EventSeatIcon 
+                      sx={{ 
+                        ...iconProps, 
+                        color: isPaid ? 'grey.500' : (isActiveTab ? 'inherit' : 'grey.400'),
+                        cursor: (isPaid || !isActiveTab) ? 'default' : 'pointer',
+                        '&:hover': (isPaid || !isActiveTab) ? {} : { opacity: 0.7 }
+                      }} 
+                      onClick={handleIconClick}
+                    />
+                  </Tooltip>
+                );
+              case 'bag': 
+                return (
+                  <Tooltip title={tooltipTitle} arrow>
+                    <LuggageIcon 
+                      sx={{ 
+                        ...iconProps, 
+                        color: isPaid ? 'grey.500' : (isActiveTab ? 'inherit' : 'grey.400'),
+                        cursor: (isPaid || !isActiveTab) ? 'default' : 'pointer',
+                        '&:hover': (isPaid || !isActiveTab) ? {} : { opacity: 0.7 }
+                      }} 
+                      onClick={handleIconClick}
+                    />
+                  </Tooltip>
+                );
               default: return null;
             }
           };
@@ -128,7 +180,9 @@ export function PaymentTabs(props: PaymentTabsProps) {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexDirection: 'column' }}>
                   <span>{passenger.name}</span>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    {unpaidItems.map(itemType => getIcon(itemType))}
+                    {passenger.ticket.status !== 'Paid' && getIcon('ticket', false)}
+                    {passenger.ancillaries.seat.status !== 'Paid' && getIcon('seat', false)}
+                    {passenger.ancillaries.bag.status !== 'Paid' && getIcon('bag', false)}
                   </Box>
                   {passengerRemaining > 0 ? (
                     <Typography variant="caption" sx={{ 

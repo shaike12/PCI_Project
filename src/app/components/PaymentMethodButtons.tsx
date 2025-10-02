@@ -59,7 +59,7 @@ export function PaymentMethodButtons({
             width: 32,
             height: 32
           }}
-          title="Add Voucher"
+          title="Add UATP Voucher"
         >
           <CardGiftcardIcon sx={{ fontSize: 16 }} />
         </IconButton>

@@ -78,9 +78,26 @@ export function SelectedItemsBreakdown({ selectedItems, reservation }: SelectedI
     <Accordion defaultExpanded sx={{ mb: 2, boxShadow: 'none', border: '1px solid', borderColor: 'divider' }}>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
         <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-          <Badge badgeContent={Object.values(selectedItems).flat().length} color="primary">
-            <ShoppingCartIcon sx={{ mr: 1, color: 'primary.main' }} />
-          </Badge>
+          <Box sx={{ display: 'flex', alignItems: 'center', mr: 1 }}>
+            <ShoppingCartIcon sx={{ color: 'primary.main' }} />
+            {Object.values(selectedItems).flat().length > 0 && (
+              <Typography variant="caption" sx={{ 
+                ml: 0.5, 
+                color: 'primary.main', 
+                fontWeight: 'bold',
+                backgroundColor: 'primary.light',
+                borderRadius: '50%',
+                width: 18,
+                height: 18,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.7rem'
+              }}>
+                {Object.values(selectedItems).flat().length}
+              </Typography>
+            )}
+          </Box>
           <Typography variant="subtitle2" sx={{ fontWeight: 600, flex: 1 }}>
             Selected Items
           </Typography>

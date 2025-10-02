@@ -98,19 +98,6 @@ export default function PaymentPortal() {
     }
   };
 
-  // Clear all localStorage data (including incorrect data)
-  const clearAllData = () => {
-    if (window.confirm('Are you sure you want to clear all saved data? This will remove all payment methods and selections.')) {
-      clearAllLocalStorage();
-      setItemPaymentMethods({});
-      setItemMethodForms({});
-      setItemExpandedMethod({});
-      setSelectedPassengers([]);
-      setSelectedItems({});
-      setActivePaymentPassenger('');
-      console.log('🗑️ All data cleared');
-    }
-  };
 
   const reservation: Reservation = MOCK_RESERVATION;
   // Passenger data from reservation structure, sorted by payment status
@@ -1047,6 +1034,7 @@ export default function PaymentPortal() {
                   updateMethodField={updateMethodFieldWrapper}
                   setItemExpandedMethod={setItemExpandedMethod}
                   removeMethod={removeMethodWrapper}
+                  toggleItem={toggleItem}
                 />
 
                 {/* No items selected message */}
@@ -1153,7 +1141,6 @@ export default function PaymentPortal() {
                   <PaymentMethodsSummary 
                     itemPaymentMethods={itemPaymentMethods}
                     onClearAll={clearAllPaymentMethods}
-                    onClearAllData={clearAllData}
                   />
 
                   <TotalSummary 

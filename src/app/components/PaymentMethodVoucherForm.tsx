@@ -19,7 +19,7 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
   return (
     <Box sx={{ mt: 2, p: 3, bgcolor: 'grey.50', borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
       <Typography variant="subtitle2" sx={{ mb: 3, color: 'text.secondary', fontWeight: 600 }}>
-        Voucher Details #{index + 1}
+        UATP Voucher Details #{index + 1}
       </Typography>
       
       {/* Payment Amount */}

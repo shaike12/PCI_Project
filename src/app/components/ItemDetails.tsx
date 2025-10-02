@@ -92,13 +92,6 @@ export function ItemDetails({
         if (showAlways || amounts.remaining > 0) {
           return (
             <Box>
-              <PaymentMethodButtons
-                itemKey={itemKey}
-                formMethods={formMethods}
-                isItemFullyPaid={isItemFullyPaid}
-                confirmAddMethod={confirmAddMethod}
-              />
-
               {formMethods.map((method, idx) => (
                 <PaymentMethodCard
                   key={`${itemKey}-method-${idx}`}
@@ -115,6 +108,13 @@ export function ItemDetails({
                   removeMethod={removeMethod}
                 />
               ))}
+
+              <PaymentMethodButtons
+                itemKey={itemKey}
+                formMethods={formMethods}
+                isItemFullyPaid={isItemFullyPaid}
+                confirmAddMethod={confirmAddMethod}
+              />
             </Box>
           );
         }

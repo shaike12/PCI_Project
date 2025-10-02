@@ -59,14 +59,61 @@ export function PaymentMethodCard({
       position: 'relative'
     }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: expanded ? 1 : 0 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 'medium' }}>
-            {method === 'credit' ? 'Credit Card' : method === 'voucher' ? 'Voucher' : 'Points'}
+            {method === 'credit' ? 'Credit Card' : method === 'voucher' ? 'UATP Voucher' : 'Points'}
           </Typography>
           {isComplete ? (
             <Box sx={{ width: 16, height: 16, borderRadius: '50%', backgroundColor: 'success.main', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '10px', fontWeight: 'bold' }}>✓</Box>
           ) : (
             <Box sx={{ width: 16, height: 16, borderRadius: '50%', backgroundColor: 'warning.main', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '10px', fontWeight: 'bold' }}>!</Box>
+          )}
+          {!expanded && methodAmount > 0 && (
+            <Box sx={{ flex: 1, mx: 2 }}>
+              <Slider
+                value={methodAmount}
+                min={0}
+                max={(() => {
+                  const amounts = getRemainingAmount(itemKey);
+                  if (method === 'points') {
+                    // For points, limit to available points balance
+                    const pointsBalance = paymentData?.points?.balance;
+                    if (pointsBalance && pointsBalance > 0) {
+                      const maxFromPoints = pointsBalance / 50; // 50 points = $1
+                      return Math.min(methodAmount + amounts.remaining, maxFromPoints);
+                    }
+                  }
+                  return methodAmount + amounts.remaining;
+                })()}
+                step={1}
+                onChange={(_e: Event, newValue: number | number[]) => {
+                  const value = typeof newValue === 'number' ? newValue : newValue[0];
+                  if (method === 'credit') {
+                    updateMethodField(itemKey, 'credit', 'amount', value.toString());
+                  } else if (method === 'voucher') {
+                    const voucherIdx = formMethods.slice(0, idx).filter(m => m === 'voucher').length;
+                    updateMethodField(itemKey, 'voucher', 'amount', value.toString(), voucherIdx);
+                  } else if (method === 'points') {
+                    updateMethodField(itemKey, 'points', 'amount', value.toString());
+                  }
+                }}
+                size="small"
+                sx={{ 
+                  color: 'primary.main',
+                  '& .MuiSlider-thumb': {
+                    width: 16,
+                    height: 16,
+                  },
+                  '& .MuiSlider-track': {
+                    height: 4,
+                  },
+                  '& .MuiSlider-rail': {
+                    height: 4,
+                    opacity: 0.3,
+                  }
+                }}
+              />
+            </Box>
           )}
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -111,41 +158,6 @@ export function PaymentMethodCard({
         </Box>
       </Box>
 
-      {!expanded && methodAmount > 0 && (
-        <Box sx={{ mt: 2, px: 1 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-            <Typography variant="caption" sx={{ color: 'text.secondary', minWidth: 50 }}>Amount</Typography>
-            <Slider
-              value={methodAmount}
-              min={0}
-              max={(() => {
-                const amounts = getRemainingAmount(itemKey);
-                return methodAmount + amounts.remaining;
-              })()}
-              step={1}
-              onChange={(_e: Event, newValue: number | number[]) => {
-                const value = typeof newValue === 'number' ? newValue : newValue[0];
-                if (method === 'credit') {
-                  updateMethodField(itemKey, 'credit', 'amount', value.toString());
-                } else if (method === 'voucher') {
-                  const voucherIdx = formMethods.slice(0, idx).filter(m => m === 'voucher').length;
-                  updateMethodField(itemKey, 'voucher', 'amount', value.toString(), voucherIdx);
-                } else if (method === 'points') {
-                  const pointsToUse = value * 50;
-                  updateMethodField(itemKey, 'points', 'amount', value.toString());
-                  updateMethodField(itemKey, 'points', 'pointsToUse', pointsToUse.toString());
-                }
-              }}
-              valueLabelDisplay="auto"
-              valueLabelFormat={(value: number) => `$${value}`}
-              sx={{ flex: 1 }}
-            />
-            <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 'bold', minWidth: 50, textAlign: 'right' }}>
-              ${methodAmount}
-            </Typography>
-          </Box>
-        </Box>
-      )}
 
       {expanded && method === 'credit' && (
         <PaymentMethodCreditForm 

@@ -1849,7 +1849,7 @@ export default function PaymentPortal() {
                                               '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
                                               '& .MuiInputLabel-root': { fontSize: '0.9rem' }
                                             }} 
-                                            label="CVV" 
+                                            label="CVV/Confirmation Number" 
                                             placeholder="123"
                                             InputLabelProps={{ shrink: true }}
                                             value={(paymentData?.credit?.cvv ?? '')} 

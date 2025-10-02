@@ -22,7 +22,7 @@ export const getPassengerNameById = (pid: string, reservation: any, resolvePasse
 };
 
 // Get passenger tab label
-export const getPassengerTabLabel = (pid: string, reservation: any, resolvePassengerIndex: (passengerId: string) => number): string => {
+export const getPassengerTabLabel = (pid: string, reservation: any, resolvePassengerIndex: (passengerId: string) => number): any => {
   const idx = resolvePassengerIndex(pid);
   const passenger = idx >= 0 ? reservation.passengers[idx] : undefined;
   if (!passenger) return `Passenger ${pid}`;

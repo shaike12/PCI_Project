@@ -93,15 +93,40 @@ export function PaymentTabs(props: PaymentTabsProps) {
         allowScrollButtonsMobile
         sx={{ borderBottom: 1, borderColor: 'divider' }}
       >
-        {tabIds.map((pid) => (
-          <Tab 
-            key={pid}
-            value={pid}
-            label={getPassengerTabLabel(pid)}
-            sx={{
-              transition: 'all 0.3s ease-in-out',
-              '&.Mui-selected': {
-                backgroundColor: 'primary.50',
+        {tabIds.map((pid) => {
+          const passengerIndex = resolvePassengerIndex(pid);
+          const passenger = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
+          
+          if (!passenger) return null;
+          
+          const unpaidItems = [];
+          if (passenger.ticket.status !== 'Paid') unpaidItems.push('ticket');
+          if (passenger.ancillaries.seat.status !== 'Paid') unpaidItems.push('seat');
+          if (passenger.ancillaries.bag.status !== 'Paid') unpaidItems.push('bag');
+          
+          const getIcon = (itemType: string) => {
+            switch (itemType) {
+              case 'ticket': return <FlightIcon sx={{ fontSize: 16, mr: 0.5 }} />;
+              case 'seat': return <EventSeatIcon sx={{ fontSize: 16, mr: 0.5 }} />;
+              case 'bag': return <LuggageIcon sx={{ fontSize: 16, mr: 0.5 }} />;
+              default: return null;
+            }
+          };
+          
+          return (
+            <Tab 
+              key={pid}
+              value={pid}
+              label={
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  {unpaidItems.map(itemType => getIcon(itemType))}
+                  <span>{passenger.name}</span>
+                </Box>
+              }
+              sx={{
+                transition: 'all 0.3s ease-in-out',
+                '&.Mui-selected': {
+                  backgroundColor: 'primary.50',
                 color: 'primary.main',
                 fontWeight: 600,
                 borderRadius: 1,
@@ -114,7 +139,8 @@ export function PaymentTabs(props: PaymentTabsProps) {
               }
             }}
           />
-        ))}
+          );
+        })}
       </Tabs>
 
       {typeof tabsValue === 'string' && tabsValue !== '' && (

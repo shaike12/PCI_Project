@@ -164,6 +164,17 @@ export default function PaymentPortal() {
     }
   };
 
+  // Clear all payment methods for all passengers
+  const clearAllPaymentMethods = () => {
+    if (window.confirm('Are you sure you want to delete all payment methods for all passengers? This action cannot be undone.')) {
+      setItemPaymentMethods({});
+      setItemMethodForms({});
+      setItemExpandedMethod({});
+      setFieldErrors({});
+      console.log('🗑️ All payment methods cleared');
+    }
+  };
+
   const reservation: Reservation = MOCK_RESERVATION;
   // Passenger data from reservation structure, sorted by payment status
   const availablePassengers: Passenger[] = reservation.passengers
@@ -350,6 +361,63 @@ export default function PaymentPortal() {
         return {
           ...prev,
           [passengerId]: newItems
+        };
+      }
+    });
+  };
+
+  // Toggle select all/deselect all unpaid items for a passenger
+  const toggleAllItemsForPassenger = (passengerId: string) => {
+    const passengerIndex = resolvePassengerIndex(passengerId);
+    const passengerData = reservation.passengers[passengerIndex];
+    const unpaidItems: string[] = [];
+    if (passengerData.ticket.status !== 'Paid') unpaidItems.push('ticket');
+    if (passengerData.ancillaries.seat.status !== 'Paid') unpaidItems.push('seat');
+    if (passengerData.ancillaries.bag.status !== 'Paid') unpaidItems.push('bag');
+
+    setSelectedItems(prev => {
+      const current = prev[passengerId] || [];
+      const allSelected = unpaidItems.every(item => current.includes(item));
+
+      if (allSelected) {
+        // Deselect all unpaid items: remove selections and clear methods/forms for this passenger
+        // Remove payment data for this passenger's items
+        setItemPaymentMethods(prevMethods => {
+          const newMethods = { ...prevMethods } as any;
+          unpaidItems.forEach(itemType => {
+            const key = `${passengerId}-${itemType}`;
+            delete newMethods[key];
+          });
+          return newMethods;
+        });
+        setItemMethodForms(prevForms => {
+          const newForms = { ...prevForms } as any;
+          unpaidItems.forEach(itemType => {
+            const key = `${passengerId}-${itemType}`;
+            delete newForms[key];
+          });
+          return newForms;
+        });
+        setItemExpandedMethod(prevExpanded => {
+          const newExpanded = { ...prevExpanded } as any;
+          unpaidItems.forEach(itemType => {
+            const key = `${passengerId}-${itemType}`;
+            delete newExpanded[key];
+          });
+          return newExpanded;
+        });
+
+        // Remove passenger entirely from selected lists
+        setSelectedPassengers(prevSel => prevSel.filter(id => id !== passengerId));
+        const { [passengerId]: removed, ...rest } = prev;
+        return rest;
+      } else {
+        // Select all unpaid items
+        // Ensure passenger is marked selected
+        setSelectedPassengers(prevSel => (prevSel.includes(passengerId) ? prevSel : [...prevSel, passengerId]));
+        return {
+          ...prev,
+          [passengerId]: unpaidItems
         };
       }
     });
@@ -543,6 +611,27 @@ export default function PaymentPortal() {
   const [itemMethodForms, setItemMethodForms] = useState<{ [key: string]: Array<'credit' | 'voucher' | 'points'> }>({});
   // Which method is expanded per item (single expand accordion)
   const [itemExpandedMethod, setItemExpandedMethod] = useState<{ [key: string]: number | null }>({});
+
+  // Reservation loading controls
+  const [reservationCode, setReservationCode] = useState<string>('');
+  const [isReservationLoaded, setIsReservationLoaded] = useState<boolean>(true);
+
+  const loadReservation = () => {
+    const trimmed = (reservationCode || '').trim();
+    if (!trimmed) {
+      console.warn('Reservation code is empty');
+      return;
+    }
+    // Simulate loading reservation by resetting selections and payments
+    setSelectedPassengers([]);
+    setSelectedItems({});
+    setItemPaymentMethods({});
+    setItemMethodForms({});
+    setItemExpandedMethod({});
+    setFieldErrors({});
+    setIsReservationLoaded(true);
+    console.log('📦 Reservation loaded for code:', trimmed);
+  };
 
   // Load progress on component mount
   useEffect(() => {
@@ -1318,8 +1407,25 @@ export default function PaymentPortal() {
                   </Typography>
                 </Box>
                 
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+                  <TextField
+                    size="small"
+                    label="Reservation Number"
+                    placeholder="Enter reservation code"
+                    value={reservationCode}
+                    onChange={(e) => setReservationCode(e.target.value)}
+                    InputLabelProps={{ shrink: true }}
+                    sx={{ width: 200 }}
+                  />
                 <Button
-                  fullWidth
+                    variant="contained"
+                    size="small"
+                    onClick={loadReservation}
+                    disabled={!reservationCode.trim()}
+                  >
+                    Load
+                  </Button>
+                  <Button
                   variant="outlined"
                   size="small"
                   onClick={() => {
@@ -1362,9 +1468,13 @@ export default function PaymentPortal() {
                     }
                   }}
                   sx={{ 
-                    mb: 2,
                     borderColor: 'primary.main',
                     color: 'primary.main',
+                      minWidth: 'auto',
+                      px: 0.75,
+                      py: 0.25,
+                      fontSize: '0.7rem',
+                      lineHeight: 1.2,
                     '&:hover': {
                       borderColor: 'primary.dark',
                       bgcolor: 'primary.50'
@@ -1386,9 +1496,10 @@ export default function PaymentPortal() {
                       return unpaidItems.every(item => passengerItems.includes(item));
                     });
                     
-                    return allAvailableItemsSelected ? 'Deselect All Items' : 'Select All Items';
+                      return allAvailableItemsSelected ? 'Deselect All' : 'Select All';
                   })()}
                 </Button>
+                </Box>
                 
                 <Box sx={{ flex: 1, overflowY: 'auto', mb: 2 }}>
                   {availablePassengers.map((passenger) => {
@@ -1440,7 +1551,17 @@ export default function PaymentPortal() {
                           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
                               <PersonIcon sx={{ mr: 1 }} />
-                              <Typography variant="body1" sx={{ fontWeight: 'medium', mr: 2 }}>
+                              <Typography 
+                                variant="body1" 
+                                sx={{ fontWeight: 'medium', mr: 2, cursor: 'pointer', userSelect: 'none' }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (passenger.hasUnpaidItems) {
+                                    toggleAllItemsForPassenger(passenger.id);
+                                  }
+                                }}
+                                title="Select/Deselect all items for this passenger"
+                              >
                                 {passenger.fullName}
                               </Typography>
                               
@@ -3102,6 +3223,26 @@ export default function PaymentPortal() {
                   
                 {/* Content */}
                 <Box sx={{ flex: 1, overflow: 'auto', p: 3 }}>
+                  {/* Reservation Number Loader */}
+                  <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <TextField
+                      size="small"
+                      label="Reservation Number"
+                      placeholder="Enter reservation code"
+                      value={reservationCode}
+                      onChange={(e) => setReservationCode(e.target.value)}
+                      InputLabelProps={{ shrink: true }}
+                      sx={{ width: 260 }}
+                    />
+                    <Button
+                      variant="contained"
+                      size="small"
+                      onClick={loadReservation}
+                      disabled={!reservationCode.trim()}
+                    >
+                      Load Reservation
+                    </Button>
+                  </Box>
                   {/* Reservation Overview */}
                   <Accordion defaultExpanded sx={{ mb: 2, boxShadow: 'none', border: '1px solid', borderColor: 'divider' }}>
                     <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -3311,6 +3452,30 @@ export default function PaymentPortal() {
                             <Typography variant="body2" sx={{ fontWeight: 600, color: 'success.main' }}>
                               ${totalPaymentAmount.toLocaleString()}
                             </Typography>
+                            {totalPaymentMethods > 0 && (
+                              <IconButton
+                                size="small"
+                                onClick={(e) => {
+                                  e.stopPropagation(); // Prevent accordion from expanding/collapsing
+                                  clearAllPaymentMethods();
+                                }}
+                                sx={{
+                                  ml: 2,
+                                  color: 'error.main',
+                                  border: 1,
+                                  borderColor: 'error.main',
+                                  width: 32,
+                                  height: 32,
+                                  '&:hover': {
+                                    backgroundColor: 'error.50',
+                                    borderColor: 'error.dark'
+                                  }
+                                }}
+                                title="Clear All Payment Methods"
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            )}
                           </Box>
                         </AccordionSummary>
                         <AccordionDetails>

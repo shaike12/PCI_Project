@@ -345,10 +345,16 @@ export default function PaymentPortal() {
 
       // Save to database
       const { ReservationService } = await import('../lib/reservationService');
-      await ReservationService.createReservation(cleanedReservation, 'system');
+      const newReservationId = await ReservationService.createReservation(cleanedReservation, 'system');
+      
+      // Get the created reservation with the new ID
+      const createdReservation = await ReservationService.getReservationById(newReservationId);
+      if (!createdReservation) {
+        throw new Error('Failed to retrieve created reservation');
+      }
       
       setNewReservationCode(newCode);
-      setCurrentReservation(newReservation);
+      setCurrentReservation(createdReservation);
       setReservationCode(newCode);
       
       

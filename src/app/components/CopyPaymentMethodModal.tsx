@@ -307,21 +307,45 @@ export function CopyPaymentMethodModal({
                   <ListItemText
                     primary={passenger.fullName}
                     secondary={
-                      <Box component="div" sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
-                        <Chip 
-                          label={isSourcePassenger ? "Source" : "Selected"} 
-                          size="small" 
-                          color={isSourcePassenger ? "default" : "primary"} 
-                          variant="outlined"
-                          sx={{ height: 20, fontSize: '0.7rem' }}
-                        />
-                        <Chip 
-                          label={hasRemainingBalance ? `$${totalRemaining.toFixed(2)} remaining` : "Fully paid"} 
-                          size="small" 
-                          color={hasRemainingBalance ? "success" : "default"} 
-                          variant="outlined"
-                          sx={{ height: 20, fontSize: '0.7rem' }}
-                        />
+                      <Box component="span" sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
+                        <Typography 
+                          component="span"
+                          variant="caption"
+                          sx={{ 
+                            display: 'inline-block',
+                            px: 1,
+                            py: 0.25,
+                            borderRadius: 1,
+                            border: '1px solid',
+                            borderColor: isSourcePassenger ? 'grey.400' : 'primary.main',
+                            color: isSourcePassenger ? 'grey.600' : 'primary.main',
+                            bgcolor: isSourcePassenger ? 'grey.100' : 'primary.light',
+                            fontSize: '0.7rem',
+                            height: 20,
+                            lineHeight: '20px'
+                          }}
+                        >
+                          {isSourcePassenger ? "Source" : "Selected"}
+                        </Typography>
+                        <Typography 
+                          component="span"
+                          variant="caption"
+                          sx={{ 
+                            display: 'inline-block',
+                            px: 1,
+                            py: 0.25,
+                            borderRadius: 1,
+                            border: '1px solid',
+                            borderColor: hasRemainingBalance ? 'success.main' : 'grey.400',
+                            color: hasRemainingBalance ? 'success.main' : 'grey.600',
+                            bgcolor: hasRemainingBalance ? 'success.light' : 'grey.100',
+                            fontSize: '0.7rem',
+                            height: 20,
+                            lineHeight: '20px'
+                          }}
+                        >
+                          {hasRemainingBalance ? `$${totalRemaining.toFixed(2)} remaining` : "Fully paid"}
+                        </Typography>
                       </Box>
                     }
                   />

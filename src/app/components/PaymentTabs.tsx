@@ -126,9 +126,9 @@ export function PaymentTabs(props: PaymentTabsProps) {
               value={pid}
               label={
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexDirection: 'column' }}>
+                  <span>{passenger.name}</span>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     {unpaidItems.map(itemType => getIcon(itemType))}
-                    <span>{passenger.name}</span>
                   </Box>
                   {passengerRemaining > 0 ? (
                     <Typography variant="caption" sx={{ 

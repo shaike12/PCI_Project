@@ -293,20 +293,30 @@ export const updateMethodField = (
     const updated = { ...prev };
     const methods = updated[itemKey] || {};
     
+    // Helper function to convert numeric fields to numbers
+    const processValue = (field: string, value: string) => {
+      const numericFields = ['amount', 'pointsToUse', 'balance'];
+      if (numericFields.includes(field)) {
+        const numValue = parseFloat(value);
+        return isNaN(numValue) ? 0 : numValue;
+      }
+      return value;
+    };
+
     if (method === 'credit') {
       if (!methods.credit) methods.credit = {};
-      methods.credit[field] = value;
+      methods.credit[field] = processValue(field, value);
     } else if (method === 'voucher') {
       if (!methods.vouchers) methods.vouchers = [];
       if (voucherIndex !== undefined) {
         if (!methods.vouchers[voucherIndex]) {
           methods.vouchers[voucherIndex] = {};
         }
-        methods.vouchers[voucherIndex][field] = value;
+        methods.vouchers[voucherIndex][field] = processValue(field, value);
       }
     } else if (method === 'points') {
       if (!methods.points) methods.points = {};
-      methods.points[field] = value;
+      methods.points[field] = processValue(field, value);
     }
     
     updated[itemKey] = methods;

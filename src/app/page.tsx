@@ -19,7 +19,16 @@ import {
   Select,
   MenuItem,
   FormControl,
-  InputLabel
+  InputLabel,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Badge,
+  Avatar
 } from '@mui/material';
 import {
   Person as PersonIcon,
@@ -34,7 +43,22 @@ import {
   CardGiftcard as VoucherIcon,
   Star as PointsIcon,
   Edit as EditIcon,
-  Delete as DeleteIcon
+  Delete as DeleteIcon,
+  ReceiptLong as ReceiptLongIcon,
+  TrendingUp as TrendingUpIcon,
+  TrendingDown as TrendingDownIcon,
+  AccountBalance as AccountBalanceIcon,
+  LocalAtm as LocalAtmIcon,
+  MonetizationOn as MonetizationOnIcon,
+  ShoppingCart as ShoppingCartIcon,
+  CheckCircle as CheckCircleIcon,
+  Pending as PendingIcon,
+  Warning as WarningIcon,
+  Info as InfoIcon,
+  Add as AddIcon,
+  Close as CloseIcon,
+  Payment as PaymentIcon,
+  Receipt as ReceiptIcon
 } from '@mui/icons-material';
 import { Tabs, Tab, Stack } from '@mui/material';
 import { MOCK_RESERVATION, Reservation } from '@/types/reservation';
@@ -118,15 +142,39 @@ export default function PaymentPortal() {
     setIsClient(true);
   }, []);
 
-  // Calculate costs only for unpaid items
-  const flightPrice = reservation.passengers.reduce((sum, p) => {
-    return p.ticket.status !== 'Paid' ? sum + p.ticket.price : sum;
+  // Calculate costs only for passengers with selected items
+  const passengersWithSelectedItems = Object.keys(selectedItems);
+  
+  const flightPrice = passengersWithSelectedItems.reduce((sum, passengerId) => {
+    const passengerIndex = parseInt(passengerId) - 1;
+    const passenger = reservation.passengers[passengerIndex];
+    const selectedPassengerItems = selectedItems[passengerId] || [];
+    
+    // Only count ticket price if ticket is selected and not paid
+    if (selectedPassengerItems.includes('ticket') && passenger.ticket.status !== 'Paid') {
+      return sum + passenger.ticket.price;
+    }
+    return sum;
   }, 0);
   
-  const additionalServices = reservation.passengers.reduce((sum, p) => {
-    const seatPrice = p.ancillaries.seat.status !== 'Paid' ? p.ancillaries.seat.price : 0;
-    const bagPrice = p.ancillaries.bag.status !== 'Paid' ? p.ancillaries.bag.price : 0;
-    return sum + seatPrice + bagPrice;
+  const additionalServices = passengersWithSelectedItems.reduce((sum, passengerId) => {
+    const passengerIndex = parseInt(passengerId) - 1;
+    const passenger = reservation.passengers[passengerIndex];
+    const selectedPassengerItems = selectedItems[passengerId] || [];
+    
+    let passengerTotal = 0;
+    
+    // Only count seat price if seat is selected and not paid
+    if (selectedPassengerItems.includes('seat') && passenger.ancillaries.seat.status !== 'Paid') {
+      passengerTotal += passenger.ancillaries.seat.price;
+    }
+    
+    // Only count bag price if bag is selected and not paid
+    if (selectedPassengerItems.includes('bag') && passenger.ancillaries.bag.status !== 'Paid') {
+      passengerTotal += passenger.ancillaries.bag.price;
+    }
+    
+    return sum + passengerTotal;
   }, 0);
   
   const total = flightPrice + additionalServices;
@@ -167,9 +215,12 @@ export default function PaymentPortal() {
           return newMethods;
         });
         
-        // If no items left for this passenger, remove passenger from selectedPassengers
+        // If no items left for this passenger, remove passenger from selectedPassengers and selectedItems
         if (newItems.length === 0) {
           setSelectedPassengers(prev => prev.filter(id => id !== passengerId));
+          // Remove passenger from selectedItems completely
+          const { [passengerId]: removed, ...rest } = prev;
+          return rest;
         }
         
         return {
@@ -221,6 +272,111 @@ export default function PaymentPortal() {
     if (number.startsWith('3')) return 'American Express';
     if (number.startsWith('6')) return 'Discover';
     return 'Unknown';
+  };
+
+  // getCardIcon: Returns the appropriate icon component for each card type
+  const getCardIcon = (cardType: string) => {
+    switch (cardType) {
+      case 'Visa':
+        return (
+          <Box sx={{ 
+            width: 24, 
+            height: 16, 
+            borderRadius: 2, 
+            bgcolor: '#1A1F71', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            color: 'white',
+            fontSize: '10px',
+            fontWeight: 'bold'
+          }}>
+            VISA
+          </Box>
+        );
+      case 'Mastercard':
+        return (
+          <Box sx={{ 
+            width: 24, 
+            height: 16, 
+            borderRadius: 2, 
+            bgcolor: '#EB001B', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            position: 'relative',
+            overflow: 'hidden'
+          }}>
+            <Box sx={{
+              position: 'absolute',
+              left: -2,
+              width: 12,
+              height: 12,
+              borderRadius: '50%',
+              bgcolor: '#F79E1B'
+            }} />
+            <Box sx={{
+              position: 'absolute',
+              right: -2,
+              width: 12,
+              height: 12,
+              borderRadius: '50%',
+              bgcolor: '#FF5F00'
+            }} />
+          </Box>
+        );
+      case 'American Express':
+        return (
+          <Box sx={{ 
+            width: 24, 
+            height: 16, 
+            borderRadius: 2, 
+            bgcolor: '#006FCF', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            color: 'white',
+            fontSize: '8px',
+            fontWeight: 'bold'
+          }}>
+            AMEX
+          </Box>
+        );
+      case 'Discover':
+        return (
+          <Box sx={{ 
+            width: 24, 
+            height: 16, 
+            borderRadius: 2, 
+            bgcolor: '#FF6000', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            color: 'white',
+            fontSize: '8px',
+            fontWeight: 'bold'
+          }}>
+            DISC
+          </Box>
+        );
+      default:
+        return (
+          <Box sx={{ 
+            width: 24, 
+            height: 16, 
+            borderRadius: 2, 
+            bgcolor: '#9E9E9E', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            color: 'white',
+            fontSize: '8px',
+            fontWeight: 'bold'
+          }}>
+            ?
+          </Box>
+        );
+    }
   };
 
   // ---------------------------------------------
@@ -1273,7 +1429,7 @@ export default function PaymentPortal() {
               
               <Paper sx={{ p: 2, bgcolor: 'grey.100', m: 2, mt: 0 }}>
                 <Typography variant="body2" color="text.secondary">
-                  {selectedPassengers.length} passengers selected
+                  {passengersWithSelectedItems.length} passengers selected
                 </Typography>
               </Paper>
             </Card>
@@ -1480,22 +1636,7 @@ export default function PaymentPortal() {
                                       }}>
                                         <Typography variant="subtitle2" sx={{ mb: 3, color: 'text.secondary', fontWeight: 600 }}>
                                           Credit Card Details
-                                        </Typography>
-                                        
-                                        {/* Card Type Indicator */}
-                                        {(paymentData?.credit?.cardNumber ?? '').length > 0 && (
-                                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2.5 }}>
-                                            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
-                                              Card Type:
                                             </Typography>
-                                            <Chip 
-                                              label={detectCardType(paymentData?.credit?.cardNumber ?? '')} 
-                                              size="small" 
-                                              color={detectCardType(paymentData?.credit?.cardNumber ?? '') === 'Unknown' ? 'default' : 'primary'}
-                                              sx={{ fontSize: '0.75rem', height: 24, fontWeight: 500 }}
-                                            />
-                                          </Box>
-                                        )}
                                         
                                         {/* Payment Amount */}
                                         <Box sx={{ mb: 2.5 }}>
@@ -1518,18 +1659,22 @@ export default function PaymentPortal() {
                                             })()} 
                                             inputProps={{ suppressHydrationWarning: true }} 
                                             onChange={(e) => updateMethodField(itemKey, 'credit', 'amount', e.target.value)} 
-                                          />
-                                        </Box>
-
+                                            />
+                                          </Box>
+                                        
                                         {/* Card Number */}
                                         <Box sx={{ mb: 2.5 }}>
+                                          <Box sx={{ position: 'relative' }}>
                                           <TextField 
-                                            fullWidth
-                                            size="medium" 
+                                              fullWidth
+                                              size="medium" 
                                             sx={{ 
-                                              '& .MuiInputBase-root': { height: 48 }, 
-                                              '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
-                                              '& .MuiInputLabel-root': { fontSize: '0.9rem' }
+                                                '& .MuiInputBase-root': { 
+                                                  height: 48,
+                                                  paddingRight: (paymentData?.credit?.cardNumber ?? '').length > 0 ? '80px' : '16px'
+                                                }, 
+                                                '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
+                                                '& .MuiInputLabel-root': { fontSize: '0.9rem' }
                                             }} 
                                             label="Card Number" 
                                             placeholder="1234 5678 9012 3456"
@@ -1545,6 +1690,33 @@ export default function PaymentPortal() {
                                               updateMethodField(itemKey, 'credit', 'cardNumber', formatted);
                                             }} 
                                           />
+                                            {(paymentData?.credit?.cardNumber ?? '').length > 0 && (
+                                              <Box sx={{
+                                                position: 'absolute',
+                                                right: 12,
+                                                top: '50%',
+                                                transform: 'translateY(-50%)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                pointerEvents: 'none'
+                                              }}>
+                                                <Box sx={{
+                                                  display: 'flex',
+                                                  alignItems: 'center',
+                                                  gap: 0.5
+                                                }}>
+                                                  {getCardIcon(detectCardType(paymentData?.credit?.cardNumber ?? ''))}
+                                                  <Typography variant="caption" sx={{
+                                                    fontSize: '0.7rem',
+                                                    fontWeight: 600,
+                                                    color: detectCardType(paymentData?.credit?.cardNumber ?? '') === 'Unknown' ? 'text.secondary' : 'primary.main'
+                                                  }}>
+                                                    {detectCardType(paymentData?.credit?.cardNumber ?? '')}
+                                                  </Typography>
+                                                </Box>
+                                              </Box>
+                                            )}
+                                          </Box>
                                         </Box>
 
                                         {/* Cardholder Name */}
@@ -2253,35 +2425,86 @@ export default function PaymentPortal() {
             </Card>
           </Grid>
 
-          {/* סקשן סה״כ תשלום - ימין - 25% */}
+          {/* סקשן סיכום מפורט - ימין - 25% */}
           <Grid size={{ xs: 12, lg: 3 }} style={{ height: '100vh' }}>
             <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-              <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                  <MoneyIcon sx={{ color: 'secondary.main', mr: 1, fontSize: 28 }} />
-                  <Typography variant="h6" component="h2" sx={{ fontWeight: 'semibold' }}>
+              <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto', p: 0 }}>
+                {/* Header */}
+                <Box sx={{ p: 3, pb: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <Avatar sx={{ bgcolor: 'primary.main', mr: 2, width: 40, height: 40 }}>
+                      <ReceiptLongIcon />
+                    </Avatar>
+                    <Box>
+                      <Typography variant="h6" component="h2" sx={{ fontWeight: 600, color: 'text.primary' }}>
                     Payment Summary
                   </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Real-time calculation
+                  </Typography>
+                    </Box>
                 </Box>
                 
-                <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1 }}>
-                    <Typography variant="body2" color="text.secondary">Flight Price</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                      ${flightPrice.toLocaleString()}
-                    </Typography>
+                  {/* Quick Stats */}
+                  <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                    <Chip 
+                      icon={<PersonIcon />} 
+                      label={`${passengersWithSelectedItems.length} Passengers`} 
+                      size="small" 
+                      color="primary" 
+                      variant="outlined"
+                    />
+                    <Chip 
+                      icon={<ShoppingCartIcon />} 
+                      label={`${Object.values(selectedItems).flat().length} Items`} 
+                      size="small" 
+                      color="secondary" 
+                      variant="outlined"
+                    />
+                  </Box>
                   </Box>
                   
-                  <Divider />
-                  
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1 }}>
-                    <Typography variant="body2" color="text.secondary">Additional Services</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                      ${additionalServices.toLocaleString()}
+                {/* Content */}
+                <Box sx={{ flex: 1, overflow: 'auto', p: 3 }}>
+                  {/* Reservation Overview */}
+                  <Accordion defaultExpanded sx={{ mb: 2, boxShadow: 'none', border: '1px solid', borderColor: 'divider' }}>
+                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <InfoIcon sx={{ mr: 1, color: 'info.main' }} />
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                          Reservation Overview
                     </Typography>
                   </Box>
-                  
-                  <Divider />
+                    </AccordionSummary>
+                    <AccordionDetails>
+                      <List dense>
+                        <ListItem sx={{ px: 0 }}>
+                          <ListItemIcon sx={{ minWidth: 36 }}>
+                            <FlightIcon color="primary" />
+                          </ListItemIcon>
+                          <ListItemText 
+                            primary="Flight Price" 
+                            secondary={`${passengersWithSelectedItems.length} passengers selected`}
+                          />
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            ${flightPrice.toLocaleString()}
+                          </Typography>
+                        </ListItem>
+                        <ListItem sx={{ px: 0 }}>
+                          <ListItemIcon sx={{ minWidth: 36 }}>
+                            <TrendingUpIcon color="secondary" />
+                          </ListItemIcon>
+                          <ListItemText 
+                            primary="Ancillary" 
+                            secondary="Seats, baggage, meals"
+                          />
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            ${additionalServices.toLocaleString()}
+                          </Typography>
+                        </ListItem>
+                      </List>
+                    </AccordionDetails>
+                  </Accordion>
                   
                   {/* Selected Items Breakdown */}
                   {(() => {
@@ -2289,6 +2512,8 @@ export default function PaymentPortal() {
                     let selectedSeats = 0;
                     let selectedBags = 0;
                     let totalSelected = 0;
+                    let totalPaid = 0;
+                    let totalRemaining = 0;
 
                     Object.entries(selectedItems).forEach(([passengerId, items]) => {
                       const passengerIndex = parseInt(passengerId) - 1;
@@ -2297,113 +2522,320 @@ export default function PaymentPortal() {
                       items.forEach(item => {
                         switch(item) {
                           case 'ticket':
-                            // Only count if not paid
                             if (passengerData.ticket.status !== 'Paid') {
                               selectedTickets += passengerData.ticket.price;
                               totalSelected += passengerData.ticket.price;
+                            } else {
+                              totalPaid += passengerData.ticket.price;
                             }
                             break;
                           case 'seat':
-                            // Only count if not paid
                             if (passengerData.ancillaries.seat.status !== 'Paid') {
                               selectedSeats += passengerData.ancillaries.seat.price;
                               totalSelected += passengerData.ancillaries.seat.price;
+                            } else {
+                              totalPaid += passengerData.ancillaries.seat.price;
                             }
                             break;
                           case 'bag':
-                            // Only count if not paid
                             if (passengerData.ancillaries.bag.status !== 'Paid') {
                               selectedBags += passengerData.ancillaries.bag.price;
                               totalSelected += passengerData.ancillaries.bag.price;
+                            } else {
+                              totalPaid += passengerData.ancillaries.bag.price;
                             }
                             break;
                         }
                       });
                     });
 
+                    totalRemaining = totalSelected;
+
                     return (
-                      <>
-                        {selectedTickets > 0 && (
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1 }}>
-                            <Typography variant="body2" color="text.secondary">
-                              <FlightIcon sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'middle' }} />
-                              Flight Tickets
+                      <Accordion defaultExpanded sx={{ mb: 2, boxShadow: 'none', border: '1px solid', borderColor: 'divider' }}>
+                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                            <Badge badgeContent={Object.values(selectedItems).flat().length} color="primary">
+                              <ShoppingCartIcon sx={{ mr: 1, color: 'primary.main' }} />
+                            </Badge>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 600, flex: 1 }}>
+                              Selected Items
                             </Typography>
-                            <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                              ${selectedTickets.toLocaleString()}
-                            </Typography>
-                          </Box>
-                        )}
-                        
-                        {selectedSeats > 0 && (
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1 }}>
-                            <Typography variant="body2" color="text.secondary">
-                              <SeatIcon sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'middle' }} />
-                              Seat Selection
-                            </Typography>
-                            <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                              ${selectedSeats.toLocaleString()}
-                            </Typography>
-                          </Box>
-                        )}
-                        
-                        {selectedBags > 0 && (
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1 }}>
-                            <Typography variant="body2" color="text.secondary">
-                              <BagIcon sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'middle' }} />
-                              Baggage
-                            </Typography>
-                            <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                              ${selectedBags.toLocaleString()}
-                            </Typography>
-                          </Box>
-                        )}
-                        
-                        {(selectedTickets > 0 || selectedSeats > 0 || selectedBags > 0) && <Divider />}
-                        
-                        <Paper sx={{ p: 2, bgcolor: totalSelected > 0 ? 'primary.light' : 'grey.100' }}>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Typography variant="h6" sx={{ fontWeight: 'semibold' }}>
-                              Selected Total
-                            </Typography>
-                            <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                            <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main' }}>
                               ${totalSelected.toLocaleString()}
                             </Typography>
                           </Box>
-                        </Paper>
+                        </AccordionSummary>
+                        <AccordionDetails>
+                          <List dense>
+                            {selectedTickets > 0 && (
+                              <ListItem sx={{ px: 0 }}>
+                                <ListItemIcon sx={{ minWidth: 36 }}>
+                                  <FlightIcon color="primary" />
+                                </ListItemIcon>
+                                <ListItemText 
+                                  primary="Flight Tickets" 
+                                  secondary={`${Object.entries(selectedItems).filter(([_, items]) => items.includes('ticket')).length} selected`}
+                                />
+                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                  ${selectedTickets.toLocaleString()}
+                                </Typography>
+                              </ListItem>
+                        )}
                         
-                        <Divider />
+                        {selectedSeats > 0 && (
+                              <ListItem sx={{ px: 0 }}>
+                                <ListItemIcon sx={{ minWidth: 36 }}>
+                                  <SeatIcon color="secondary" />
+                                </ListItemIcon>
+                                <ListItemText 
+                                  primary="Seat Selection" 
+                                  secondary={`${Object.entries(selectedItems).filter(([_, items]) => items.includes('seat')).length} selected`}
+                                />
+                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                              ${selectedSeats.toLocaleString()}
+                            </Typography>
+                              </ListItem>
+                        )}
                         
-                        <Paper sx={{ p: 2, bgcolor: 'grey.100' }}>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Typography variant="h6" sx={{ fontWeight: 'semibold' }}>
-                              Reservation Total
+                        {selectedBags > 0 && (
+                              <ListItem sx={{ px: 0 }}>
+                                <ListItemIcon sx={{ minWidth: 36 }}>
+                                  <BagIcon color="success" />
+                                </ListItemIcon>
+                                <ListItemText 
+                                  primary="Baggage" 
+                                  secondary={`${Object.entries(selectedItems).filter(([_, items]) => items.includes('bag')).length} selected`}
+                                />
+                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                              ${selectedBags.toLocaleString()}
                             </Typography>
-                            <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'secondary.main' }}>
-                              ${total.toLocaleString()}
-                            </Typography>
-                          </Box>
-                        </Paper>
-                      </>
+                              </ListItem>
+                            )}
+                            
+                            {totalSelected === 0 && (
+                              <ListItem sx={{ px: 0 }}>
+                                <ListItemIcon sx={{ minWidth: 36 }}>
+                                  <InfoIcon color="disabled" />
+                                </ListItemIcon>
+                                <ListItemText 
+                                  primary="No items selected" 
+                                  secondary="Select passengers and items to see details"
+                                />
+                              </ListItem>
+                            )}
+                          </List>
+                        </AccordionDetails>
+                      </Accordion>
                     );
                   })()}
-                  
-                  <Box sx={{ mt: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                      <Typography variant="caption" color="text.secondary">
-                        Passengers: {selectedPassengers.length}
+
+                  {/* Payment Methods Summary */}
+                  {(() => {
+                    let totalCreditAmount = 0;
+                    let totalVoucherAmount = 0;
+                    let totalPointsAmount = 0;
+                    let totalPaymentMethods = 0;
+
+                    Object.entries(itemPaymentMethods).forEach(([itemKey, methods]) => {
+                      if (methods.credit) {
+                        totalCreditAmount += methods.credit.amount;
+                        totalPaymentMethods++;
+                      }
+                      if (methods.vouchers) {
+                        methods.vouchers.forEach(voucher => {
+                          totalVoucherAmount += voucher.amount;
+                          totalPaymentMethods++;
+                        });
+                      }
+                      if (methods.points) {
+                        totalPointsAmount += methods.points.amount;
+                        totalPaymentMethods++;
+                      }
+                    });
+
+                    const totalPaymentAmount = totalCreditAmount + totalVoucherAmount + totalPointsAmount;
+
+                    return totalPaymentMethods > 0 ? (
+                      <Accordion sx={{ mb: 2, boxShadow: 'none', border: '1px solid', borderColor: 'divider' }}>
+                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                            {totalPaymentMethods > 0 ? (
+                              <Badge badgeContent={totalPaymentMethods} color="success">
+                                <PaymentIcon sx={{ mr: 1, color: 'success.main' }} />
+                              </Badge>
+                            ) : (
+                              <PaymentIcon sx={{ mr: 1, color: 'success.main' }} />
+                            )}
+                            <Typography variant="subtitle2" sx={{ fontWeight: 600, flex: 1 }}>
+                              Payment Methods
+                            </Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 600, color: 'success.main' }}>
+                              ${totalPaymentAmount.toLocaleString()}
+                            </Typography>
+                          </Box>
+                        </AccordionSummary>
+                        <AccordionDetails>
+                          <List dense>
+                            {totalCreditAmount > 0 && (
+                              <ListItem sx={{ px: 0 }}>
+                                <ListItemIcon sx={{ minWidth: 36 }}>
+                                  <CreditCardIcon color="primary" />
+                                </ListItemIcon>
+                                <ListItemText 
+                                  primary="Credit Card" 
+                                  secondary="Visa, Mastercard, Amex"
+                                />
+                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                  ${totalCreditAmount.toLocaleString()}
+                                </Typography>
+                              </ListItem>
+                            )}
+                            
+                            {totalVoucherAmount > 0 && (
+                              <ListItem sx={{ px: 0 }}>
+                                <ListItemIcon sx={{ minWidth: 36 }}>
+                                  <VoucherIcon color="secondary" />
+                                </ListItemIcon>
+                                <ListItemText 
+                                  primary="Vouchers" 
+                                  secondary="UATP vouchers"
+                                />
+                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                  ${totalVoucherAmount.toLocaleString()}
+                                </Typography>
+                              </ListItem>
+                            )}
+                            
+                            {totalPointsAmount > 0 && (
+                              <ListItem sx={{ px: 0 }}>
+                                <ListItemIcon sx={{ minWidth: 36 }}>
+                                  <PointsIcon color="warning" />
+                                </ListItemIcon>
+                                <ListItemText 
+                                  primary="Points" 
+                                  secondary="Frequent flyer points"
+                                />
+                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                  ${totalPointsAmount.toLocaleString()}
+                                </Typography>
+                              </ListItem>
+                            )}
+                          </List>
+                        </AccordionDetails>
+                      </Accordion>
+                    ) : null;
+                  })()}
+
+                  {/* Total Summary */}
+                  <Paper sx={{ p: 3, bgcolor: 'grey.50', border: '2px solid', borderColor: 'primary.main' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                      <AccountBalanceIcon sx={{ mr: 1, color: 'primary.main' }} />
+                      <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                        Total Summary
                       </Typography>
                     </Box>
                     
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                      <Typography variant="body2" color="text.secondary">
+                              Reservation Total
+                            </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                              ${total.toLocaleString()}
+                            </Typography>
+                          </Box>
+                    
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Selected Items
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                        ${(() => {
+                          let totalSelected = 0;
+                          Object.entries(selectedItems).forEach(([passengerId, items]) => {
+                            const passengerIndex = parseInt(passengerId) - 1;
+                            const passengerData = reservation.passengers[passengerIndex];
+                            
+                            items.forEach(item => {
+                              switch(item) {
+                                case 'ticket':
+                                  if (passengerData.ticket.status !== 'Paid') {
+                                    totalSelected += passengerData.ticket.price;
+                                  }
+                                  break;
+                                case 'seat':
+                                  if (passengerData.ancillaries.seat.status !== 'Paid') {
+                                    totalSelected += passengerData.ancillaries.seat.price;
+                                  }
+                                  break;
+                                case 'bag':
+                                  if (passengerData.ancillaries.bag.status !== 'Paid') {
+                                    totalSelected += passengerData.ancillaries.bag.price;
+                                  }
+                                  break;
+                              }
+                            });
+                          });
+                          return totalSelected;
+                        })().toLocaleString()}
+                      </Typography>
+                    </Box>
+                    
+                    <Divider sx={{ my: 2 }} />
+                    
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                        Amount to Pay
+                      </Typography>
+                      <Typography variant="h5" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                        ${(() => {
+                          let totalSelected = 0;
+                          Object.entries(selectedItems).forEach(([passengerId, items]) => {
+                            const passengerIndex = parseInt(passengerId) - 1;
+                            const passengerData = reservation.passengers[passengerIndex];
+                            
+                            items.forEach(item => {
+                              switch(item) {
+                                case 'ticket':
+                                  if (passengerData.ticket.status !== 'Paid') {
+                                    totalSelected += passengerData.ticket.price;
+                                  }
+                                  break;
+                                case 'seat':
+                                  if (passengerData.ancillaries.seat.status !== 'Paid') {
+                                    totalSelected += passengerData.ancillaries.seat.price;
+                                  }
+                                  break;
+                                case 'bag':
+                                  if (passengerData.ancillaries.bag.status !== 'Paid') {
+                                    totalSelected += passengerData.ancillaries.bag.price;
+                                  }
+                                  break;
+                              }
+                            });
+                          });
+                          return totalSelected;
+                        })().toLocaleString()}
+                      </Typography>
+                    </Box>
+                  </Paper>
+                </Box>
+
+                {/* Action Buttons */}
+                <Box sx={{ p: 3, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
                     <Button
                       fullWidth
                       variant="contained"
                       size="large"
+                    startIcon={<CheckCircleIcon />}
                       sx={{ 
-                        bgcolor: 'secondary.main',
-                        '&:hover': { bgcolor: 'secondary.dark' },
-                        fontWeight: 'medium'
-                      }}
+                      mb: 2,
+                      bgcolor: 'primary.main',
+                      '&:hover': { bgcolor: 'primary.dark' },
+                      fontWeight: 600,
+                      py: 1.5
+                    }}
+                    disabled={Object.values(selectedItems).flat().length === 0}
                     >
                       Confirm Payment
                     </Button>
@@ -2411,11 +2843,17 @@ export default function PaymentPortal() {
                     <Button
                       fullWidth
                       variant="outlined"
-                      sx={{ borderColor: 'grey.300', color: 'text.secondary' }}
+                    size="large"
+                    startIcon={<CloseIcon />}
+                    sx={{ 
+                      borderColor: 'grey.300', 
+                      color: 'text.secondary',
+                      fontWeight: 500,
+                      py: 1.5
+                    }}
                     >
                       Cancel
                     </Button>
-                  </Box>
                 </Box>
               </CardContent>
             </Card>

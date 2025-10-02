@@ -4,8 +4,6 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useFirebase } from '../hooks/useFirebase';
 import { useReservations } from '../hooks/useReservations';
 import AuthModal from './components/AuthModal';
-import ReservationLoader from './components/ReservationLoader';
-import FirestoreStatus from './components/FirestoreStatus';
 import {
   Box,
   Card,
@@ -487,18 +485,6 @@ export default function PaymentPortal() {
     }
   }, [user, isClient, selectedItems, selectedPassengers, activePaymentPassenger, itemPaymentMethods, itemMethodForms, itemExpandedMethod, syncToFirebase]);
 
-  // Load reservation from database
-  const handleReservationLoaded = useCallback((reservation: Reservation) => {
-    setCurrentReservation(reservation);
-    // Clear existing selections
-    setSelectedPassengers([]);
-    setSelectedItems({});
-    setItemPaymentMethods({});
-    setItemMethodForms({});
-    setItemExpandedMethod({});
-    setActivePaymentPassenger('');
-  }, []);
-
   // togglePassenger is now imported from utils/passengerLogic
   const togglePassenger = (passengerId: string) => {
     togglePassengerUtil(passengerId, selectedPassengers, setSelectedPassengers);
@@ -725,14 +711,6 @@ export default function PaymentPortal() {
           PCI
         </Typography>
         
-        {/* Firestore Status */}
-        <FirestoreStatus />
-        
-        {/* Reservation Loader */}
-        <ReservationLoader 
-          onReservationLoaded={handleReservationLoaded}
-          onError={(error) => console.error('Reservation load error:', error)}
-        />
 
         <Grid container spacing={3} sx={{ flex: 1, height: '100%' }}>
           {/* סקשן נוסעים - שמאל - 25% */}

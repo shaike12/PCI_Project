@@ -181,20 +181,6 @@ export function PaymentMethodsSummary({ itemPaymentMethods, onClearAll, onClearA
               </Typography>
             </ListItem>
           )}
-          
-          {/* Total Summary */}
-          <ListItem sx={{ px: 0, borderTop: 1, borderColor: 'divider', mt: 1, pt: 1 }}>
-            <ListItemIcon sx={{ minWidth: 36 }}>
-              <PaymentIcon color="success" />
-            </ListItemIcon>
-            <ListItemText 
-              primary="Total Payment Amount" 
-              secondary={`${totalPaymentMethods} payment method${totalPaymentMethods > 1 ? 's' : ''}`} 
-            />
-            <Typography variant="h6" sx={{ fontWeight: 700, color: 'success.main' }}>
-              ${totalPaymentAmount.toLocaleString()}
-            </Typography>
-          </ListItem>
         </List>
       </AccordionDetails>
     </Accordion>

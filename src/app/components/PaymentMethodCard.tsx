@@ -76,10 +76,20 @@ export function PaymentMethodCard({
           <IconButton 
             size="small" 
             onClick={() => {
-              setItemExpandedMethod(prev => ({
-                ...prev,
-                [itemKey]: prev[itemKey] === idx ? null : idx
-              }));
+              setItemExpandedMethod(prev => {
+                // If clicking on the same method, toggle it
+                if (prev[itemKey] === idx) {
+                  return {
+                    ...prev,
+                    [itemKey]: null
+                  };
+                } else {
+                  // If clicking on a different method, close all others and open this one
+                  return {
+                    [itemKey]: idx
+                  };
+                }
+              });
             }}
             sx={{ 
               color: expanded ? 'primary.main' : 'text.secondary',

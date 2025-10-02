@@ -212,7 +212,6 @@ export const confirmAddMethod = (
   setItemExpandedMethod: (updater: (prev: any) => any) => void,
   getRemainingAmount: (itemKey: string) => { total: number; paid: number; remaining: number }
 ): void => {
-  console.log('➕ confirmAddMethod called:', { itemKey, method });
   if (!itemKey) return;
 
   const remainingAmount = getRemainingAmount(itemKey).remaining;
@@ -238,7 +237,6 @@ export const confirmAddMethod = (
       
       // Calculate which voucher index this should be based on existing form entries
       const voucherCountInForms = (itemMethodForms[itemKey] || []).filter((m: string) => m === 'voucher').length;
-      console.log('🎫 Voucher count in forms:', voucherCountInForms, 'Vouchers in array:', current[itemKey].vouchers.length);
       
       // Only add a new voucher if the array doesn't have enough vouchers yet
       if (current[itemKey].vouchers.length < voucherCountInForms + 1 && current[itemKey].vouchers.length < 2) {

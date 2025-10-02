@@ -36,7 +36,6 @@ export default function ReservationLoader({ onReservationLoaded, onError }: Rese
   const { getReservationByCode } = useReservations();
 
   const handleSearch = async () => {
-    console.log('Searching for reservation:', reservationCode);
     
     if (!reservationCode.trim()) {
       setError('Please enter a reservation code');
@@ -48,18 +47,14 @@ export default function ReservationLoader({ onReservationLoaded, onError }: Rese
     setFoundReservation(null);
 
     try {
-      console.log('Calling getReservationByCode with:', reservationCode.trim());
       const reservation = await getReservationByCode(reservationCode.trim());
-      console.log('Reservation result:', reservation);
       
       if (reservation) {
         setFoundReservation(reservation);
         onReservationLoaded(reservation);
-        console.log('Reservation loaded successfully');
       } else {
         setError('Reservation not found');
         onError?.('Reservation not found');
-        console.log('Reservation not found');
       }
     } catch (err: any) {
       console.error('Error loading reservation:', err);
@@ -104,7 +99,6 @@ export default function ReservationLoader({ onReservationLoaded, onError }: Rese
             label="Reservation Code"
             value={reservationCode}
             onChange={(e) => {
-              console.log('Input changed:', e.target.value);
               setReservationCode(e.target.value);
             }}
             onKeyPress={handleKeyPress}

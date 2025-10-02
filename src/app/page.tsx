@@ -76,9 +76,7 @@ export default function PaymentPortal() {
   // Handle payment confirmation
   const handleConfirmPayment = async () => {
     try {
-      console.log('🚀 Starting payment confirmation...');
-      
-      // Validate that all selected items have complete payment methods
+      // Convert selectedItems to the correct format
       const selectedItemsList: string[] = [];
       for (const [passengerId, items] of Object.entries(selectedItems)) {
         for (const itemType of items) {
@@ -86,29 +84,19 @@ export default function PaymentPortal() {
         }
       }
       
-      console.log('📋 Selected items to confirm:', selectedItemsList);
-      
       if (selectedItemsList.length === 0) {
         alert('Please select items to pay for');
         return;
       }
 
       // Check if all selected items are fully paid
-      console.log('🔍 Checking if all items are fully paid...');
       const unpaidItems = selectedItemsList.filter(itemKey => {
         const totalPaid = getTotalPaidAmount(itemKey, itemPaymentMethods);
-        
-        // Get item price
         const [passengerId, itemType] = itemKey.split('-');
-        
-        // Use resolvePassengerIndex to get the correct index
         const passengerIndex = resolvePassengerIndex(passengerId);
         const passenger = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
         
-        if (!passenger) {
-          console.log(`❌ Passenger not found for item ${itemKey}`);
-          return true; // If passenger not found, consider it unpaid
-        }
+        if (!passenger) return true;
         
         let itemPrice = 0;
         if (itemType === 'ticket') {
@@ -119,38 +107,24 @@ export default function PaymentPortal() {
           itemPrice = passenger.ancillaries.bag.price;
         }
         
-        console.log(`🔍 Item ${itemKey}: totalPaid=${totalPaid}, itemPrice=${itemPrice}, isPaid=${totalPaid >= itemPrice}`);
-        
         return totalPaid < itemPrice;
       });
 
-      console.log('🔍 Unpaid items:', unpaidItems);
-
       if (unpaidItems.length > 0) {
-        console.log('❌ Some items are not fully paid, stopping confirmation');
         alert(`The following items are not fully paid: ${unpaidItems.join(', ')}`);
         return;
       }
 
-      console.log('✅ All items are fully paid, proceeding with confirmation');
-
       // Update reservation status to mark items as paid
       if (currentReservation) {
-        console.log('📝 Updating reservation:', currentReservation.reservationCode);
-        console.log('🔍 Current reservation source:', currentReservation.id === 'mock-1' ? 'MOCK (not from Firebase)' : 'Firebase');
-        console.log('🔍 Current reservation data:', currentReservation);
-        console.log('🔍 lastModifiedBy value:', currentReservation.lastModifiedBy);
-        
         // Check if this is a mock reservation (not loaded from Firebase)
         if (currentReservation.id === 'mock-1') {
-          console.log('⚠️ This is a mock reservation, cannot update in Firebase');
           alert('Cannot update mock reservation. Please load a real reservation from Firebase first.');
           return;
         }
         
         const updatedReservation = {
           ...currentReservation,
-          // Don't include lastModifiedBy - let the service handle it
           updatedAt: new Date()
         };
         
@@ -162,31 +136,23 @@ export default function PaymentPortal() {
           const [passengerId, itemType] = itemKey.split('-');
           const passengerIndex = resolvePassengerIndex(passengerId);
           
-          console.log(`🔄 Updating item ${itemKey}: passengerIndex=${passengerIndex}, itemType=${itemType}`);
-          
           if (passengerIndex >= 0 && passengerIndex < updatedReservation.passengers.length) {
             const passenger = updatedReservation.passengers[passengerIndex];
             
             if (itemType === 'ticket') {
-              console.log(`✅ Marking ticket as paid for passenger ${passenger.name}`);
               passenger.ticket.status = 'Paid';
             } else if (itemType === 'seat') {
-              console.log(`✅ Marking seat as paid for passenger ${passenger.name}`);
               passenger.ancillaries.seat.status = 'Paid';
             } else if (itemType === 'bag') {
-              console.log(`✅ Marking bag as paid for passenger ${passenger.name}`);
               passenger.ancillaries.bag.status = 'Paid';
             }
           }
         });
 
-        console.log('💾 Saving to Firebase...');
         // Update reservation in Firebase using the document ID, not reservation code
         await updateReservation(updatedReservation.id, updatedReservation);
-        console.log('✅ Saved to Firebase successfully');
         
         setCurrentReservation(updatedReservation);
-        console.log('🔄 Updated local reservation state');
         
         // Clear selected items and payment methods
         setSelectedItems({});
@@ -194,14 +160,12 @@ export default function PaymentPortal() {
         setItemMethodForms({});
         setItemExpandedMethod({});
         
-        console.log('✅ Payment confirmed and reservation updated');
         alert('Payment confirmed successfully!');
       } else {
-        console.log('❌ No reservation loaded');
         alert('No reservation loaded');
       }
     } catch (error) {
-      console.error('❌ Failed to confirm payment:', error);
+      console.error('Failed to confirm payment:', error);
       alert('Failed to confirm payment. Please try again.');
     }
   };
@@ -217,7 +181,6 @@ export default function PaymentPortal() {
       const reservation = await getReservationByCode(reservationCode.trim());
       if (reservation) {
         setCurrentReservation(reservation);
-        console.log('Reservation loaded:', reservation);
       } else {
         alert('Reservation not found');
       }
@@ -484,16 +447,11 @@ export default function PaymentPortal() {
         itemExpandedMethod
       };
       
-      console.log('Raw data before cleaning:', rawData);
-      
       const cleanedData = cleanDataForFirebase(rawData);
       
-      console.log('Cleaned data for Firebase:', cleanedData);
-      
       await updateUserProgress(cleanedData);
-      console.log('✅ Progress synced to Firebase');
     } catch (error) {
-      console.error('❌ Failed to sync to Firebase:', error);
+      console.error('Failed to sync to Firebase:', error);
     }
   }, [user, selectedItems, selectedPassengers, activePaymentPassenger, itemPaymentMethods, itemMethodForms, itemExpandedMethod, updateUserProgress]);
 
@@ -512,10 +470,9 @@ export default function PaymentPortal() {
         setItemPaymentMethods(progress.itemPaymentMethods || {});
         setItemMethodForms(progress.itemMethodForms || {});
         setItemExpandedMethod(progress.itemExpandedMethod || {});
-        console.log('✅ Progress loaded from Firebase');
       }
     } catch (error) {
-      console.error('❌ Failed to load from Firebase:', error);
+      console.error('Failed to load from Firebase:', error);
     }
   }, [user, getUserProgress]);
 

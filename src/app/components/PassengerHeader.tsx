@@ -49,7 +49,6 @@ export const PassengerHeader: React.FC<PassengerHeaderProps> = ({
           placeholder="Enter reservation code"
           value={reservationCode}
           onChange={(e) => {
-            console.log('Reservation code changed:', e.target.value);
             onChangeReservationCode(e.target.value);
           }}
           InputLabelProps={{ shrink: true }}
@@ -59,10 +58,7 @@ export const PassengerHeader: React.FC<PassengerHeaderProps> = ({
         <Button
           variant="contained"
           size="small"
-          onClick={() => {
-            console.log('Load button clicked, reservation code:', reservationCode);
-            onLoad();
-          }}
+          onClick={onLoad}
           disabled={loadDisabled}
         >
           Load

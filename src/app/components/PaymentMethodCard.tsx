@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Box, Paper, Typography, IconButton, Slider } from "@mui/material";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import EditIcon from "@mui/icons-material/Edit";
@@ -35,6 +36,16 @@ export function PaymentMethodCard({
   setItemExpandedMethod,
   removeMethod
 }: PaymentMethodCardProps) {
+  const [sliderReady, setSliderReady] = useState(false);
+
+  useEffect(() => {
+    // Delay slider rendering to ensure DOM is ready
+    const timer = setTimeout(() => {
+      setSliderReady(true);
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, []);
   const expanded = itemExpandedMethod[itemKey] === idx;
   
   let methodAmount = 0;
@@ -68,7 +79,7 @@ export function PaymentMethodCard({
           ) : (
             <Box sx={{ width: 16, height: 16, borderRadius: '50%', backgroundColor: 'warning.main', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '10px', fontWeight: 'bold' }}>!</Box>
           )}
-          {!expanded && methodAmount > 0 && (
+          {!expanded && sliderReady && (
             <Box sx={{ flex: 1, mx: 2 }}>
               <Slider
                 key={`${itemKey}-${method}-${idx}-slider`}
@@ -88,6 +99,9 @@ export function PaymentMethodCard({
                 })()}
                 step={1}
                 onChange={(_e: Event, newValue: number | number[]) => {
+                  // Just update the visual value, don't trigger state updates
+                }}
+                onChangeCommitted={(_e: Event | React.SyntheticEvent, newValue: number | number[]) => {
                   const value = typeof newValue === 'number' ? newValue : newValue[0];
                   if (value !== undefined && value !== null && !isNaN(value)) {
                     if (method === 'credit') {

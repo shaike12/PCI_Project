@@ -78,23 +78,25 @@ export const getTotalPaidAmount = (itemKey: string, itemPaymentMethods: any): nu
   
   // Add credit card amount
   if (currentMethods.credit?.amount) {
-    totalPaid += parseFloat(currentMethods.credit.amount) || 0;
+    const creditAmount = parseFloat(currentMethods.credit.amount) || 0;
+    totalPaid += creditAmount;
   }
   
   // Add voucher amounts
   if (currentMethods.vouchers) {
-    currentMethods.vouchers.forEach((voucher: any) => {
+    currentMethods.vouchers.forEach((voucher: any, index: number) => {
       if (voucher.amount) {
-        totalPaid += parseFloat(voucher.amount) || 0;
+        const voucherAmount = parseFloat(voucher.amount) || 0;
+        totalPaid += voucherAmount;
       }
     });
   }
   
   // Add points amount
   if (currentMethods.points?.amount) {
-    totalPaid += parseFloat(currentMethods.points.amount) || 0;
+    const pointsAmount = parseFloat(currentMethods.points.amount) || 0;
+    totalPaid += pointsAmount;
   }
-  
   return totalPaid;
 };
 

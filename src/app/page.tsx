@@ -2,7 +2,10 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useFirebase } from '../hooks/useFirebase';
+import { useReservations } from '../hooks/useReservations';
 import AuthModal from './components/AuthModal';
+import ReservationLoader from './components/ReservationLoader';
+import FirestoreStatus from './components/FirestoreStatus';
 import {
   Box,
   Card,
@@ -65,7 +68,164 @@ interface Passenger {
 export default function PaymentPortal() {
   // Firebase hooks
   const { user, loading: authLoading, saveUserProgress, getUserProgress, updateUserProgress } = useFirebase();
+  const { getReservationByCode, updateReservation } = useReservations();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [currentReservation, setCurrentReservation] = useState<Reservation | null>(null);
+  const [reservationCode, setReservationCode] = useState('');
+
+  // Handle payment confirmation
+  const handleConfirmPayment = async () => {
+    try {
+      console.log('🚀 Starting payment confirmation...');
+      
+      // Validate that all selected items have complete payment methods
+      const selectedItemsList: string[] = [];
+      for (const [passengerId, items] of Object.entries(selectedItems)) {
+        for (const itemType of items) {
+          selectedItemsList.push(`${passengerId}-${itemType}`);
+        }
+      }
+      
+      console.log('📋 Selected items to confirm:', selectedItemsList);
+      
+      if (selectedItemsList.length === 0) {
+        alert('Please select items to pay for');
+        return;
+      }
+
+      // Check if all selected items are fully paid
+      console.log('🔍 Checking if all items are fully paid...');
+      const unpaidItems = selectedItemsList.filter(itemKey => {
+        const totalPaid = getTotalPaidAmount(itemKey, itemPaymentMethods);
+        
+        // Get item price
+        const [passengerId, itemType] = itemKey.split('-');
+        
+        // Use resolvePassengerIndex to get the correct index
+        const passengerIndex = resolvePassengerIndex(passengerId);
+        const passenger = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
+        
+        if (!passenger) {
+          console.log(`❌ Passenger not found for item ${itemKey}`);
+          return true; // If passenger not found, consider it unpaid
+        }
+        
+        let itemPrice = 0;
+        if (itemType === 'ticket') {
+          itemPrice = passenger.ticket.price;
+        } else if (itemType === 'seat') {
+          itemPrice = passenger.ancillaries.seat.price;
+        } else if (itemType === 'bag') {
+          itemPrice = passenger.ancillaries.bag.price;
+        }
+        
+        console.log(`🔍 Item ${itemKey}: totalPaid=${totalPaid}, itemPrice=${itemPrice}, isPaid=${totalPaid >= itemPrice}`);
+        
+        return totalPaid < itemPrice;
+      });
+
+      console.log('🔍 Unpaid items:', unpaidItems);
+
+      if (unpaidItems.length > 0) {
+        console.log('❌ Some items are not fully paid, stopping confirmation');
+        alert(`The following items are not fully paid: ${unpaidItems.join(', ')}`);
+        return;
+      }
+
+      console.log('✅ All items are fully paid, proceeding with confirmation');
+
+      // Update reservation status to mark items as paid
+      if (currentReservation) {
+        console.log('📝 Updating reservation:', currentReservation.reservationCode);
+        console.log('🔍 Current reservation source:', currentReservation.id === 'mock-1' ? 'MOCK (not from Firebase)' : 'Firebase');
+        console.log('🔍 Current reservation data:', currentReservation);
+        console.log('🔍 lastModifiedBy value:', currentReservation.lastModifiedBy);
+        
+        // Check if this is a mock reservation (not loaded from Firebase)
+        if (currentReservation.id === 'mock-1') {
+          console.log('⚠️ This is a mock reservation, cannot update in Firebase');
+          alert('Cannot update mock reservation. Please load a real reservation from Firebase first.');
+          return;
+        }
+        
+        const updatedReservation = {
+          ...currentReservation,
+          // Don't include lastModifiedBy - let the service handle it
+          updatedAt: new Date()
+        };
+        
+        // Remove lastModifiedBy from the object to avoid undefined issues
+        delete (updatedReservation as any).lastModifiedBy;
+        
+        // Mark selected items as paid
+        selectedItemsList.forEach(itemKey => {
+          const [passengerId, itemType] = itemKey.split('-');
+          const passengerIndex = resolvePassengerIndex(passengerId);
+          
+          console.log(`🔄 Updating item ${itemKey}: passengerIndex=${passengerIndex}, itemType=${itemType}`);
+          
+          if (passengerIndex >= 0 && passengerIndex < updatedReservation.passengers.length) {
+            const passenger = updatedReservation.passengers[passengerIndex];
+            
+            if (itemType === 'ticket') {
+              console.log(`✅ Marking ticket as paid for passenger ${passenger.name}`);
+              passenger.ticket.status = 'Paid';
+            } else if (itemType === 'seat') {
+              console.log(`✅ Marking seat as paid for passenger ${passenger.name}`);
+              passenger.ancillaries.seat.status = 'Paid';
+            } else if (itemType === 'bag') {
+              console.log(`✅ Marking bag as paid for passenger ${passenger.name}`);
+              passenger.ancillaries.bag.status = 'Paid';
+            }
+          }
+        });
+
+        console.log('💾 Saving to Firebase...');
+        // Update reservation in Firebase using the document ID, not reservation code
+        await updateReservation(updatedReservation.id, updatedReservation);
+        console.log('✅ Saved to Firebase successfully');
+        
+        setCurrentReservation(updatedReservation);
+        console.log('🔄 Updated local reservation state');
+        
+        // Clear selected items and payment methods
+        setSelectedItems({});
+        setItemPaymentMethods({});
+        setItemMethodForms({});
+        setItemExpandedMethod({});
+        
+        console.log('✅ Payment confirmed and reservation updated');
+        alert('Payment confirmed successfully!');
+      } else {
+        console.log('❌ No reservation loaded');
+        alert('No reservation loaded');
+      }
+    } catch (error) {
+      console.error('❌ Failed to confirm payment:', error);
+      alert('Failed to confirm payment. Please try again.');
+    }
+  };
+
+  // Handle reservation loading
+  const handleLoadReservation = async () => {
+    if (!reservationCode.trim()) {
+      alert('Please enter a reservation code');
+      return;
+    }
+
+    try {
+      const reservation = await getReservationByCode(reservationCode.trim());
+      if (reservation) {
+        setCurrentReservation(reservation);
+        console.log('Reservation loaded:', reservation);
+      } else {
+        alert('Reservation not found');
+      }
+    } catch (error) {
+      console.error('Error loading reservation:', error);
+      alert('Failed to load reservation');
+    }
+  };
 
   // Add CSS animations
   useEffect(() => {
@@ -106,7 +266,7 @@ export default function PaymentPortal() {
 
 
 
-  const reservation: Reservation = MOCK_RESERVATION;
+  const reservation: Reservation = currentReservation || MOCK_RESERVATION;
   // Passenger data from reservation structure, sorted by payment status
   const availablePassengers: Passenger[] = reservation.passengers
     .map((passenger, index) => ({
@@ -255,18 +415,41 @@ export default function PaymentPortal() {
   const paymentProgress = useMemo(() => {
     if (total === 0) return 0;
     const paidAmount = passengersWithSelectedItems.reduce((sum, passengerId) => {
-      const selectedPassengerItems = selectedItems[passengerId] || [];
-      let passengerPaid = 0;
-      selectedPassengerItems.forEach(itemType => {
-        const itemKey = `${passengerId}-${itemType}`;
+    const selectedPassengerItems = selectedItems[passengerId] || [];
+    let passengerPaid = 0;
+    selectedPassengerItems.forEach(itemType => {
+      const itemKey = `${passengerId}-${itemType}`;
         passengerPaid += getTotalPaidAmountWrapper(itemKey);
-      });
-      return sum + passengerPaid;
-    }, 0);
+    });
+    return sum + passengerPaid;
+  }, 0);
     return (paidAmount / total) * 100;
   }, [passengersWithSelectedItems, selectedItems, total, getTotalPaidAmountWrapper]);
 
   // Firebase sync functions
+  // Helper function to clean data before sending to Firebase
+  const cleanDataForFirebase = (data: any): any => {
+    if (data === null || data === undefined) {
+      return null;
+    }
+    
+    if (Array.isArray(data)) {
+      return data.map(cleanDataForFirebase);
+    }
+    
+    if (typeof data === 'object') {
+      const cleaned: any = {};
+      for (const [key, value] of Object.entries(data)) {
+        if (value !== undefined) {
+          cleaned[key] = cleanDataForFirebase(value);
+        }
+      }
+      return cleaned;
+    }
+    
+    return data;
+  };
+
   const syncToFirebase = useCallback(async () => {
     if (!user) {
       setShowAuthModal(true);
@@ -274,14 +457,40 @@ export default function PaymentPortal() {
     }
 
     try {
-      await updateUserProgress({
+      // Special handling for itemPaymentMethods to remove undefined values
+      const cleanedItemPaymentMethods: any = {};
+      for (const [itemKey, methods] of Object.entries(itemPaymentMethods)) {
+        if (methods && typeof methods === 'object') {
+          cleanedItemPaymentMethods[itemKey] = {};
+          for (const [methodKey, methodData] of Object.entries(methods)) {
+            if (methodData && typeof methodData === 'object') {
+              cleanedItemPaymentMethods[itemKey][methodKey] = {};
+              for (const [fieldKey, fieldValue] of Object.entries(methodData)) {
+                if (fieldValue !== undefined && fieldValue !== null) {
+                  cleanedItemPaymentMethods[itemKey][methodKey][fieldKey] = fieldValue;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      const rawData = {
         selectedItems,
         selectedPassengers,
         activePaymentPassenger,
-        itemPaymentMethods,
+        itemPaymentMethods: cleanedItemPaymentMethods,
         itemMethodForms,
         itemExpandedMethod
-      });
+      };
+      
+      console.log('Raw data before cleaning:', rawData);
+      
+      const cleanedData = cleanDataForFirebase(rawData);
+      
+      console.log('Cleaned data for Firebase:', cleanedData);
+      
+      await updateUserProgress(cleanedData);
       console.log('✅ Progress synced to Firebase');
     } catch (error) {
       console.error('❌ Failed to sync to Firebase:', error);
@@ -321,6 +530,18 @@ export default function PaymentPortal() {
     }
   }, [user, isClient, selectedItems, selectedPassengers, activePaymentPassenger, itemPaymentMethods, itemMethodForms, itemExpandedMethod, syncToFirebase]);
 
+  // Load reservation from database
+  const handleReservationLoaded = useCallback((reservation: Reservation) => {
+    setCurrentReservation(reservation);
+    // Clear existing selections
+    setSelectedPassengers([]);
+    setSelectedItems({});
+    setItemPaymentMethods({});
+    setItemMethodForms({});
+    setItemExpandedMethod({});
+    setActivePaymentPassenger('');
+  }, []);
+
   // togglePassenger is now imported from utils/passengerLogic
   const togglePassenger = (passengerId: string) => {
     togglePassengerUtil(passengerId, selectedPassengers, setSelectedPassengers);
@@ -349,12 +570,12 @@ export default function PaymentPortal() {
         });
         
         // Also remove from method forms and expanded state
-        setItemMethodForms(prev => {
-          const newForms = { ...prev };
+          setItemMethodForms(prev => {
+            const newForms = { ...prev };
           delete newForms[itemKey];
-          return newForms;
-        });
-        
+            return newForms;
+          });
+
         setItemExpandedMethod(prev => {
           const newExpanded = { ...prev };
           delete newExpanded[itemKey];
@@ -398,8 +619,8 @@ export default function PaymentPortal() {
             const key = `${passengerId}-${itemType}`;
             delete newMethods[key];
           });
-          return newMethods;
-        });
+            return newMethods;
+          });
         setItemMethodForms(prevForms => {
           const newForms = { ...prevForms } as any;
           unpaidItems.forEach(itemType => {
@@ -547,6 +768,14 @@ export default function PaymentPortal() {
           PCI
         </Typography>
         
+        {/* Firestore Status */}
+        <FirestoreStatus />
+        
+        {/* Reservation Loader */}
+        <ReservationLoader 
+          onReservationLoaded={handleReservationLoaded}
+          onError={(error) => console.error('Reservation load error:', error)}
+        />
 
         <Grid container spacing={3} sx={{ flex: 1, height: '100%' }}>
           {/* סקשן נוסעים - שמאל - 25% */}
@@ -561,10 +790,10 @@ export default function PaymentPortal() {
                 </Box>
                 
                 <PassengerHeader
-                  reservationCode=""
-                  onChangeReservationCode={() => {}}
-                  onLoad={() => {}}
-                  loadDisabled={true}
+                  reservationCode={reservationCode}
+                  onChangeReservationCode={setReservationCode}
+                  onLoad={handleLoadReservation}
+                  loadDisabled={!reservationCode.trim()}
                   onSyncToCloud={syncToFirebase}
                   onSyncFromCloud={syncFromFirebase}
                   onShowAuthModal={() => setShowAuthModal(true)}
@@ -902,7 +1131,7 @@ export default function PaymentPortal() {
                                       Flight Ticket
                                     </Typography>
                                     <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                                      {passengerData.ticket.ticketNumber}
+                                      {passengerData.ticket.flightNumber || 'N/A'}
                                     </Typography>
                                   </Box>
                                 </Box>
@@ -969,7 +1198,7 @@ export default function PaymentPortal() {
                                       Seat Selection
                                     </Typography>
                                     <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                                      {passengerData.ancillaries.seat.emdNumber}
+                                      {passengerData.ancillaries.seat.seatNumber || 'N/A'}
                                     </Typography>
                                   </Box>
                                 </Box>
@@ -1030,7 +1259,7 @@ export default function PaymentPortal() {
                                       Baggage
                                     </Typography>
                                     <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                                      {passengerData.ancillaries.bag.emdNumber}
+                                      {passengerData.ancillaries.bag.weight ? `${passengerData.ancillaries.bag.weight}kg` : 'N/A'}
                                     </Typography>
                                   </Box>
                                 </Box>
@@ -1215,7 +1444,62 @@ export default function PaymentPortal() {
                           </Box>
 
                 <ActionButtons 
-                  confirmDisabled={Object.values(selectedItems).flat().length === 0}
+                  confirmDisabled={(() => {
+                    // Convert selectedItems to the correct format
+                    const selectedItemsList: string[] = [];
+                    for (const [passengerId, items] of Object.entries(selectedItems)) {
+                      for (const itemType of items) {
+                        selectedItemsList.push(`${passengerId}-${itemType}`);
+                      }
+                    }
+                    
+                    // Debug logging removed for production
+                    
+                    if (selectedItemsList.length === 0) {
+                      console.log('❌ No items selected');
+                      return true;
+                    }
+                    
+                    // Check if all selected items are fully paid
+                    const unpaidItems = selectedItemsList.filter(itemKey => {
+                      const totalPaid = getTotalPaidAmount(itemKey, itemPaymentMethods);
+                      
+                      // Get item price
+                      const [passengerId, itemType] = itemKey.split('-');
+                      
+                      // Use resolvePassengerIndex to get the correct index
+                      const passengerIndex = resolvePassengerIndex(passengerId);
+                      const passenger = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
+                      
+                      if (!passenger) {
+                        return true; // If passenger not found, consider it unpaid
+                      }
+                      
+                      let itemPrice = 0;
+                      if (itemType === 'ticket') {
+                        itemPrice = passenger.ticket.price;
+                      } else if (itemType === 'seat') {
+                        itemPrice = passenger.ancillaries.seat.price;
+                      } else if (itemType === 'bag') {
+                        itemPrice = passenger.ancillaries.bag.price;
+                      }
+                      
+                      return totalPaid < itemPrice;
+                    });
+                    
+                    const isDisabled = unpaidItems.length > 0;
+                    
+                    return isDisabled;
+                  })()}
+                  onConfirm={handleConfirmPayment}
+                  onCancel={() => {
+                    // Clear all selections
+                    setSelectedItems({});
+                    setItemPaymentMethods({});
+                    setItemMethodForms({});
+                    setItemExpandedMethod({});
+                    setActivePaymentPassenger('');
+                  }}
                 />
               </CardContent>
             </Card>

@@ -60,7 +60,7 @@ import {
   Payment as PaymentIcon,
   Receipt as ReceiptIcon
 } from '@mui/icons-material';
-import { Tabs, Tab, Stack, CircularProgress } from '@mui/material';
+import { Tabs, Tab, Stack, CircularProgress, Slider } from '@mui/material';
 import { MOCK_RESERVATION, Reservation } from '@/types/reservation';
 
 // Loading component for lazy loading
@@ -110,28 +110,16 @@ export default function PaymentPortal() {
   // Local storage functions for progress saving
   const saveProgressToLocalStorage = () => {
     try {
-      // Encrypt sensitive payment data
-      const encryptedPaymentMethods = { ...itemPaymentMethods };
-      Object.keys(encryptedPaymentMethods).forEach(itemKey => {
-        const methods = (encryptedPaymentMethods as any)[itemKey];
-        if (methods.credit && methods.credit.cardNumber) {
-          methods.credit.cardNumber = encryptData(methods.credit.cardNumber);
-        }
-        if (methods.credit && methods.credit.cvv) {
-          methods.credit.cvv = encryptData(methods.credit.cvv);
-        }
-      });
-
       const progressData = {
         selectedPassengers,
         selectedItems,
-        itemPaymentMethods: encryptedPaymentMethods,
+        itemPaymentMethods,
         itemMethodForms,
         itemExpandedMethod,
         timestamp: new Date().toISOString()
       };
       localStorage.setItem('paymentPortalProgress', JSON.stringify(progressData));
-      console.log('💾 Progress saved to localStorage (encrypted)');
+      console.log('💾 Progress saved to localStorage');
     } catch (error) {
       console.error('Error saving progress to localStorage:', error);
     }
@@ -148,24 +136,12 @@ export default function PaymentPortal() {
         
         // Only load if saved within last 24 hours
         if (hoursDiff < 24) {
-          // Decrypt sensitive payment data
-          const decryptedPaymentMethods = { ...progressData.itemPaymentMethods };
-          Object.keys(decryptedPaymentMethods).forEach(itemKey => {
-            const methods = (decryptedPaymentMethods as any)[itemKey];
-            if (methods.credit && methods.credit.cardNumber) {
-              methods.credit.cardNumber = decryptData(methods.credit.cardNumber);
-            }
-            if (methods.credit && methods.credit.cvv) {
-              methods.credit.cvv = decryptData(methods.credit.cvv);
-            }
-          });
-
           setSelectedPassengers(progressData.selectedPassengers || []);
           setSelectedItems(progressData.selectedItems || {});
-          setItemPaymentMethods(decryptedPaymentMethods || {});
+          setItemPaymentMethods(progressData.itemPaymentMethods || {});
           setItemMethodForms(progressData.itemMethodForms || {});
           setItemExpandedMethod(progressData.itemExpandedMethod || {});
-          console.log('📂 Progress loaded from localStorage (decrypted)');
+          console.log('📂 Progress loaded from localStorage');
           return true;
         } else {
           // Clear old progress
@@ -274,7 +250,7 @@ export default function PaymentPortal() {
         return sum + passenger.ticket.price;
       }
       return sum;
-    }, 0);
+  }, 0);
   }, [passengersWithSelectedItems, selectedItems, reservation.passengers]);
   
   const additionalServices = useMemo(() => {
@@ -296,7 +272,7 @@ export default function PaymentPortal() {
       }
       
       return sum + passengerTotal;
-    }, 0);
+  }, 0);
   }, [passengersWithSelectedItems, selectedItems, reservation.passengers]);
   
   const total = useMemo(() => flightPrice + additionalServices, [flightPrice, additionalServices]);
@@ -930,42 +906,6 @@ export default function PaymentPortal() {
   }
 
 
-  // Simple encryption/decryption for sensitive data
-  const encryptData = (data: string): string => {
-    // Simple base64 encoding with a basic key (in production, use proper encryption)
-    const key = 'payment-portal-key-2024';
-    let encrypted = '';
-    for (let i = 0; i < data.length; i++) {
-      const charCode = data.charCodeAt(i) ^ key.charCodeAt(i % key.length);
-      encrypted += String.fromCharCode(charCode);
-    }
-    return btoa(encrypted);
-  };
-
-  const decryptData = (encryptedData: string): string => {
-    try {
-      const key = 'payment-portal-key-2024';
-      const decoded = atob(encryptedData);
-      let decrypted = '';
-      for (let i = 0; i < decoded.length; i++) {
-        const charCode = decoded.charCodeAt(i) ^ key.charCodeAt(i % key.length);
-        decrypted += String.fromCharCode(charCode);
-      }
-      return decrypted;
-    } catch (error) {
-      console.error('Error decrypting data:', error);
-      return '';
-    }
-  };
-
-  // Mask sensitive data for display
-  const maskCreditCardNumber = (cardNumber: string): string => {
-    if (!cardNumber || cardNumber.length < 4) return cardNumber;
-    const cleaned = cardNumber.replace(/\D/g, '');
-    const lastFour = cleaned.slice(-4);
-    const masked = '*'.repeat(cleaned.length - 4);
-    return masked + lastFour;
-  };
 
   // Luhn algorithm for credit card validation
   const validateCreditCard = (cardNumber: string) => {
@@ -2163,6 +2103,68 @@ export default function PaymentPortal() {
                                         </IconButton>
                                       </Box>
                                     </Box>
+                                    
+                                    {/* Amount Slider when collapsed and payment method has data */}
+                                    {!expanded && isComplete && (
+                                      <Box sx={{ mt: 2, px: 1 }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                                          <Typography variant="caption" sx={{ color: 'text.secondary', minWidth: 50 }}>
+                                            Amount
+                                      </Typography>
+                                          <Slider
+                                            value={methodAmount}
+                                            min={0}
+                                            max={(() => {
+                                              const amounts = getRemainingAmount(itemKey);
+                                              return methodAmount + amounts.remaining;
+                                            })()}
+                                            step={1}
+                                            onChange={(_e: Event, newValue: number | number[]) => {
+                                              const value = typeof newValue === 'number' ? newValue : newValue[0];
+                                              if (method === 'credit') {
+                                                updateMethodField(itemKey, 'credit', 'amount', value.toString());
+                                              } else if (method === 'voucher') {
+                                                const voucherIdx = formMethods.slice(0, idx).filter(m => m === 'voucher').length;
+                                                updateMethodField(itemKey, 'voucher', 'amount', value.toString(), voucherIdx);
+                                              } else if (method === 'points') {
+                                                // For points, update both amount and pointsToUse
+                                                const pointsToUse = value * 50;
+                                                updateMethodField(itemKey, 'points', 'amount', value.toString());
+                                                updateMethodField(itemKey, 'points', 'pointsToUse', pointsToUse.toString());
+                                              }
+                                            }}
+                                            valueLabelDisplay="auto"
+                                            valueLabelFormat={(value: number) => `$${value}`}
+                                            sx={{
+                                              flex: 1,
+                                              '& .MuiSlider-thumb': {
+                                                width: 20,
+                                                height: 20,
+                                                backgroundColor: 'primary.main',
+                                                '&:hover': {
+                                                  boxShadow: '0 0 0 8px rgba(25, 118, 210, 0.16)'
+                                                }
+                                              },
+                                              '& .MuiSlider-track': {
+                                                backgroundColor: 'primary.main',
+                                                border: 'none'
+                                              },
+                                              '& .MuiSlider-rail': {
+                                                backgroundColor: 'grey.300'
+                                              },
+                                              '& .MuiSlider-valueLabel': {
+                                                backgroundColor: 'primary.main',
+                                                fontSize: '0.75rem'
+                                              }
+                                            }}
+                                          />
+                                          <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 'bold', minWidth: 50, textAlign: 'right' }}>
+                                            ${methodAmount}
+                                          </Typography>
+                                        </Box>
+                                      </Box>
+                                    )}
+                                    
                                     {expanded && method === 'credit' && (
                                       <Box sx={{ 
                                         mt: 2, 

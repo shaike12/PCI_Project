@@ -36,7 +36,7 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
           placeholder="$0.00"
           InputLabelProps={{ shrink: true }}
           type="number" 
-          value={(storedAmount === '' || storedAmount == null) ? fallbackAmount : storedAmount} 
+          value={(storedAmount === '' || storedAmount == null) ? fallbackAmount : (typeof storedAmount === 'string' ? parseFloat(storedAmount) || 0 : storedAmount)} 
           inputProps={{ suppressHydrationWarning: true }} 
           onChange={(e) => updateMethodField(itemKey, 'voucher', 'amount', e.target.value, voucherIndex)} 
         />

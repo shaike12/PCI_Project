@@ -331,7 +331,7 @@ export default function PaymentPortal() {
 
       // Save to database
       const { ReservationService } = await import('../lib/reservationService');
-      await ReservationService.createReservation(cleanedReservation);
+      await ReservationService.createReservation(cleanedReservation, 'system');
       
       setNewReservationCode(newCode);
       setCurrentReservation(newReservation);

@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useFirebase } from '../hooks/useFirebase';
+import AuthModal from './components/AuthModal';
 import {
   Box,
   Card,
@@ -61,6 +63,10 @@ interface Passenger {
 
 
 export default function PaymentPortal() {
+  // Firebase hooks
+  const { user, loading: authLoading, saveUserProgress, getUserProgress, updateUserProgress } = useFirebase();
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
   // Add CSS animations
   useEffect(() => {
     const style = document.createElement('style');
@@ -97,6 +103,7 @@ export default function PaymentPortal() {
       console.log('🗑️ All payment methods cleared');
     }
   };
+
 
 
   const reservation: Reservation = MOCK_RESERVATION;
@@ -258,6 +265,61 @@ export default function PaymentPortal() {
     }, 0);
     return (paidAmount / total) * 100;
   }, [passengersWithSelectedItems, selectedItems, total, getTotalPaidAmountWrapper]);
+
+  // Firebase sync functions
+  const syncToFirebase = useCallback(async () => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+
+    try {
+      await updateUserProgress({
+        selectedItems,
+        selectedPassengers,
+        activePaymentPassenger,
+        itemPaymentMethods,
+        itemMethodForms,
+        itemExpandedMethod
+      });
+      console.log('✅ Progress synced to Firebase');
+    } catch (error) {
+      console.error('❌ Failed to sync to Firebase:', error);
+    }
+  }, [user, selectedItems, selectedPassengers, activePaymentPassenger, itemPaymentMethods, itemMethodForms, itemExpandedMethod, updateUserProgress]);
+
+  const syncFromFirebase = useCallback(async () => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+
+    try {
+      const progress = await getUserProgress();
+      if (progress) {
+        setSelectedItems(progress.selectedItems || {});
+        setSelectedPassengers(progress.selectedPassengers || []);
+        setActivePaymentPassenger(progress.activePaymentPassenger || '');
+        setItemPaymentMethods(progress.itemPaymentMethods || {});
+        setItemMethodForms(progress.itemMethodForms || {});
+        setItemExpandedMethod(progress.itemExpandedMethod || {});
+        console.log('✅ Progress loaded from Firebase');
+      }
+    } catch (error) {
+      console.error('❌ Failed to load from Firebase:', error);
+    }
+  }, [user, getUserProgress]);
+
+  // Auto-save to Firebase when data changes
+  useEffect(() => {
+    if (user && isClient) {
+      const timeoutId = setTimeout(() => {
+        syncToFirebase();
+      }, 2000); // Debounce for 2 seconds
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [user, isClient, selectedItems, selectedPassengers, activePaymentPassenger, itemPaymentMethods, itemMethodForms, itemExpandedMethod, syncToFirebase]);
 
   // togglePassenger is now imported from utils/passengerLogic
   const togglePassenger = (passengerId: string) => {
@@ -503,6 +565,9 @@ export default function PaymentPortal() {
                   onChangeReservationCode={() => {}}
                   onLoad={() => {}}
                   loadDisabled={true}
+                  onSyncToCloud={syncToFirebase}
+                  onSyncFromCloud={syncFromFirebase}
+                  onShowAuthModal={() => setShowAuthModal(true)}
                   onToggleSelectAll={() => {
                     // Check if all available items are selected (only for passengers with unpaid items)
                     const passengersWithUnpaidItems = availablePassengers.filter(p => p.hasUnpaidItems);
@@ -1158,6 +1223,12 @@ export default function PaymentPortal() {
 
         </Grid>
       </Container>
+      
+      {/* Auth Modal */}
+      <AuthModal 
+        open={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+      />
     </Box>
   );
 }

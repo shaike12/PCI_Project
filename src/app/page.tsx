@@ -593,8 +593,19 @@ export default function PaymentPortal() {
       if (method === 'points' && current.includes('points')) return prev;
       current.push(method);
       const nextForms = { ...prev, [itemKey]: current };
-      // Set expanded to the last added method index
-      setItemExpandedMethod(prevExp => ({ ...prevExp, [itemKey]: current.length - 1 }));
+      // Set expanded to the last added method index and collapse all others
+      setItemExpandedMethod(prevExp => {
+        const newExpanded = { ...prevExp };
+        // Collapse all other items
+        Object.keys(newExpanded).forEach(key => {
+          if (key !== itemKey) {
+            newExpanded[key] = null;
+          }
+        });
+        // Expand the new method for this item
+        newExpanded[itemKey] = current.length - 1;
+        return newExpanded;
+      });
       return nextForms;
     });
   };
@@ -832,6 +843,54 @@ export default function PaymentPortal() {
   const getPassengerNameById = (pid: string) => {
     const idx = parseInt(pid) - 1;
     return reservation.passengers[idx]?.name || pid;
+  };
+
+  const getPassengerTabLabel = (pid: string) => {
+    const idx = parseInt(pid) - 1;
+    const passenger = reservation.passengers[idx];
+    const passengerName = passenger?.name || pid;
+    
+    // Calculate total amount for selected items
+    const selectedPassengerItems = selectedItems[pid] || [];
+    let totalAmount = 0;
+    
+    selectedPassengerItems.forEach(itemType => {
+      if (itemType === 'ticket' && passenger.ticket.status !== 'Paid') {
+        totalAmount += passenger.ticket.price;
+      } else if (itemType === 'seat' && passenger.ancillaries.seat.status !== 'Paid') {
+        totalAmount += passenger.ancillaries.seat.price;
+      } else if (itemType === 'bag' && passenger.ancillaries.bag.status !== 'Paid') {
+        totalAmount += passenger.ancillaries.bag.price;
+      }
+    });
+    
+    // Calculate total paid amount
+    const totalPaid = getTotalPaidAmount(`${pid}-ticket`) + 
+                     getTotalPaidAmount(`${pid}-seat`) + 
+                     getTotalPaidAmount(`${pid}-bag`);
+    
+    const remaining = Math.max(0, totalAmount - totalPaid);
+    const isFullyPaid = remaining === 0 && totalAmount > 0;
+    
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 120 }}>
+        <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.85rem' }}>
+          {passengerName}
+        </Typography>
+        <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem' }}>
+          ${totalAmount.toFixed(2)}
+        </Typography>
+        {isFullyPaid ? (
+          <Typography variant="caption" sx={{ color: 'success.main', fontSize: '0.7rem', fontWeight: 600 }}>
+            ✓ Paid
+          </Typography>
+        ) : remaining > 0 ? (
+          <Typography variant="caption" sx={{ color: 'warning.main', fontSize: '0.7rem', fontWeight: 600 }}>
+            ${remaining.toFixed(2)} left
+          </Typography>
+        ) : null}
+      </Box>
+    );
   };
 
   // Tab PIDs (selected + has unpaid)
@@ -1466,7 +1525,7 @@ export default function PaymentPortal() {
                           return hasUnpaid;
                         })
                         .map(([pid]) => (
-                          <Tab key={pid} value={pid} label={getPassengerNameById(pid)} />
+                          <Tab key={pid} value={pid} label={getPassengerTabLabel(pid)} />
                         ))}
                     </Tabs>
 
@@ -1611,7 +1670,24 @@ export default function PaymentPortal() {
                                         </Typography>
                                         <IconButton 
                                           size="small" 
-                                          onClick={() => setItemExpandedMethod(prev => ({ ...prev, [itemKey]: expanded ? null : idx }))}
+                                          onClick={() => {
+                                            if (expanded) {
+                                              // If currently expanded, just collapse this one
+                                              setItemExpandedMethod(prev => ({ ...prev, [itemKey]: null }));
+                                            } else {
+                                              // If not expanded, expand this one and collapse all others
+                                              setItemExpandedMethod(prev => {
+                                                const newExpanded: { [key: string]: number | null } = {};
+                                                // Collapse all items first
+                                                Object.keys(prev).forEach(key => {
+                                                  newExpanded[key] = null;
+                                                });
+                                                // Expand the clicked method
+                                                newExpanded[itemKey] = idx;
+                                                return newExpanded;
+                                              });
+                                            }
+                                          }}
                                           sx={{ color: 'primary.main' }}
                                         >
                                           {expanded ? <ExpandLessIcon fontSize="small" /> : <EditIcon fontSize="small" />}

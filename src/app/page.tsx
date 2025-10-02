@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import {
   Box,
   Card,
@@ -60,8 +60,18 @@ import {
   Payment as PaymentIcon,
   Receipt as ReceiptIcon
 } from '@mui/icons-material';
-import { Tabs, Tab, Stack } from '@mui/material';
+import { Tabs, Tab, Stack, CircularProgress } from '@mui/material';
 import { MOCK_RESERVATION, Reservation } from '@/types/reservation';
+
+// Loading component for lazy loading
+const LoadingSpinner = () => (
+  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', p: 3 }}>
+    <CircularProgress size={24} />
+    <Typography variant="body2" sx={{ ml: 2, color: 'text.secondary' }}>
+      Loading...
+    </Typography>
+  </Box>
+);
 
 interface Passenger {
   id: string;
@@ -71,6 +81,113 @@ interface Passenger {
 
 
 export default function PaymentPortal() {
+  // Add CSS animations
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+      }
+      @keyframes slideIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      if (document.head.contains(style)) {
+        document.head.removeChild(style);
+      }
+    };
+  }, []);
+
+  // Local storage functions for progress saving
+  const saveProgressToLocalStorage = () => {
+    try {
+      // Encrypt sensitive payment data
+      const encryptedPaymentMethods = { ...itemPaymentMethods };
+      Object.keys(encryptedPaymentMethods).forEach(itemKey => {
+        const methods = (encryptedPaymentMethods as any)[itemKey];
+        if (methods.credit && methods.credit.cardNumber) {
+          methods.credit.cardNumber = encryptData(methods.credit.cardNumber);
+        }
+        if (methods.credit && methods.credit.cvv) {
+          methods.credit.cvv = encryptData(methods.credit.cvv);
+        }
+      });
+
+      const progressData = {
+        selectedPassengers,
+        selectedItems,
+        itemPaymentMethods: encryptedPaymentMethods,
+        itemMethodForms,
+        itemExpandedMethod,
+        timestamp: new Date().toISOString()
+      };
+      localStorage.setItem('paymentPortalProgress', JSON.stringify(progressData));
+      console.log('💾 Progress saved to localStorage (encrypted)');
+    } catch (error) {
+      console.error('Error saving progress to localStorage:', error);
+    }
+  };
+
+  const loadProgressFromLocalStorage = () => {
+    try {
+      const savedProgress = localStorage.getItem('paymentPortalProgress');
+      if (savedProgress) {
+        const progressData = JSON.parse(savedProgress);
+        const savedTime = new Date(progressData.timestamp);
+        const now = new Date();
+        const hoursDiff = (now.getTime() - savedTime.getTime()) / (1000 * 60 * 60);
+        
+        // Only load if saved within last 24 hours
+        if (hoursDiff < 24) {
+          // Decrypt sensitive payment data
+          const decryptedPaymentMethods = { ...progressData.itemPaymentMethods };
+          Object.keys(decryptedPaymentMethods).forEach(itemKey => {
+            const methods = (decryptedPaymentMethods as any)[itemKey];
+            if (methods.credit && methods.credit.cardNumber) {
+              methods.credit.cardNumber = decryptData(methods.credit.cardNumber);
+            }
+            if (methods.credit && methods.credit.cvv) {
+              methods.credit.cvv = decryptData(methods.credit.cvv);
+            }
+          });
+
+          setSelectedPassengers(progressData.selectedPassengers || []);
+          setSelectedItems(progressData.selectedItems || {});
+          setItemPaymentMethods(decryptedPaymentMethods || {});
+          setItemMethodForms(progressData.itemMethodForms || {});
+          setItemExpandedMethod(progressData.itemExpandedMethod || {});
+          console.log('📂 Progress loaded from localStorage (decrypted)');
+          return true;
+        } else {
+          // Clear old progress
+          localStorage.removeItem('paymentPortalProgress');
+          console.log('🗑️ Old progress cleared (older than 24 hours)');
+        }
+      }
+    } catch (error) {
+      console.error('Error loading progress from localStorage:', error);
+    }
+    return false;
+  };
+
+  const clearProgressFromLocalStorage = () => {
+    try {
+      localStorage.removeItem('paymentPortalProgress');
+      console.log('🗑️ Progress cleared from localStorage');
+    } catch (error) {
+      console.error('Error clearing progress from localStorage:', error);
+    }
+  };
+
   const reservation: Reservation = MOCK_RESERVATION;
   // Passenger data from reservation structure, sorted by payment status
   const availablePassengers: Passenger[] = reservation.passengers
@@ -142,42 +259,47 @@ export default function PaymentPortal() {
     setIsClient(true);
   }, []);
 
-  // Calculate costs only for passengers with selected items
-  const passengersWithSelectedItems = Object.keys(selectedItems);
+
+  // Memoized calculations for better performance
+  const passengersWithSelectedItems = useMemo(() => Object.keys(selectedItems), [selectedItems]);
   
-  const flightPrice = passengersWithSelectedItems.reduce((sum, passengerId) => {
-    const passengerIndex = parseInt(passengerId) - 1;
-    const passenger = reservation.passengers[passengerIndex];
-    const selectedPassengerItems = selectedItems[passengerId] || [];
-    
-    // Only count ticket price if ticket is selected and not paid
-    if (selectedPassengerItems.includes('ticket') && passenger.ticket.status !== 'Paid') {
-      return sum + passenger.ticket.price;
-    }
-    return sum;
-  }, 0);
+  const flightPrice = useMemo(() => {
+    return passengersWithSelectedItems.reduce((sum, passengerId) => {
+      const passengerIndex = parseInt(passengerId) - 1;
+      const passenger = reservation.passengers[passengerIndex];
+      const selectedPassengerItems = selectedItems[passengerId] || [];
+      
+      // Only count ticket price if ticket is selected and not paid
+      if (selectedPassengerItems.includes('ticket') && passenger.ticket.status !== 'Paid') {
+        return sum + passenger.ticket.price;
+      }
+      return sum;
+    }, 0);
+  }, [passengersWithSelectedItems, selectedItems, reservation.passengers]);
   
-  const additionalServices = passengersWithSelectedItems.reduce((sum, passengerId) => {
-    const passengerIndex = parseInt(passengerId) - 1;
-    const passenger = reservation.passengers[passengerIndex];
-    const selectedPassengerItems = selectedItems[passengerId] || [];
-    
-    let passengerTotal = 0;
-    
-    // Only count seat price if seat is selected and not paid
-    if (selectedPassengerItems.includes('seat') && passenger.ancillaries.seat.status !== 'Paid') {
-      passengerTotal += passenger.ancillaries.seat.price;
-    }
-    
-    // Only count bag price if bag is selected and not paid
-    if (selectedPassengerItems.includes('bag') && passenger.ancillaries.bag.status !== 'Paid') {
-      passengerTotal += passenger.ancillaries.bag.price;
-    }
-    
-    return sum + passengerTotal;
-  }, 0);
+  const additionalServices = useMemo(() => {
+    return passengersWithSelectedItems.reduce((sum, passengerId) => {
+      const passengerIndex = parseInt(passengerId) - 1;
+      const passenger = reservation.passengers[passengerIndex];
+      const selectedPassengerItems = selectedItems[passengerId] || [];
+      
+      let passengerTotal = 0;
+      
+      // Only count seat price if seat is selected and not paid
+      if (selectedPassengerItems.includes('seat') && passenger.ancillaries.seat.status !== 'Paid') {
+        passengerTotal += passenger.ancillaries.seat.price;
+      }
+      
+      // Only count bag price if bag is selected and not paid
+      if (selectedPassengerItems.includes('bag') && passenger.ancillaries.bag.status !== 'Paid') {
+        passengerTotal += passenger.ancillaries.bag.price;
+      }
+      
+      return sum + passengerTotal;
+    }, 0);
+  }, [passengersWithSelectedItems, selectedItems, reservation.passengers]);
   
-  const total = flightPrice + additionalServices;
+  const total = useMemo(() => flightPrice + additionalServices, [flightPrice, additionalServices]);
 
   const togglePassenger = (passengerId: string) => {
     setSelectedPassengers(prev => 
@@ -215,6 +337,19 @@ export default function PaymentPortal() {
           return newMethods;
         });
         
+        // Also remove from method forms and expanded state
+        setItemMethodForms(prev => {
+          const newForms = { ...prev };
+          delete newForms[itemKey];
+          return newForms;
+        });
+        
+        setItemExpandedMethod(prev => {
+          const newExpanded = { ...prev };
+          delete newExpanded[itemKey];
+          return newExpanded;
+        });
+        
         // If no items left for this passenger, remove passenger from selectedPassengers and selectedItems
         if (newItems.length === 0) {
           setSelectedPassengers(prev => prev.filter(id => id !== passengerId));
@@ -230,15 +365,6 @@ export default function PaymentPortal() {
       } else {
         // Add item
         const newItems = [...passengerItems, itemType];
-        
-        // Auto-assign credit card payment to this item
-        const itemKey = `${passengerId}-${itemType}`;
-        setItemPaymentMethods(prev => ({
-          ...prev,
-          [itemKey]: {
-            credit: { amount: 0, cardId: 'default-card' } // Will be calculated based on item amount
-          }
-        }));
         
         // Add passenger to selectedPassengers if not already there
         setSelectedPassengers(prev => 
@@ -442,6 +568,20 @@ export default function PaymentPortal() {
   // Which method is expanded per item (single expand accordion)
   const [itemExpandedMethod, setItemExpandedMethod] = useState<{ [key: string]: number | null }>({});
 
+  // Load progress on component mount
+  useEffect(() => {
+    loadProgressFromLocalStorage();
+  }, []);
+
+  // Save progress whenever state changes
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      saveProgressToLocalStorage();
+    }, 1000); // Debounce saves by 1 second
+
+    return () => clearTimeout(timeoutId);
+  }, [selectedPassengers, selectedItems, itemPaymentMethods, itemMethodForms, itemExpandedMethod]);
+
   // getTotalPaidAmount: sums all assigned payment method amounts for an item
   const getTotalPaidAmount = (itemKey: string) => {
     const currentMethods = (itemPaymentMethods as any)[itemKey] || {};
@@ -482,6 +622,22 @@ export default function PaymentPortal() {
     const totalPaid = getTotalPaidAmount(itemKey);
     return totalPaid >= itemPrice;
   };
+
+  // Calculate total paid amount across all selected items
+  const totalPaidAmount = passengersWithSelectedItems.reduce((sum, passengerId) => {
+    const selectedPassengerItems = selectedItems[passengerId] || [];
+    let passengerPaid = 0;
+    
+    selectedPassengerItems.forEach(itemType => {
+      const itemKey = `${passengerId}-${itemType}`;
+      passengerPaid += getTotalPaidAmount(itemKey);
+    });
+    
+    return sum + passengerPaid;
+  }, 0);
+
+  // Calculate payment progress percentage
+  const paymentProgress = total > 0 ? Math.min(100, (totalPaidAmount / total) * 100) : 0;
 
   // confirmAddMethod: adds a method UI form for an item while respecting constraints
   // - Up to 3 methods total
@@ -719,6 +875,10 @@ export default function PaymentPortal() {
         const idx = typeof voucherIndex === 'number' ? voucherIndex : 0;
         console.log('🎫 Updating voucher:', { idx, listLength: list.length, field, value, coercedAmount, listBefore: [...list] });
         if (idx < list.length) {
+          const oldVoucher = list[idx];
+          const newAmount = field === 'amount' ? (coercedAmount ?? 0) : oldVoucher?.amount || 0;
+          const oldAmount = oldVoucher?.amount || 0;
+          
           list[idx] = { 
             ...(list[idx] || { 
               amount: 0, 
@@ -728,6 +888,8 @@ export default function PaymentPortal() {
             }), 
               [field]: field === 'amount' || field === 'balance' ? (coercedAmount ?? 0) : value 
           };
+          
+          
           console.log('🎫 Updated voucher:', list[idx]);
         }
         next[itemKey].vouchers = list;
@@ -766,6 +928,197 @@ export default function PaymentPortal() {
     // Fallback
     return 0;
   }
+
+
+  // Simple encryption/decryption for sensitive data
+  const encryptData = (data: string): string => {
+    // Simple base64 encoding with a basic key (in production, use proper encryption)
+    const key = 'payment-portal-key-2024';
+    let encrypted = '';
+    for (let i = 0; i < data.length; i++) {
+      const charCode = data.charCodeAt(i) ^ key.charCodeAt(i % key.length);
+      encrypted += String.fromCharCode(charCode);
+    }
+    return btoa(encrypted);
+  };
+
+  const decryptData = (encryptedData: string): string => {
+    try {
+      const key = 'payment-portal-key-2024';
+      const decoded = atob(encryptedData);
+      let decrypted = '';
+      for (let i = 0; i < decoded.length; i++) {
+        const charCode = decoded.charCodeAt(i) ^ key.charCodeAt(i % key.length);
+        decrypted += String.fromCharCode(charCode);
+      }
+      return decrypted;
+    } catch (error) {
+      console.error('Error decrypting data:', error);
+      return '';
+    }
+  };
+
+  // Mask sensitive data for display
+  const maskCreditCardNumber = (cardNumber: string): string => {
+    if (!cardNumber || cardNumber.length < 4) return cardNumber;
+    const cleaned = cardNumber.replace(/\D/g, '');
+    const lastFour = cleaned.slice(-4);
+    const masked = '*'.repeat(cleaned.length - 4);
+    return masked + lastFour;
+  };
+
+  // Luhn algorithm for credit card validation
+  const validateCreditCard = (cardNumber: string) => {
+    // Remove all non-digit characters
+    const cleanNumber = cardNumber.replace(/\D/g, '');
+    
+    // Check if the number is empty or too short
+    if (cleanNumber.length < 13 || cleanNumber.length > 19) {
+      return false;
+    }
+    
+    // Luhn algorithm
+    let sum = 0;
+    let isEven = false;
+    
+    // Process digits from right to left
+    for (let i = cleanNumber.length - 1; i >= 0; i--) {
+      let digit = parseInt(cleanNumber[i]);
+      
+      if (isEven) {
+        digit *= 2;
+        if (digit > 9) {
+          digit -= 9;
+        }
+      }
+      
+      sum += digit;
+      isEven = !isEven;
+    }
+    
+    return sum % 10 === 0;
+  };
+
+  // Check if payment method has all required fields filled
+  const isPaymentMethodComplete = (itemKey: string, method: string, methodIndex: number) => {
+    const methods = (itemPaymentMethods as any)[itemKey] || {};
+    
+    if (method === 'credit') {
+      const credit = methods.credit;
+      return credit && 
+             credit.cardNumber && 
+             validateCreditCard(credit.cardNumber) &&
+             credit.holderName && 
+             credit.expiryDate && 
+             credit.cvv && 
+             credit.idNumber && 
+             credit.amount > 0;
+    } else if (method === 'voucher') {
+      const vouchers = methods.vouchers || [];
+      const voucher = vouchers[methodIndex];
+      return voucher && 
+             voucher.uatpNumber && 
+             voucher.balance > 0 && 
+             voucher.expirationDate && 
+             voucher.amount > 0;
+    } else if (method === 'points') {
+      const points = methods.points;
+      return points && 
+             points.memberNumber && 
+             points.awardReference && 
+             points.amount > 0 && 
+             points.pointsToUse > 0;
+    }
+    
+    return false;
+  };
+
+  // Copy credit card details to all selected passengers and items
+  const copyCreditCardDetails = (sourceItemKey: string) => {
+    const sourceCreditData = (itemPaymentMethods as any)[sourceItemKey]?.credit;
+    if (!sourceCreditData) return;
+
+    // Get all selected passengers and their items
+    const allSelectedItems = Object.entries(selectedItems);
+    
+    allSelectedItems.forEach(([passengerId, items]) => {
+      items.forEach(itemType => {
+        const targetItemKey = `${passengerId}-${itemType}`;
+        
+        // Skip the source item itself
+        if (targetItemKey === sourceItemKey) return;
+        
+        // Only copy to items that have credit payment method or can have one
+        const targetMethods = (itemPaymentMethods as any)[targetItemKey] || {};
+        
+        // If target doesn't have credit method, add it first
+        if (!targetMethods.credit) {
+          // Add credit method to forms list first
+          setItemMethodForms(prev => {
+            const newForms = { ...prev };
+            if (!newForms[targetItemKey]) newForms[targetItemKey] = [];
+            // Add 'credit' to the forms list if not already there
+            if (!newForms[targetItemKey].includes('credit')) {
+              newForms[targetItemKey] = [...newForms[targetItemKey], 'credit'];
+            }
+            return newForms;
+          });
+
+          // Then add the payment method data
+          setItemPaymentMethods(prev => {
+            const newMethods = { ...prev } as any;
+            if (!newMethods[targetItemKey]) newMethods[targetItemKey] = {};
+            
+            // Get the item price for amount calculation
+            const [targetPassengerId, targetItemType] = targetItemKey.split('-');
+            const targetPassengerIndex = resolvePassengerIndex(targetPassengerId);
+            const targetPassenger = reservation.passengers[targetPassengerIndex];
+            let targetItemPrice = 0;
+            if (targetItemType === 'ticket') {
+              targetItemPrice = targetPassenger.ticket.price;
+            } else if (targetItemType === 'seat') {
+              targetItemPrice = targetPassenger.ancillaries.seat.price;
+            } else if (targetItemType === 'bag') {
+              targetItemPrice = targetPassenger.ancillaries.bag.price;
+            }
+            
+            // Calculate remaining amount for this item
+            const totalPaid = getTotalPaidAmount(targetItemKey);
+            const remainingAmount = Math.max(0, targetItemPrice - totalPaid);
+            
+            newMethods[targetItemKey].credit = {
+              amount: remainingAmount,
+              cardNumber: sourceCreditData.cardNumber,
+              holderName: sourceCreditData.holderName,
+              expiryDate: sourceCreditData.expiryDate,
+              cvv: sourceCreditData.cvv,
+              idNumber: sourceCreditData.idNumber,
+              installments: sourceCreditData.installments
+            };
+            
+            return newMethods;
+          });
+        } else {
+          // Update existing credit method with copied data
+          setItemPaymentMethods(prev => {
+            const newMethods = { ...prev } as any;
+            if (newMethods[targetItemKey]?.credit) {
+              newMethods[targetItemKey].credit = {
+                ...newMethods[targetItemKey].credit,
+                cardNumber: sourceCreditData.cardNumber,
+                holderName: sourceCreditData.holderName,
+                expiryDate: sourceCreditData.expiryDate,
+                cvv: sourceCreditData.cvv,
+                idNumber: sourceCreditData.idNumber,
+                installments: sourceCreditData.installments
+              };
+            }
+            return newMethods;
+          });
+        }
+      });
+    });
+  };
 
   // removeMethod: removes one method UI form and clears only its stored data
   // Voucher removal computes the voucher-specific index to avoid clearing others.
@@ -873,16 +1226,52 @@ export default function PaymentPortal() {
     const isFullyPaid = remaining === 0 && totalAmount > 0;
     
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 120 }}>
-        <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.85rem' }}>
-          {passengerName}
-        </Typography>
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 120, position: 'relative' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+          {isFullyPaid ? (
+            <Box sx={{ 
+              width: 16, 
+              height: 16, 
+              borderRadius: '50%', 
+              backgroundColor: 'success.main', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              color: 'white',
+              fontSize: '10px',
+              fontWeight: 'bold',
+              animation: 'pulse 2s infinite'
+            }}>
+              ✓
+            </Box>
+          ) : (
+            <Box sx={{ 
+              width: 16, 
+              height: 16, 
+              borderRadius: '50%', 
+              backgroundColor: 'grey.400', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              color: 'white',
+              fontSize: '10px',
+              fontWeight: 'bold'
+            }}>
+              ○
+            </Box>
+          )}
+          <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.85rem' }}>
+            {passengerName}
+          </Typography>
+        </Box>
         <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem' }}>
           ${totalAmount.toFixed(2)}
         </Typography>
+        
+        
         {isFullyPaid ? (
           <Typography variant="caption" sx={{ color: 'success.main', fontSize: '0.7rem', fontWeight: 600 }}>
-            ✓ Paid
+            ✓ Done
           </Typography>
         ) : remaining > 0 ? (
           <Typography variant="caption" sx={{ color: 'warning.main', fontSize: '0.7rem', fontWeight: 600 }}>
@@ -1525,12 +1914,43 @@ export default function PaymentPortal() {
                           return hasUnpaid;
                         })
                         .map(([pid]) => (
-                          <Tab key={pid} value={pid} label={getPassengerTabLabel(pid)} />
+                          <Tab 
+                            key={pid} 
+                            value={pid} 
+                            label={getPassengerTabLabel(pid)}
+                            sx={{
+                              transition: 'all 0.3s ease-in-out',
+                              '&.Mui-selected': {
+                                backgroundColor: 'primary.50',
+                                color: 'primary.main',
+                                fontWeight: 600,
+                                borderRadius: 1,
+                                transform: 'translateY(-1px)',
+                                boxShadow: '0 2px 8px rgba(25, 118, 210, 0.15)'
+                              },
+                              '&:hover': {
+                                backgroundColor: 'grey.50',
+                                transform: 'translateY(-1px)'
+                              }
+                            }}
+                          />
                         ))}
                     </Tabs>
 
                     {activePaymentPassenger && activePaymentPassenger !== '' && (
-                      <Paper sx={{ p: 2, mt: 2, border: 1, borderColor: 'grey.300', bgcolor: 'white', minHeight: 0, flex: 1, display: 'flex', flexDirection: 'column' }}>
+                      <Paper sx={{ 
+                        p: 2, 
+                        mt: 2, 
+                        border: 1, 
+                        borderColor: 'grey.300', 
+                        bgcolor: 'white', 
+                        minHeight: 0, 
+                        flex: 1, 
+                        display: 'flex', 
+                        flexDirection: 'column',
+                        animation: 'slideIn 0.3s ease-out',
+                        transition: 'all 0.3s ease-in-out'
+                      }}>
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, flex: 1, overflowY: 'auto', pr: 1 }}>
                           {(selectedItems[activePaymentPassenger] || []).map((itemType) => {
                             const pIndex = parseInt(activePaymentPassenger) - 1;
@@ -1658,12 +2078,54 @@ export default function PaymentPortal() {
                                   } else if (method === 'points') {
                                     methodAmount = Number(paymentData?.points?.amount) || 0;
                                   }
+                                  const isComplete = isPaymentMethodComplete(itemKey, method, method === 'voucher' ? formMethods.slice(0, idx).filter(m => m === 'voucher').length : 0);
+                                  
                                   return (
-                                  <Paper key={`${itemKey}-method-${idx}`} sx={{ p: 1.5, mt: 1, border: 1, borderColor: expanded ? 'primary.light' : 'grey.100', bgcolor: expanded ? 'white' : 'grey.50' }}>
+                                  <Paper key={`${itemKey}-method-${idx}`} sx={{ 
+                                    p: 1.5, 
+                                    mt: 1, 
+                                    border: 1, 
+                                    borderColor: expanded ? 'primary.light' : (isComplete ? 'success.light' : 'warning.light'), 
+                                    bgcolor: expanded ? 'white' : (isComplete ? 'success.50' : 'warning.50'),
+                                    position: 'relative'
+                                  }}>
                                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: expanded ? 1 : 0 }}>
+                                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                       <Typography variant="subtitle2" sx={{ fontWeight: 'medium' }}>
                                         {method === 'credit' ? 'Credit Card' : method === 'voucher' ? 'Voucher' : 'Points'}
                                       </Typography>
+                                        {isComplete ? (
+                                          <Box sx={{ 
+                                            width: 16, 
+                                            height: 16, 
+                                            borderRadius: '50%', 
+                                            backgroundColor: 'success.main', 
+                                            display: 'flex', 
+                                            alignItems: 'center', 
+                                            justifyContent: 'center',
+                                            color: 'white',
+                                            fontSize: '10px',
+                                            fontWeight: 'bold'
+                                          }}>
+                                            ✓
+                                          </Box>
+                                        ) : (
+                                          <Box sx={{ 
+                                            width: 16, 
+                                            height: 16, 
+                                            borderRadius: '50%', 
+                                            backgroundColor: 'warning.main', 
+                                            display: 'flex', 
+                                            alignItems: 'center', 
+                                            justifyContent: 'center',
+                                            color: 'white',
+                                            fontSize: '10px',
+                                            fontWeight: 'bold'
+                                          }}>
+                                            !
+                                          </Box>
+                                        )}
+                                      </Box>
                                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                                         <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
                                           ${methodAmount.toLocaleString()}
@@ -1764,6 +2226,14 @@ export default function PaymentPortal() {
                                             onChange={(e) => {
                                               const formatted = formatCardNumber(e.target.value);
                                               updateMethodField(itemKey, 'credit', 'cardNumber', formatted);
+                                              
+                                              // Validate card number and show error if invalid
+                                              const errorKey = `${itemKey}-credit-card`;
+                                              if (formatted.length >= 13 && !validateCreditCard(formatted)) {
+                                                setFieldError(errorKey, 'Invalid card number');
+                                              } else {
+                                                clearFieldError(errorKey);
+                                              }
                                             }} 
                                           />
                                             {(paymentData?.credit?.cardNumber ?? '').length > 0 && (
@@ -1793,6 +2263,19 @@ export default function PaymentPortal() {
                                               </Box>
                                             )}
                                           </Box>
+                                          {fieldErrors[`${itemKey}-credit-card`] && (
+                                            <Typography 
+                                              variant="caption" 
+                                              sx={{ 
+                                                color: 'error.main', 
+                                                mt: 0.5, 
+                                                display: 'block', 
+                                                fontSize: '0.75rem' 
+                                              }}
+                                            >
+                                              {fieldErrors[`${itemKey}-credit-card`]}
+                                            </Typography>
+                                          )}
                                         </Box>
 
                                         {/* Cardholder Name */}
@@ -1910,6 +2393,29 @@ export default function PaymentPortal() {
                                             <MenuItem value={5}>5 Payments</MenuItem>
                                           </TextField>
                                         </Box>
+
+                                        {/* Copy Credit Card Button */}
+                                        <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+                                          <Button
+                                            variant="outlined"
+                                            size="small"
+                                            startIcon={<AddIcon />}
+                                            onClick={() => copyCreditCardDetails(itemKey)}
+                                            sx={{
+                                              fontSize: '0.8rem',
+                                              fontWeight: 500,
+                                              textTransform: 'none',
+                                              borderColor: 'primary.main',
+                                              color: 'primary.main',
+                                              '&:hover': {
+                                                borderColor: 'primary.dark',
+                                                backgroundColor: 'primary.50'
+                                              }
+                                            }}
+                                          >
+                                            Copy Credit Card to All Passengers
+                                          </Button>
+                                        </Box>
                                       </Box>
                                     )}
                                     {expanded && method === 'voucher' && (() => {
@@ -1975,7 +2481,7 @@ export default function PaymentPortal() {
                                                 }
                                                 
                                                 updateMethodField(itemKey, 'voucher', 'uatpNumber', formatted, voucherIdx);
-                                              }} 
+                                              }}
                                             />
                                             {fieldErrors[`${itemKey}-voucher-${voucherIdx}-uatp`] && (
                                               <Typography 
@@ -2539,6 +3045,58 @@ export default function PaymentPortal() {
                     />
                   </Box>
                   </Box>
+
+                  {/* Payment Progress Bar */}
+                  {total > 0 && (
+                    <Box sx={{ mb: 3, px: 1 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                          Payment Progress
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: paymentProgress === 100 ? 'success.main' : 'primary.main' }}>
+                          {paymentProgress.toFixed(1)}%
+                    </Typography>
+                  </Box>
+                      <Box sx={{ 
+                        width: '100%', 
+                        height: 8, 
+                        backgroundColor: 'grey.200', 
+                        borderRadius: 4,
+                        overflow: 'hidden',
+                        position: 'relative',
+                        mb: 1.5
+                      }}>
+                        <Box sx={{
+                          width: `${paymentProgress}%`,
+                          height: '100%',
+                          backgroundColor: paymentProgress === 100 ? 'success.main' : 'primary.main',
+                          borderRadius: 4,
+                          transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                          position: 'relative',
+                          '&::after': {
+                            content: '""',
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            background: paymentProgress === 100 
+                              ? 'linear-gradient(90deg, #2e7d32 0%, #4caf50 100%)'
+                              : 'linear-gradient(90deg, #1976d2 0%, #42a5f5 100%)',
+                            borderRadius: 4
+                          }
+                        }} />
+                      </Box>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', px: 0.5 }}>
+                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                          Paid: ${totalPaidAmount.toLocaleString()}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                          Remaining: ${(total - totalPaidAmount).toLocaleString()}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  )}
                   
                 {/* Content */}
                 <Box sx={{ flex: 1, overflow: 'auto', p: 3 }}>
@@ -2711,6 +3269,7 @@ export default function PaymentPortal() {
                     let totalCreditAmount = 0;
                     let totalVoucherAmount = 0;
                     let totalPointsAmount = 0;
+                    let totalPointsUsed = 0;
                     let totalPaymentMethods = 0;
 
                     Object.entries(itemPaymentMethods).forEach(([itemKey, methods]) => {
@@ -2726,6 +3285,7 @@ export default function PaymentPortal() {
                       }
                       if (methods.points) {
                         totalPointsAmount += methods.points.amount;
+                        totalPointsUsed += methods.points.pointsToUse || 0;
                         totalPaymentMethods++;
                       }
                     });
@@ -2790,7 +3350,7 @@ export default function PaymentPortal() {
                                 </ListItemIcon>
                                 <ListItemText 
                                   primary="Points" 
-                                  secondary="Frequent flyer points"
+                                  secondary={`${totalPointsUsed.toLocaleString()} points (50 points = $1)`}
                                 />
                                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
                                   ${totalPointsAmount.toLocaleString()}

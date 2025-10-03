@@ -28,12 +28,36 @@ export const getPassengerTabLabel = (pid: string, reservation: any, resolvePasse
   if (!passenger) return `Passenger ${pid}`;
   
   const unpaidItems = [];
-  if (passenger.ticket.status !== 'Paid') unpaidItems.push('Ticket');
-  if (passenger.ancillaries.seat.status !== 'Paid') unpaidItems.push('Seat');
-  if (passenger.ancillaries.bag.status !== 'Paid') unpaidItems.push('Bag');
+  let totalAmount = 0;
+  
+  if (passenger.ticket.status !== 'Paid') {
+    unpaidItems.push('Ticket');
+    totalAmount += passenger.ticket.price;
+  }
+  if (passenger.ancillaries.seat.status !== 'Paid') {
+    unpaidItems.push('Seat');
+    totalAmount += passenger.ancillaries.seat.price;
+  }
+  if (passenger.ancillaries.bag.status !== 'Paid') {
+    unpaidItems.push('Bag');
+    totalAmount += passenger.ancillaries.bag.price;
+  }
+  if (passenger.ancillaries.secondBag && passenger.ancillaries.secondBag.status !== 'Paid') {
+    unpaidItems.push('Second Bag');
+    totalAmount += passenger.ancillaries.secondBag.price;
+  }
+  if (passenger.ancillaries.thirdBag && passenger.ancillaries.thirdBag.status !== 'Paid') {
+    unpaidItems.push('Third Bag');
+    totalAmount += passenger.ancillaries.thirdBag.price;
+  }
+  if (passenger.ancillaries.uatp && passenger.ancillaries.uatp.status !== 'Paid') {
+    unpaidItems.push('UATP');
+    totalAmount += passenger.ancillaries.uatp.price;
+  }
   
   const unpaidText = unpaidItems.length > 0 ? ` (${unpaidItems.join(', ')})` : '';
-  return `${passenger.name}${unpaidText}`;
+  const totalText = totalAmount > 0 ? ` - $${totalAmount}` : '';
+  return `${passenger.name}${unpaidText}${totalText}`;
 };
 
 // Toggle passenger selection
@@ -128,6 +152,9 @@ export const toggleAllItemsForPassenger = (
   if (passengerData.ticket.status !== 'Paid') unpaidItems.push('ticket');
   if (passengerData.ancillaries.seat.status !== 'Paid') unpaidItems.push('seat');
   if (passengerData.ancillaries.bag.status !== 'Paid') unpaidItems.push('bag');
+  if (passengerData.ancillaries.secondBag && passengerData.ancillaries.secondBag.status !== 'Paid') unpaidItems.push('secondBag');
+  if (passengerData.ancillaries.thirdBag && passengerData.ancillaries.thirdBag.status !== 'Paid') unpaidItems.push('thirdBag');
+  if (passengerData.ancillaries.uatp && passengerData.ancillaries.uatp.status !== 'Paid') unpaidItems.push('uatp');
   
   setSelectedItems(prev => {
     // If all unpaid items are selected, deselect all

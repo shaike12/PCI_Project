@@ -15,6 +15,7 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
   const voucherIndex = index;
   const storedAmount = paymentData?.vouchers?.[voucherIndex]?.amount;
   const fallbackAmount = amounts.remaining;
+  const currentVoucherNumber = paymentData?.vouchers?.[voucherIndex]?.voucherNumber ?? '';
 
   return (
     <Box sx={{ mt: 2, p: 3, bgcolor: 'grey.50', borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
@@ -58,14 +59,32 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
             '& .MuiInputLabel-root': { fontSize: '0.9rem' }
           }} 
           label="Voucher Number" 
-          placeholder="VCH-123456"
+          placeholder="1114-12345678901"
           InputLabelProps={{ shrink: true }}
           value={(paymentData?.vouchers?.[voucherIndex]?.voucherNumber ?? '')} 
           inputProps={{ 
             suppressHydrationWarning: true,
-            maxLength: 20
+            maxLength: 16
           }} 
-          onChange={(e) => updateMethodField(itemKey, 'voucher', 'voucherNumber', e.target.value, voucherIndex)} 
+          onChange={(e) => {
+            let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+            const previousValue = currentVoucherNumber.replace(/\D/g, '');
+            
+            // Only add 1114 prefix if:
+            // 1. User is typing (value is longer than previous)
+            // 2. Value doesn't start with 1114
+            // 3. Value is short (1-3 digits)
+            if (value.length > previousValue.length && value.length > 0 && !value.startsWith('1114') && value.length <= 3) {
+              value = '1114' + value;
+            }
+            
+            // Add dash after 1114 if there are more digits
+            if (value.length > 4) {
+              value = value.substring(0, 4) + '-' + value.substring(4, 15); // Max 11 digits after dash
+            }
+            
+            updateMethodField(itemKey, 'voucher', 'voucherNumber', value, voucherIndex);
+          }} 
         />
       </Box>
 
@@ -80,14 +99,20 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
             '& .MuiInputLabel-root': { fontSize: '0.9rem' }
           }} 
           label="Expiry Date" 
-          placeholder="2026-12-31"
+          placeholder="MM/YY"
           InputLabelProps={{ shrink: true }}
-          type="date"
           value={(paymentData?.vouchers?.[voucherIndex]?.expiryDate ?? '')} 
           inputProps={{ 
-            suppressHydrationWarning: true
+            suppressHydrationWarning: true,
+            maxLength: 5
           }} 
-          onChange={(e) => updateMethodField(itemKey, 'voucher', 'expiryDate', e.target.value, voucherIndex)} 
+          onChange={(e) => {
+            let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+            if (value.length >= 2) {
+              value = value.substring(0, 2) + '/' + value.substring(2, 4);
+            }
+            updateMethodField(itemKey, 'voucher', 'expiryDate', value, voucherIndex);
+          }} 
         />
       </Box>
     </Box>

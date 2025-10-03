@@ -439,6 +439,21 @@ function ReservationDetails({
               <Typography variant="body2">
                 Bag: {passenger.ancillaries.bag.status} - ${passenger.ancillaries.bag.price}
               </Typography>
+              {passenger.ancillaries.secondBag && (
+                <Typography variant="body2">
+                  Second Bag: {passenger.ancillaries.secondBag.status} - ${passenger.ancillaries.secondBag.price}
+                </Typography>
+              )}
+              {passenger.ancillaries.thirdBag && (
+                <Typography variant="body2">
+                  Third Bag: {passenger.ancillaries.thirdBag.status} - ${passenger.ancillaries.thirdBag.price}
+                </Typography>
+              )}
+              {passenger.ancillaries.uatp && (
+                <Typography variant="body2">
+                  UATP: {passenger.ancillaries.uatp.status} - ${passenger.ancillaries.uatp.price}
+                </Typography>
+              )}
             </Box>
           ))}
         </Box>

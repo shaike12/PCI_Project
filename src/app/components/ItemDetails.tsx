@@ -25,6 +25,7 @@ interface ItemDetailsProps {
   removeMethod: (itemKey: string, formIndex: number) => void;
   confirmAddMethod: (itemKey: string, method: 'credit' | 'voucher' | 'points') => void;
   onCopyMethod?: (itemKey: string, method: 'credit' | 'voucher' | 'points') => void;
+  getGeneratedNumber?: (itemKey: string) => string | null;
 }
 
 export function ItemDetails({
@@ -44,7 +45,8 @@ export function ItemDetails({
   setItemExpandedMethod,
   removeMethod,
   confirmAddMethod,
-  onCopyMethod
+  onCopyMethod,
+  getGeneratedNumber
 }: ItemDetailsProps) {
   const amounts = getRemainingAmount(itemKey);
   const showAlways = true;
@@ -70,12 +72,22 @@ export function ItemDetails({
             ${price.toLocaleString()}
           </Typography>
           {isItemFullyPaid(itemKey) ? (
-            <Chip 
-              label="Paid" 
-              color="success" 
-              size="small" 
-              sx={{ fontWeight: 'bold' }}
-            />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Chip 
+                label="Paid" 
+                color="success" 
+                size="small" 
+                sx={{ fontWeight: 'bold' }}
+              />
+              {getGeneratedNumber && getGeneratedNumber(itemKey) && (
+                <Chip 
+                  label={getGeneratedNumber(itemKey)} 
+                  color="info" 
+                  size="small" 
+                  sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}
+                />
+              )}
+            </Box>
           ) : (
             <Chip 
               label={`$${amounts.remaining} remaining`} 

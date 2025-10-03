@@ -119,6 +119,12 @@ export const isItemFullyPaid = (
     itemPrice = passenger.ancillaries.seat.price;
   } else if (itemType === 'bag') {
     itemPrice = passenger.ancillaries.bag.price;
+  } else if (itemType === 'secondBag') {
+    itemPrice = passenger.ancillaries.secondBag?.price || 0;
+  } else if (itemType === 'thirdBag') {
+    itemPrice = passenger.ancillaries.thirdBag?.price || 0;
+  } else if (itemType === 'uatp') {
+    itemPrice = passenger.ancillaries.uatp?.price || 0;
   }
   
   const totalPaid = getTotalPaidAmount(itemKey, itemPaymentMethods);

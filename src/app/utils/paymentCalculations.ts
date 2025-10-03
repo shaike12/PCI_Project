@@ -37,6 +37,21 @@ export function computeSelectedAmount(reservation: Reservation, selectedItems: {
             totalSelected += passengerData.ancillaries.bag.price;
           }
           break;
+        case 'secondBag':
+          if (passengerData.ancillaries.secondBag && passengerData.ancillaries.secondBag.status !== 'Paid') {
+            totalSelected += passengerData.ancillaries.secondBag.price;
+          }
+          break;
+        case 'thirdBag':
+          if (passengerData.ancillaries.thirdBag && passengerData.ancillaries.thirdBag.status !== 'Paid') {
+            totalSelected += passengerData.ancillaries.thirdBag.price;
+          }
+          break;
+        case 'uatp':
+          if (passengerData.ancillaries.uatp && passengerData.ancillaries.uatp.status !== 'Paid') {
+            totalSelected += passengerData.ancillaries.uatp.price;
+          }
+          break;
       }
     });
   });

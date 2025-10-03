@@ -6,6 +6,7 @@ import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import FlightIcon from "@mui/icons-material/Flight";
 import EventSeatIcon from "@mui/icons-material/EventSeat";
 import LuggageIcon from "@mui/icons-material/Luggage";
+import CreditCardIcon from "@mui/icons-material/CreditCard";
 import InfoIcon from "@mui/icons-material/Info";
 import type { Reservation } from "@/types/reservation";
 
@@ -33,6 +34,9 @@ export function SelectedItemsBreakdown({ selectedItems, reservation }: SelectedI
   let selectedTickets = 0;
   let selectedSeats = 0;
   let selectedBags = 0;
+  let selectedSecondBags = 0;
+  let selectedThirdBags = 0;
+  let selectedUatp = 0;
   let totalSelected = 0;
   let totalPaid = 0;
   let totalRemaining = 0;
@@ -66,6 +70,30 @@ export function SelectedItemsBreakdown({ selectedItems, reservation }: SelectedI
             totalSelected += passengerData.ancillaries.bag.price;
           } else {
             totalPaid += passengerData.ancillaries.bag.price;
+          }
+          break;
+        case 'secondBag':
+          if (passengerData.ancillaries.secondBag && passengerData.ancillaries.secondBag.status !== 'Paid') {
+            selectedSecondBags += passengerData.ancillaries.secondBag.price;
+            totalSelected += passengerData.ancillaries.secondBag.price;
+          } else if (passengerData.ancillaries.secondBag) {
+            totalPaid += passengerData.ancillaries.secondBag.price;
+          }
+          break;
+        case 'thirdBag':
+          if (passengerData.ancillaries.thirdBag && passengerData.ancillaries.thirdBag.status !== 'Paid') {
+            selectedThirdBags += passengerData.ancillaries.thirdBag.price;
+            totalSelected += passengerData.ancillaries.thirdBag.price;
+          } else if (passengerData.ancillaries.thirdBag) {
+            totalPaid += passengerData.ancillaries.thirdBag.price;
+          }
+          break;
+        case 'uatp':
+          if (passengerData.ancillaries.uatp && passengerData.ancillaries.uatp.status !== 'Paid') {
+            selectedUatp += passengerData.ancillaries.uatp.price;
+            totalSelected += passengerData.ancillaries.uatp.price;
+          } else if (passengerData.ancillaries.uatp) {
+            totalPaid += passengerData.ancillaries.uatp.price;
           }
           break;
       }
@@ -149,6 +177,51 @@ export function SelectedItemsBreakdown({ selectedItems, reservation }: SelectedI
               />
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
                 ${selectedBags.toLocaleString()}
+              </Typography>
+            </ListItem>
+          )}
+          
+          {selectedSecondBags > 0 && (
+            <ListItem sx={{ px: 0 }}>
+              <ListItemIcon sx={{ minWidth: 36 }}>
+                <LuggageIcon color="warning" />
+              </ListItemIcon>
+              <ListItemText 
+                primary="Second Bag" 
+                secondary={`${Object.entries(selectedItems).filter(([_, items]) => items.includes('secondBag')).length} selected`}
+              />
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                ${selectedSecondBags.toLocaleString()}
+              </Typography>
+            </ListItem>
+          )}
+          
+          {selectedThirdBags > 0 && (
+            <ListItem sx={{ px: 0 }}>
+              <ListItemIcon sx={{ minWidth: 36 }}>
+                <LuggageIcon color="warning" />
+              </ListItemIcon>
+              <ListItemText 
+                primary="Third Bag" 
+                secondary={`${Object.entries(selectedItems).filter(([_, items]) => items.includes('thirdBag')).length} selected`}
+              />
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                ${selectedThirdBags.toLocaleString()}
+              </Typography>
+            </ListItem>
+          )}
+          
+          {selectedUatp > 0 && (
+            <ListItem sx={{ px: 0 }}>
+              <ListItemIcon sx={{ minWidth: 36 }}>
+                <CreditCardIcon color="info" />
+              </ListItemIcon>
+              <ListItemText 
+                primary="UATP" 
+                secondary={`${Object.entries(selectedItems).filter(([_, items]) => items.includes('uatp')).length} selected`}
+              />
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                ${selectedUatp.toLocaleString()}
               </Typography>
             </ListItem>
           )}

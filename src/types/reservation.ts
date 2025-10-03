@@ -10,6 +10,7 @@ export interface Passenger {
     price: number;
     seatNumber?: string;
     flightNumber?: string;
+    ticketNumber?: string; // Generated when paid: 114-245XXXXXXX
   };
   ancillaries: {
     seat: {
@@ -17,12 +18,34 @@ export interface Passenger {
       price: number;
       seatNumber?: string;
       seatType?: 'Standard' | 'Premium' | 'Business';
+      ancillaryNumber?: string; // Generated when paid: 114-8XXXXXXXXX
     };
     bag: {
       status: 'Paid' | 'Unpaid';
       price: number;
       weight?: number;
       bagType?: 'Carry-on' | 'Checked';
+      ancillaryNumber?: string; // Generated when paid: 114-8XXXXXXXXX
+    };
+    secondBag?: {
+      status: 'Paid' | 'Unpaid';
+      price: number;
+      weight?: number;
+      bagType?: 'Carry-on' | 'Checked';
+      ancillaryNumber?: string; // Generated when paid: 114-8XXXXXXXXX
+    };
+    thirdBag?: {
+      status: 'Paid' | 'Unpaid';
+  price: number;
+      weight?: number;
+      bagType?: 'Carry-on' | 'Checked';
+      ancillaryNumber?: string; // Generated when paid: 114-8XXXXXXXXX
+    };
+    uatp?: {
+      status: 'Paid' | 'Unpaid';
+  price: number;
+      uatpNumber?: string;
+      ancillaryNumber?: string; // Generated when paid: 114-8XXXXXXXXX
     };
   };
 }
@@ -111,6 +134,23 @@ export const MOCK_RESERVATION: Reservation = {
           price: 30,
           weight: 23,
           bagType: 'Checked'
+        },
+        secondBag: {
+          status: 'Unpaid',
+          price: 100,
+          weight: 25,
+          bagType: 'Checked'
+        },
+        thirdBag: {
+          status: 'Unpaid',
+          price: 120,
+          weight: 30,
+          bagType: 'Checked'
+        },
+        uatp: {
+          status: 'Unpaid',
+          price: 200,
+          uatpNumber: 'UATP123456'
         }
       }
     },
@@ -137,11 +177,28 @@ export const MOCK_RESERVATION: Reservation = {
           price: 30,
           weight: 20,
           bagType: 'Checked'
+        },
+        secondBag: {
+          status: 'Unpaid',
+          price: 100,
+          weight: 25,
+          bagType: 'Checked'
+        },
+        thirdBag: {
+          status: 'Unpaid',
+          price: 120,
+          weight: 30,
+          bagType: 'Checked'
+        },
+        uatp: {
+          status: 'Unpaid',
+          price: 200,
+          uatpNumber: 'UATP123456'
         }
       }
     }
   ],
-  total: 1160,
+  total: 2000,
   status: 'Active',
   createdAt: new Date(),
   updatedAt: new Date(),

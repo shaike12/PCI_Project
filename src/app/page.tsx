@@ -16,7 +16,13 @@ import {
   Container,
   IconButton,
   Avatar,
-  Button
+  Button,
+  Snackbar,
+  Alert,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel
 } from '@mui/material';
 import {
   Person as PersonIcon,
@@ -28,17 +34,20 @@ import {
   EventSeat as SeatIcon,
   Luggage as BagIcon,
   ReceiptLong as ReceiptLongIcon,
-  ShoppingCart as ShoppingCartIcon
+  ShoppingCart as ShoppingCartIcon,
+  CardMembership as UatpIcon
 } from '@mui/icons-material';
 import { PassengerHeader } from './components/PassengerHeader';
+import PassengerCard from './components/PassengerCard';
 import { PaymentMethodsSummary } from './components/PaymentMethodsSummary';
 import { TotalSummary } from './components/TotalSummary';
 import { ActionButtons } from './components/ActionButtons';
-import { MOCK_RESERVATION, Reservation } from '@/types/reservation';
+import { MOCK_RESERVATION, Reservation, Passenger } from '@/types/reservation';
 import { PaymentTabs } from './components/PaymentTabs';
 import { SelectedItemsBreakdown } from './components/SelectedItemsBreakdown';
 import { CopyPaymentMethodModal } from './components/CopyPaymentMethodModal';
 import { computeSelectedAmount } from './utils/paymentCalculations';
+import { generateTicketNumber, generateAncillaryNumber } from './utils/ticketNumberGenerator';
 import { 
   isPaymentMethodComplete, 
   getTotalPaidAmount, 
@@ -59,11 +68,6 @@ import {
 import { clearAllLocalStorage } from './utils/localStorage';
 
 
-interface Passenger {
-  id: string;
-  fullName: string;
-  hasUnpaidItems: boolean;
-}
 
 
 export default function PaymentPortal() {
@@ -80,6 +84,13 @@ export default function PaymentPortal() {
   const [copyModalOpen, setCopyModalOpen] = useState(false);
   const [copySourceItemKey, setCopySourceItemKey] = useState<string>('');
   const [copySourceMethod, setCopySourceMethod] = useState<'credit' | 'voucher' | 'points'>('credit');
+  
+  // Toast state for copy notifications
+  const [toastOpen, setToastOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  
+  // Passenger count selection for new reservation
+  const [passengerCount, setPassengerCount] = useState(3);
 
   // Handle payment confirmation
   const handleConfirmPayment = async () => {
@@ -113,6 +124,12 @@ export default function PaymentPortal() {
           itemPrice = passenger.ancillaries.seat.price;
         } else if (itemType === 'bag') {
           itemPrice = passenger.ancillaries.bag.price;
+        } else if (itemType === 'secondBag') {
+          itemPrice = passenger.ancillaries.secondBag?.price || 0;
+        } else if (itemType === 'thirdBag') {
+          itemPrice = passenger.ancillaries.thirdBag?.price || 0;
+        } else if (itemType === 'uatp') {
+          itemPrice = passenger.ancillaries.uatp?.price || 0;
         }
         
         return totalPaid < itemPrice;
@@ -139,7 +156,9 @@ export default function PaymentPortal() {
         // Remove lastModifiedBy from the object to avoid undefined issues
         delete (updatedReservation as any).lastModifiedBy;
         
-        // Mark selected items as paid
+        // Ticket number generator is already imported
+
+        // Mark selected items as paid and generate numbers
         selectedItemsList.forEach(itemKey => {
           const [passengerId, itemType] = itemKey.split('-');
           const passengerIndex = resolvePassengerIndex(passengerId);
@@ -149,10 +168,66 @@ export default function PaymentPortal() {
             
             if (itemType === 'ticket') {
               passenger.ticket.status = 'Paid';
+              // Generate ticket number if not already exists
+              if (!passenger.ticket.ticketNumber) {
+                passenger.ticket.ticketNumber = generateTicketNumber();
+              }
             } else if (itemType === 'seat') {
               passenger.ancillaries.seat.status = 'Paid';
+              // Generate ancillary number if not already exists
+              if (!passenger.ancillaries.seat.ancillaryNumber) {
+                passenger.ancillaries.seat.ancillaryNumber = generateAncillaryNumber();
+              }
             } else if (itemType === 'bag') {
               passenger.ancillaries.bag.status = 'Paid';
+              // Generate ancillary number if not already exists
+              if (!passenger.ancillaries.bag.ancillaryNumber) {
+                passenger.ancillaries.bag.ancillaryNumber = generateAncillaryNumber();
+              }
+            } else if (itemType === 'secondBag') {
+              if (!passenger.ancillaries.secondBag) {
+                passenger.ancillaries.secondBag = {
+                  status: 'Paid',
+                  price: 0,
+                  weight: 0,
+                  bagType: 'Checked'
+                };
+              } else {
+                passenger.ancillaries.secondBag.status = 'Paid';
+              }
+              // Generate ancillary number if not already exists
+              if (!passenger.ancillaries.secondBag.ancillaryNumber) {
+                passenger.ancillaries.secondBag.ancillaryNumber = generateAncillaryNumber();
+              }
+            } else if (itemType === 'thirdBag') {
+              if (!passenger.ancillaries.thirdBag) {
+                passenger.ancillaries.thirdBag = {
+                  status: 'Paid',
+                  price: 0,
+                  weight: 0,
+                  bagType: 'Checked'
+                };
+              } else {
+                passenger.ancillaries.thirdBag.status = 'Paid';
+              }
+              // Generate ancillary number if not already exists
+              if (!passenger.ancillaries.thirdBag.ancillaryNumber) {
+                passenger.ancillaries.thirdBag.ancillaryNumber = generateAncillaryNumber();
+              }
+            } else if (itemType === 'uatp') {
+              if (!passenger.ancillaries.uatp) {
+                passenger.ancillaries.uatp = {
+                  status: 'Paid',
+                  price: 0,
+                  uatpNumber: ''
+                };
+              } else {
+                passenger.ancillaries.uatp.status = 'Paid';
+              }
+              // Generate ancillary number if not already exists
+              if (!passenger.ancillaries.uatp.ancillaryNumber) {
+                passenger.ancillaries.uatp.ancillaryNumber = generateAncillaryNumber();
+              }
             }
           }
         });
@@ -178,6 +253,54 @@ export default function PaymentPortal() {
     }
   };
 
+  // Function to ensure all ancillaries exist in passenger data
+  const ensureAncillariesExist = (reservation: Reservation): Reservation => {
+    const updatedReservation = { ...reservation };
+    
+    updatedReservation.passengers = updatedReservation.passengers.map(passenger => {
+      const updatedPassenger = { ...passenger };
+      
+      // Ensure ancillaries object exists
+      if (!updatedPassenger.ancillaries) {
+        updatedPassenger.ancillaries = {
+          seat: { status: 'Unpaid', price: 0 },
+          bag: { status: 'Unpaid', price: 0 }
+        };
+      }
+      
+      // Add missing ancillaries with default values (only if they don't exist)
+      if (!updatedPassenger.ancillaries.secondBag) {
+        updatedPassenger.ancillaries.secondBag = {
+          status: 'Unpaid',
+          price: 100,
+          weight: 25,
+          bagType: 'Checked'
+        };
+      }
+      
+      if (!updatedPassenger.ancillaries.thirdBag) {
+        updatedPassenger.ancillaries.thirdBag = {
+          status: 'Unpaid',
+          price: 120,
+          weight: 30,
+          bagType: 'Checked'
+        };
+      }
+      
+      if (!updatedPassenger.ancillaries.uatp) {
+        updatedPassenger.ancillaries.uatp = {
+          status: 'Unpaid',
+          price: 200,
+          uatpNumber: 'UATP123456'
+        };
+      }
+      
+      return updatedPassenger;
+    });
+    
+    return updatedReservation;
+  };
+
   // Handle reservation loading
   const handleLoadReservation = async () => {
     if (!reservationCode.trim()) {
@@ -188,7 +311,9 @@ export default function PaymentPortal() {
     try {
       const reservation = await getReservationByCode(reservationCode.trim());
       if (reservation) {
-        setCurrentReservation(reservation);
+        // Ensure all ancillaries exist in the loaded reservation
+        const updatedReservation = ensureAncillariesExist(reservation);
+        setCurrentReservation(updatedReservation);
       } else {
         alert('Reservation not found');
       }
@@ -214,114 +339,139 @@ export default function PaymentPortal() {
       };
       const newCode = generateReservationCode();
       
-      // Create new reservation with 3+ passengers
+      // Create new reservation with selected number of passengers
+      const createPassenger = (id: number, name: string) => {
+        // Random status generator (70% chance for Unpaid, 30% for Paid)
+        // But items with price 0 are always Paid
+        const getRandomStatus = (price: number = 1) => {
+          if (price === 0) return 'Paid' as const;
+          return Math.random() < 0.7 ? 'Unpaid' as const : 'Paid' as const;
+        };
+        
+        // Random seat type
+        const seatTypes = ['Standard', 'Premium', 'Business'] as const;
+        const randomSeatType = seatTypes[Math.floor(Math.random() * seatTypes.length)];
+        
+        // Random bag type
+        const bagTypes = ['Carry-on', 'Checked'] as const;
+        const randomBagType = bagTypes[Math.floor(Math.random() * bagTypes.length)];
+        
+        // Random prices - each passenger gets different combinations
+        const ticketPrice = 350 + Math.floor(Math.random() * 200); // 350-550
+        
+        // Seat - 80% chance to have a seat
+        const hasSeat = Math.random() < 0.8;
+        const seatPrice = hasSeat ? (randomSeatType === 'Standard' ? 50 : randomSeatType === 'Premium' ? 75 : 100) : 0;
+        
+        // Bag - 70% chance to have a bag
+        const hasBag = Math.random() < 0.7;
+        const bagPrice = hasBag ? (randomBagType === 'Carry-on' ? 0 : 60 + Math.floor(Math.random() * 40)) : 0;
+        
+        // Second Bag - 40% chance
+        const hasSecondBag = Math.random() < 0.4;
+        const secondBagPrice = hasSecondBag ? 100 + Math.floor(Math.random() * 50) : 0;
+        
+        // Third Bag - 20% chance
+        const hasThirdBag = Math.random() < 0.2;
+        const thirdBagPrice = hasThirdBag ? 120 + Math.floor(Math.random() * 30) : 0;
+        
+        // UATP - 30% chance
+        const hasUatp = Math.random() < 0.3;
+        const uatpPrice = hasUatp ? 200 + Math.floor(Math.random() * 100) : 0;
+        
+        // Generate ancillary numbers for paid items
+        const generateAncillaryNumber = () => `114-8${Math.floor(Math.random() * 1000000000).toString().padStart(9, '0')}`;
+        
+        const seatStatus = getRandomStatus(seatPrice);
+        const bagStatus = getRandomStatus(bagPrice);
+        
+        const ancillaries: any = {};
+        
+        // Only add seat if passenger has one
+        if (hasSeat) {
+          ancillaries.seat = {
+            status: seatStatus,
+            price: seatPrice,
+            seatNumber: `${id}${String.fromCharCode(65 + Math.floor(Math.random() * 6))}`, // A-F
+            seatType: randomSeatType,
+            ...(seatStatus === 'Paid' && seatPrice > 0 && { ancillaryNumber: generateAncillaryNumber() })
+          };
+        }
+        
+        // Only add bag if passenger has one
+        if (hasBag) {
+          ancillaries.bag = {
+            status: bagStatus,
+            price: bagPrice,
+            bagType: randomBagType,
+            ...(randomBagType === 'Checked' && { weight: 20 + Math.floor(Math.random() * 15) }), // 20-35kg
+            ...(bagStatus === 'Paid' && bagPrice > 0 && { ancillaryNumber: generateAncillaryNumber() })
+          };
+        }
+        
+        // Add optional ancillaries based on random chance
+        if (hasSecondBag) {
+          const secondBagStatus = getRandomStatus(secondBagPrice);
+          ancillaries.secondBag = {
+            status: secondBagStatus,
+            price: secondBagPrice,
+            weight: 25 + Math.floor(Math.random() * 10), // 25-35kg
+            bagType: 'Checked' as const,
+            ...(secondBagStatus === 'Paid' && secondBagPrice > 0 && { ancillaryNumber: generateAncillaryNumber() })
+          };
+        }
+        
+        if (hasThirdBag) {
+          const thirdBagStatus = getRandomStatus(thirdBagPrice);
+          ancillaries.thirdBag = {
+            status: thirdBagStatus,
+            price: thirdBagPrice,
+            weight: 30 + Math.floor(Math.random() * 10), // 30-40kg
+            bagType: 'Checked' as const,
+            ...(thirdBagStatus === 'Paid' && thirdBagPrice > 0 && { ancillaryNumber: generateAncillaryNumber() })
+          };
+        }
+        
+        if (hasUatp) {
+          const uatpStatus = getRandomStatus(uatpPrice);
+          ancillaries.uatp = {
+            status: uatpStatus,
+            price: uatpPrice,
+            uatpNumber: `UATP${Math.floor(Math.random() * 1000000).toString().padStart(6, '0')}`,
+            ...(uatpStatus === 'Paid' && uatpPrice > 0 && { ancillaryNumber: generateAncillaryNumber() })
+          };
+        }
+        
+        const ticketStatus = getRandomStatus(ticketPrice);
+        
+        return {
+          id: id.toString(),
+          name,
+          ticket: {
+            status: ticketStatus,
+            price: ticketPrice,
+            flightNumber: 'AA123',
+            seatNumber: `${id}A`,
+            ...(ticketStatus === 'Paid' && ticketPrice > 0 && { ticketNumber: `114-2${Math.floor(Math.random() * 1000000000).toString().padStart(9, '0')}` })
+          },
+          ancillaries
+        };
+      };
+
+      const passengerNames = ['John Smith', 'Sarah Johnson', 'Michael Brown', 'Emily Davis', 'David Wilson', 'Lisa Anderson', 'Robert Taylor', 'Jennifer Martinez'];
+      
       const newReservation: Reservation = {
         id: `new-${Date.now()}`,
         reservationCode: newCode,
-        passengers: [
-          {
-            id: '1',
-            name: 'John Smith',
-            ticket: {
-              status: 'Unpaid',
-              price: 450,
-              flightNumber: 'AA123',
-              seatNumber: '12A'
-            },
-            ancillaries: {
-              seat: {
-                status: 'Paid',
-                price: 50,
-                seatNumber: '12A',
-                seatType: 'Standard'
-              },
-              bag: {
-                status: 'Unpaid',
-                price: 75,
-                weight: 23,
-                bagType: 'Checked'
-              }
-            }
-          },
-          {
-            id: '2',
-            name: 'Sarah Johnson',
-            ticket: {
-              status: 'Paid',
-              price: 380,
-              flightNumber: 'AA123',
-              seatNumber: '12B'
-            },
-            ancillaries: {
-              seat: {
-                status: 'Unpaid',
-                price: 75,
-                seatNumber: '12B',
-                seatType: 'Premium'
-              },
-              bag: {
-                status: 'Paid',
-                price: 60,
-                weight: 20,
-                bagType: 'Checked'
-              }
-            }
-          },
-          {
-            id: '3',
-            name: 'Michael Brown',
-            ticket: {
-              status: 'Unpaid',
-              price: 520,
-              flightNumber: 'AA123',
-              seatNumber: '12C'
-            },
-            ancillaries: {
-              seat: {
-                status: 'Unpaid',
-                price: 100,
-                seatNumber: '12C',
-                seatType: 'Business'
-              },
-              bag: {
-                status: 'Unpaid',
-                price: 80,
-                weight: 25,
-                bagType: 'Checked'
-              }
-            }
-          },
-          {
-            id: '4',
-            name: 'Emily Davis',
-            ticket: {
-              status: 'Unpaid',
-              price: 420,
-              flightNumber: 'AA123',
-              seatNumber: '12D'
-            },
-            ancillaries: {
-              seat: {
-                status: 'Unpaid',
-                price: 50,
-                seatNumber: '12D',
-                seatType: 'Standard'
-              },
-              bag: {
-                status: 'Unpaid',
-                price: 0,
-                weight: 0,
-                bagType: 'Carry-on'
-              }
-            }
-          }
-        ],
+        passengers: Array.from({ length: passengerCount }, (_, i) => 
+          createPassenger(i + 1, passengerNames[i] || `Passenger ${i + 1}`)
+        ),
         total: 0, // Will be calculated
-        status: 'Active',
+        status: 'Active' as const,
         createdAt: new Date(),
+        updatedAt: new Date(),
         createdBy: 'system',
         lastModifiedBy: 'system',
-        updatedAt: new Date(),
         metadata: {
           source: 'Manual',
           notes: 'New reservation created via portal',
@@ -331,17 +481,38 @@ export default function PaymentPortal() {
 
       // Calculate total
       newReservation.total = newReservation.passengers.reduce((sum, passenger) => {
-        return sum + passenger.ticket.price + passenger.ancillaries.seat.price + passenger.ancillaries.bag.price;
+        let passengerTotal = passenger.ticket.price;
+        
+        // Add seat price if exists
+        if (passenger.ancillaries.seat) {
+          passengerTotal += passenger.ancillaries.seat.price;
+        }
+        
+        // Add bag price if exists
+        if (passenger.ancillaries.bag) {
+          passengerTotal += passenger.ancillaries.bag.price;
+        }
+        
+        // Add second bag price if exists
+        if (passenger.ancillaries.secondBag) {
+          passengerTotal += passenger.ancillaries.secondBag.price;
+        }
+        
+        // Add third bag price if exists
+        if (passenger.ancillaries.thirdBag) {
+          passengerTotal += passenger.ancillaries.thirdBag.price;
+        }
+        
+        // Add UATP price if exists
+        if (passenger.ancillaries.uatp) {
+          passengerTotal += passenger.ancillaries.uatp.price;
+        }
+        
+        return sum + passengerTotal;
       }, 0);
 
       // Clean data before saving to prevent undefined values
-      const cleanedReservation = {
-        ...newReservation,
-        createdBy: newReservation.createdBy || 'system',
-        lastModifiedBy: newReservation.lastModifiedBy || 'system',
-        createdAt: newReservation.createdAt || new Date(),
-        updatedAt: newReservation.updatedAt || new Date()
-      };
+      const cleanedReservation = cleanDataForFirebase(newReservation);
 
       // Save to database
       const { ReservationService } = await import('../lib/reservationService');
@@ -366,7 +537,6 @@ export default function PaymentPortal() {
       setItemExpandedMethod({});
       setActivePaymentPassenger('');
       
-      alert(`New reservation created: ${newCode}`);
     } catch (error) {
       console.error('Error creating reservation:', error);
       alert('Failed to create new reservation');
@@ -414,15 +584,19 @@ export default function PaymentPortal() {
 
 
 
-  const reservation: Reservation = currentReservation || MOCK_RESERVATION;
+  const reservation: Reservation = currentReservation ? ensureAncillariesExist(currentReservation) : ensureAncillariesExist(MOCK_RESERVATION);
+  
   // Passenger data from reservation structure, sorted by payment status
-  const availablePassengers: Passenger[] = reservation.passengers
+  const availablePassengers = reservation.passengers
     .map((passenger, index) => ({
       id: (index + 1).toString(),
       fullName: passenger.name,
-      hasUnpaidItems: passenger.ticket.status !== 'Paid' || 
-                     passenger.ancillaries.seat.status !== 'Paid' || 
-                     passenger.ancillaries.bag.status !== 'Paid'
+      hasUnpaidItems: !!(passenger.ticket.status !== 'Paid' || 
+                     (passenger.ancillaries.seat && passenger.ancillaries.seat.status !== 'Paid') || 
+                     (passenger.ancillaries.bag && passenger.ancillaries.bag.status !== 'Paid') ||
+                     (passenger.ancillaries.secondBag && passenger.ancillaries.secondBag.status !== 'Paid') ||
+                     (passenger.ancillaries.thirdBag && passenger.ancillaries.thirdBag.status !== 'Paid') ||
+                     (passenger.ancillaries.uatp && passenger.ancillaries.uatp.status !== 'Paid'))
     }))
     .sort((a, b) => {
       // Passengers with unpaid items first, then fully paid passengers
@@ -502,12 +676,12 @@ export default function PaymentPortal() {
       let passengerTotal = 0;
       
       // Only count seat price if seat is selected and not paid
-      if (selectedPassengerItems.includes('seat') && passenger.ancillaries.seat.status !== 'Paid') {
+      if (selectedPassengerItems.includes('seat') && passenger.ancillaries.seat && passenger.ancillaries.seat.status !== 'Paid') {
         passengerTotal += passenger.ancillaries.seat.price;
       }
       
       // Only count bag price if bag is selected and not paid
-      if (selectedPassengerItems.includes('bag') && passenger.ancillaries.bag.status !== 'Paid') {
+      if (selectedPassengerItems.includes('bag') && passenger.ancillaries.bag && passenger.ancillaries.bag.status !== 'Paid') {
         passengerTotal += passenger.ancillaries.bag.price;
       }
       
@@ -535,18 +709,22 @@ export default function PaymentPortal() {
         dbStatus = passenger.ticket.status;
       itemPrice = passenger.ticket.price;
     } else if (itemType === 'seat') {
-        dbStatus = passenger.ancillaries.seat.status;
-      itemPrice = passenger.ancillaries.seat.price;
+        dbStatus = passenger.ancillaries.seat?.status || 'Unpaid';
+      itemPrice = passenger.ancillaries.seat?.price || 0;
     } else if (itemType === 'bag') {
-        dbStatus = passenger.ancillaries.bag.status;
-      itemPrice = passenger.ancillaries.bag.price;
+        dbStatus = passenger.ancillaries.bag?.status || 'Unpaid';
+      itemPrice = passenger.ancillaries.bag?.price || 0;
+    } else if (itemType === 'secondBag') {
+        dbStatus = passenger.ancillaries.secondBag?.status || 'Unpaid';
+      itemPrice = passenger.ancillaries.secondBag?.price || 0;
+    } else if (itemType === 'thirdBag') {
+        dbStatus = passenger.ancillaries.thirdBag?.status || 'Unpaid';
+      itemPrice = passenger.ancillaries.thirdBag?.price || 0;
+    } else if (itemType === 'uatp') {
+        dbStatus = passenger.ancillaries.uatp?.status || 'Unpaid';
+      itemPrice = passenger.ancillaries.uatp?.price || 0;
     }
     
-      
-      // If item has price 0, consider it fully paid regardless of status
-      if (itemPrice === 0) {
-        return true;
-      }
       
       // If marked as paid in database, consider it fully paid
       if (dbStatus === 'Paid') {
@@ -722,6 +900,44 @@ export default function PaymentPortal() {
     return isPaymentMethodComplete(itemKey, method, methodIndex, itemPaymentMethods);
   };
 
+  // Get generated number for an item (ticket number or ancillary number)
+  const getGeneratedNumber = (itemKey: string): string | null => {
+    const [passengerId, itemType] = itemKey.split('-');
+    const passengerIndex = resolvePassengerIndex(passengerId);
+    const passenger = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
+    
+    if (!passenger) return null;
+    
+    if (itemType === 'ticket') {
+      return passenger.ticket.ticketNumber || null;
+    } else if (itemType === 'seat') {
+      return passenger.ancillaries.seat.ancillaryNumber || null;
+    } else if (itemType === 'bag') {
+      return passenger.ancillaries.bag.ancillaryNumber || null;
+    } else if (itemType === 'secondBag') {
+      return passenger.ancillaries.secondBag?.ancillaryNumber || null;
+    } else if (itemType === 'thirdBag') {
+      return passenger.ancillaries.thirdBag?.ancillaryNumber || null;
+    } else if (itemType === 'uatp') {
+      return passenger.ancillaries.uatp?.ancillaryNumber || null;
+    }
+    
+    return null;
+  };
+
+  // Copy to clipboard function
+  const copyToClipboard = async (text: string, type: string = 'number') => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setToastMessage(`${type} copied to clipboard!`);
+      setToastOpen(true);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+      setToastMessage('Failed to copy to clipboard');
+      setToastOpen(true);
+    }
+  };
+
   // Calculate payment progress
   const paymentProgress = useMemo(() => {
     if (total === 0) return 0;
@@ -838,6 +1054,35 @@ export default function PaymentPortal() {
   // togglePassenger is now imported from utils/passengerLogic
   const togglePassenger = (passengerId: string) => {
     togglePassengerUtil(passengerId, selectedPassengers, setSelectedPassengers);
+    // Auto-select all unpaid items for this passenger
+    const passengerIndex = resolvePassengerIndex(passengerId);
+    const passengerData = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
+    if (!passengerData) return;
+
+    const itemsToSelect: string[] = [];
+    if (passengerData.ticket.status !== 'Paid') itemsToSelect.push('ticket');
+    if (passengerData.ancillaries.seat && passengerData.ancillaries.seat.status !== 'Paid') itemsToSelect.push('seat');
+    if (passengerData.ancillaries.bag && passengerData.ancillaries.bag.status !== 'Paid') itemsToSelect.push('bag');
+    if (passengerData.ancillaries.secondBag && passengerData.ancillaries.secondBag.status !== 'Paid') itemsToSelect.push('secondBag');
+    if (passengerData.ancillaries.thirdBag && passengerData.ancillaries.thirdBag.status !== 'Paid') itemsToSelect.push('thirdBag');
+    if (passengerData.ancillaries.uatp && passengerData.ancillaries.uatp.status !== 'Paid') itemsToSelect.push('uatp');
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[DEBUG] togglePassenger -> passengerId:', passengerId);
+      console.log('[DEBUG] togglePassenger -> itemsToSelect:', itemsToSelect);
+    }
+
+    setSelectedItems(prev => ({
+      ...prev,
+      [passengerId]: itemsToSelect
+    }));
+
+    // Ensure the Payment Methods section shows this passenger's items
+    setActivePaymentPassenger(passengerId);
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[DEBUG] setActivePaymentPassenger:', passengerId);
+    }
   };
 
   // toggleExpanded is now imported from utils/passengerLogic
@@ -848,6 +1093,9 @@ export default function PaymentPortal() {
   // toggleItem is now imported from utils/passengerLogic
   const toggleItem = (passengerId: string, itemType: string) => {
     toggleItemUtil(passengerId, itemType, selectedItems, selectedPassengers, setSelectedItems, setSelectedPassengers);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[DEBUG] toggleItem ->', { passengerId, itemType });
+    }
     
     // Additional logic for payment methods cleanup
     const passengerItems = selectedItems[passengerId] || [];
@@ -898,8 +1146,11 @@ export default function PaymentPortal() {
     
     const unpaidItems: string[] = [];
     if (passengerData.ticket.status !== 'Paid') unpaidItems.push('ticket');
-    if (passengerData.ancillaries.seat.status !== 'Paid') unpaidItems.push('seat');
-    if (passengerData.ancillaries.bag.status !== 'Paid') unpaidItems.push('bag');
+    if (passengerData.ancillaries.seat && passengerData.ancillaries.seat.status !== 'Paid') unpaidItems.push('seat');
+    if (passengerData.ancillaries.bag && passengerData.ancillaries.bag.status !== 'Paid') unpaidItems.push('bag');
+    if (passengerData.ancillaries.secondBag && passengerData.ancillaries.secondBag.status !== 'Paid') unpaidItems.push('secondBag');
+    if (passengerData.ancillaries.thirdBag && passengerData.ancillaries.thirdBag.status !== 'Paid') unpaidItems.push('thirdBag');
+    if (passengerData.ancillaries.uatp && passengerData.ancillaries.uatp.status !== 'Paid') unpaidItems.push('uatp');
 
     const current = selectedItems[passengerId] || [];
       const allSelected = unpaidItems.every(item => current.includes(item));
@@ -943,7 +1194,9 @@ export default function PaymentPortal() {
         const idx = resolvePassengerIndex(pid);
         const p = idx >= 0 ? reservation.passengers[idx] : undefined;
         if (!p) return false;
-        const hasUnpaid = p.ticket.status !== 'Paid' || p.ancillaries.seat.status !== 'Paid' || p.ancillaries.bag.status !== 'Paid';
+        const hasUnpaid = p.ticket.status !== 'Paid' || 
+                          (p.ancillaries.seat && p.ancillaries.seat.status !== 'Paid') || 
+                          (p.ancillaries.bag && p.ancillaries.bag.status !== 'Paid');
         return hasUnpaid;
       })
       .map(([pid]) => pid);
@@ -983,21 +1236,21 @@ export default function PaymentPortal() {
           itemPrice = passenger.ticket.price;
           dbStatus = passenger.ticket.status;
         } else if (itemType === 'seat') {
-          itemPrice = passenger.ancillaries.seat.price;
-          dbStatus = passenger.ancillaries.seat.status;
+          itemPrice = passenger.ancillaries.seat?.price || 0;
+          dbStatus = passenger.ancillaries.seat?.status || 'Unpaid';
         } else if (itemType === 'bag') {
-          itemPrice = passenger.ancillaries.bag.price;
-          dbStatus = passenger.ancillaries.bag.status;
+          itemPrice = passenger.ancillaries.bag?.price || 0;
+          dbStatus = passenger.ancillaries.bag?.status || 'Unpaid';
+        } else if (itemType === 'secondBag') {
+          itemPrice = passenger.ancillaries.secondBag?.price || 0;
+          dbStatus = passenger.ancillaries.secondBag?.status || 'Unpaid';
+        } else if (itemType === 'thirdBag') {
+          itemPrice = passenger.ancillaries.thirdBag?.price || 0;
+          dbStatus = passenger.ancillaries.thirdBag?.status || 'Unpaid';
+        } else if (itemType === 'uatp') {
+          itemPrice = passenger.ancillaries.uatp?.price || 0;
+          dbStatus = passenger.ancillaries.uatp?.status || 'Unpaid';
         }
-
-    // If item has price 0, return fully paid regardless of status
-    if (itemPrice === 0) {
-      return {
-        total: 0,
-        paid: 0,
-        remaining: 0
-      };
-    }
 
     // If marked as paid in database, return fully paid
     if (dbStatus === 'Paid') {
@@ -1051,6 +1304,15 @@ export default function PaymentPortal() {
         } else if (itemType === 'bag') {
           itemName = 'Baggage';
           amount = passengerData.ancillaries.bag.price;
+        } else if (itemType === 'secondBag') {
+          itemName = 'Second Bag';
+          amount = passengerData.ancillaries.secondBag?.price || 0;
+        } else if (itemType === 'thirdBag') {
+          itemName = 'Third Bag';
+          amount = passengerData.ancillaries.thirdBag?.price || 0;
+        } else if (itemType === 'uatp') {
+          itemName = 'UATP';
+          amount = passengerData.ancillaries.uatp?.price || 0;
         }
         
         selectedItemsDetails.push({
@@ -1091,6 +1353,26 @@ export default function PaymentPortal() {
                 Created: {newReservationCode}
               </Typography>
             )}
+            <FormControl size="small" sx={{ minWidth: 80 }}>
+              <InputLabel>Passengers</InputLabel>
+              <Select
+                value={passengerCount}
+                label="Passengers"
+                onChange={(e) => setPassengerCount(Number(e.target.value))}
+                sx={{ 
+                  '& .MuiSelect-select': { 
+                    padding: '8px 14px',
+                    fontSize: '0.875rem'
+                  }
+                }}
+              >
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((count) => (
+                  <MenuItem key={count} value={count}>
+                    {count} {count === 1 ? 'Passenger' : 'Passengers'}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
             <Button
               variant="contained"
               color="primary"
@@ -1142,8 +1424,11 @@ export default function PaymentPortal() {
                       // Check if all unpaid items for this passenger are selected
                       const unpaidItems = [];
                       if (passengerData.ticket.status !== 'Paid') unpaidItems.push('ticket');
-                      if (passengerData.ancillaries.seat.status !== 'Paid') unpaidItems.push('seat');
-                      if (passengerData.ancillaries.bag.status !== 'Paid') unpaidItems.push('bag');
+                      if (passengerData.ancillaries.seat && passengerData.ancillaries.seat.status !== 'Paid') unpaidItems.push('seat');
+                      if (passengerData.ancillaries.bag && passengerData.ancillaries.bag.status !== 'Paid') unpaidItems.push('bag');
+                      if (passengerData.ancillaries.secondBag && passengerData.ancillaries.secondBag.status !== 'Paid') unpaidItems.push('secondBag');
+                      if (passengerData.ancillaries.thirdBag && passengerData.ancillaries.thirdBag.status !== 'Paid') unpaidItems.push('thirdBag');
+                      if (passengerData.ancillaries.uatp && passengerData.ancillaries.uatp.status !== 'Paid') unpaidItems.push('uatp');
                       
                       return unpaidItems.every(item => passengerItems.includes(item));
                     });
@@ -1161,8 +1446,11 @@ export default function PaymentPortal() {
                         const itemsToSelect = [];
                         
                         if (passengerData.ticket.status !== 'Paid') itemsToSelect.push('ticket');
-                        if (passengerData.ancillaries.seat.status !== 'Paid') itemsToSelect.push('seat');
-                        if (passengerData.ancillaries.bag.status !== 'Paid') itemsToSelect.push('bag');
+                        if (passengerData.ancillaries.seat && passengerData.ancillaries.seat.status !== 'Paid') itemsToSelect.push('seat');
+                        if (passengerData.ancillaries.bag && passengerData.ancillaries.bag.status !== 'Paid') itemsToSelect.push('bag');
+                        if (passengerData.ancillaries.secondBag && passengerData.ancillaries.secondBag.status !== 'Paid') itemsToSelect.push('secondBag');
+                        if (passengerData.ancillaries.thirdBag && passengerData.ancillaries.thirdBag.status !== 'Paid') itemsToSelect.push('thirdBag');
+                        if (passengerData.ancillaries.uatp && passengerData.ancillaries.uatp.status !== 'Paid') itemsToSelect.push('uatp');
                         
                         if (itemsToSelect.length > 0) {
                           newSelectedItems[passenger.id] = itemsToSelect;
@@ -1181,8 +1469,11 @@ export default function PaymentPortal() {
                       
                       const unpaidItems = [];
                       if (passengerData.ticket.status !== 'Paid') unpaidItems.push('ticket');
-                      if (passengerData.ancillaries.seat.status !== 'Paid') unpaidItems.push('seat');
-                      if (passengerData.ancillaries.bag.status !== 'Paid') unpaidItems.push('bag');
+                      if (passengerData.ancillaries.seat && passengerData.ancillaries.seat.status !== 'Paid') unpaidItems.push('seat');
+                      if (passengerData.ancillaries.bag && passengerData.ancillaries.bag.status !== 'Paid') unpaidItems.push('bag');
+                      if (passengerData.ancillaries.secondBag && passengerData.ancillaries.secondBag.status !== 'Paid') unpaidItems.push('secondBag');
+                      if (passengerData.ancillaries.thirdBag && passengerData.ancillaries.thirdBag.status !== 'Paid') unpaidItems.push('thirdBag');
+                      if (passengerData.ancillaries.uatp && passengerData.ancillaries.uatp.status !== 'Paid') unpaidItems.push('uatp');
                       
                       return unpaidItems.every(item => passengerItems.includes(item));
                     });
@@ -1197,429 +1488,18 @@ export default function PaymentPortal() {
                     const isExpanded = expandedPassengers.includes(passenger.id);
                     
                     return (
-                      <Paper
+                      <PassengerCard
                         key={passenger.id}
-                        elevation={2}
-                        sx={{
-                          mb: 1.5,
-                          border: 1,
-                          borderColor: 'grey.300',
-                          overflow: 'hidden'
-                        }}
-                      >
-                        {/* Passenger Header */}
-                        <Box
-                          sx={{
-                            p: 1.5,
-                            cursor: passenger.hasUnpaidItems ? 'pointer' : 'not-allowed',
-                            bgcolor: (() => {
-                              if (!passenger.hasUnpaidItems) return 'grey.100';
-                              // Keep header background neutral (no blue) regardless of selection
-                              return 'white';
-                            })(),
-                            color: (() => {
-                              if (!passenger.hasUnpaidItems) return 'grey.500';
-                              // Keep default text color; no forced white text
-                              return 'inherit';
-                            })(),
-                            opacity: passenger.hasUnpaidItems ? 1 : 0.6,
-                            transition: 'all 0.2s',
-                            '&:hover': {
-                              bgcolor: (() => {
-                                if (!passenger.hasUnpaidItems) return 'grey.100';
-                                return 'grey.50';
-                              })()
-                            }
-                          }}
-                          onClick={() => {
-                            if (passenger.hasUnpaidItems) {
-                              togglePassenger(passenger.id);
-                            }
-                          }}
-                        >
-                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-                              <PersonIcon sx={{ mr: 1 }} />
-                              <Typography 
-                                variant="body1" 
-                                sx={{ fontWeight: 'medium', mr: 2, cursor: 'pointer', userSelect: 'none' }}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (passenger.hasUnpaidItems) {
-                                    toggleAllItemsForPassenger(passenger.id);
-                                  }
-                                }}
-                                title="Select/Deselect all items for this passenger"
-                              >
-                                {passenger.fullName}
-                              </Typography>
-                              
-                              {/* Product Icons - Show all items, gray out unselected, clickable */}
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, ml: 'auto' }}>
-                                {/* Flight Ticket Icon */}
-                                <Box
-                                  sx={{
-                                    position: 'relative',
-                                    cursor: passengerData.ticket.status === 'Paid' ? 'not-allowed' : 'pointer',
-                                    transition: 'all 0.2s',
-                                    '&:hover': {
-                                      transform: passengerData.ticket.status === 'Paid' ? 'none' : 'scale(1.1)'
-                                    }
-                                  }}
-                                  title={passengerData.ticket.status === 'Paid' ? 'Flight Ticket Already Paid' : (isItemSelected(passenger.id, 'ticket') ? 'Click to deselect Flight Ticket' : 'Click to select Flight Ticket')}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (passengerData.ticket.status !== 'Paid') {
-                                      toggleItem(passenger.id, 'ticket');
-                                    }
-                                  }}
-                                >
-                                  <FlightIcon
-                                    sx={{
-                                      fontSize: 20,
-                                      color: (() => {
-                                        if (passengerData.ticket.status === 'Paid') return 'grey.500';
-                                        return isItemSelected(passenger.id, 'ticket') ? 'success.main' : 'success.main';
-                                      })(),
-                                      opacity: passengerData.ticket.status === 'Paid' ? 0.3 : 1,
-                                      zIndex: 2,
-                                      position: 'relative'
-                                    }}
-                                  />
-                                  {/* Background circle only when selected */}
-                                  {isItemSelected(passenger.id, 'ticket') && (
-                                    <Box
-                                      sx={{
-                                        position: 'absolute',
-                                        top: '50%',
-                                        left: '50%',
-                                        transform: 'translate(-50%, -50%)',
-                                        width: 28,
-                                        height: 28,
-                                        borderRadius: '50%',
-                                        border: '2px solid',
-                                        borderColor: 'success.main',
-                                        zIndex: 0
-                                      }}
-                                    />
-                                  )}
-                                </Box>
-                                
-                                {/* Seat Icon */}
-                                <Box
-                                  sx={{
-                                    position: 'relative',
-                                    cursor: passengerData.ancillaries.seat.status === 'Paid' ? 'not-allowed' : 'pointer',
-                                    transition: 'all 0.2s',
-                                    '&:hover': {
-                                      transform: passengerData.ancillaries.seat.status === 'Paid' ? 'none' : 'scale(1.1)'
-                                    }
-                                  }}
-                                  title={passengerData.ancillaries.seat.status === 'Paid' ? 'Seat Already Paid' : (isItemSelected(passenger.id, 'seat') ? 'Click to deselect Seat' : 'Click to select Seat')}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (passengerData.ancillaries.seat.status !== 'Paid') {
-                                      toggleItem(passenger.id, 'seat');
-                                    }
-                                  }}
-                                >
-                                  <SeatIcon
-                                    sx={{
-                                      fontSize: 20,
-                                      color: (() => {
-                                        if (passengerData.ancillaries.seat.status === 'Paid') return 'grey.500';
-                                        return isItemSelected(passenger.id, 'seat') ? 'info.main' : 'info.main';
-                                      })(),
-                                      opacity: passengerData.ancillaries.seat.status === 'Paid' ? 0.3 : 1,
-                                      zIndex: 2,
-                                      position: 'relative'
-                                    }}
-                                  />
-                                  {/* Background circle only when selected */}
-                                  {isItemSelected(passenger.id, 'seat') && (
-                                    <Box
-                                      sx={{
-                                        position: 'absolute',
-                                        top: '50%',
-                                        left: '50%',
-                                        transform: 'translate(-50%, -50%)',
-                                        width: 28,
-                                        height: 28,
-                                        borderRadius: '50%',
-                                        border: '2px solid',
-                                        borderColor: 'info.main',
-                                        zIndex: 0
-                                      }}
-                                    />
-                                  )}
-                                </Box>
-                                
-                                {/* Baggage Icon */}
-                                <Box
-                                  sx={{
-                                    position: 'relative',
-                                    cursor: passengerData.ancillaries.bag.status === 'Paid' || passengerData.ancillaries.bag.price === 0 ? 'not-allowed' : 'pointer',
-                                    transition: 'all 0.2s',
-                                    '&:hover': {
-                                      transform: passengerData.ancillaries.bag.status === 'Paid' || passengerData.ancillaries.bag.price === 0 ? 'none' : 'scale(1.1)'
-                                    }
-                                  }}
-                                  title={passengerData.ancillaries.bag.status === 'Paid' || passengerData.ancillaries.bag.price === 0 ? 'Baggage Already Paid' : (isItemSelected(passenger.id, 'bag') ? 'Click to deselect Baggage' : 'Click to select Baggage')}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (passengerData.ancillaries.bag.status !== 'Paid' && passengerData.ancillaries.bag.price !== 0) {
-                                      toggleItem(passenger.id, 'bag');
-                                    }
-                                  }}
-                                >
-                                  <BagIcon
-                                    sx={{
-                                      fontSize: 20,
-                                      color: (() => {
-                                        if (passengerData.ancillaries.bag.status === 'Paid' || passengerData.ancillaries.bag.price === 0) return 'grey.500';
-                                        return isItemSelected(passenger.id, 'bag') ? 'warning.main' : 'warning.main';
-                                      })(),
-                                      opacity: passengerData.ancillaries.bag.status === 'Paid' || passengerData.ancillaries.bag.price === 0 ? 0.3 : 1,
-                                      zIndex: 2,
-                                      position: 'relative'
-                                    }}
-                                  />
-                                  {/* Background circle only when selected */}
-                                  {isItemSelected(passenger.id, 'bag') && (
-                                    <Box
-                                      sx={{
-                                        position: 'absolute',
-                                        top: '50%',
-                                        left: '50%',
-                                        transform: 'translate(-50%, -50%)',
-                                        width: 28,
-                                        height: 28,
-                                        borderRadius: '50%',
-                                        border: '2px solid',
-                                        borderColor: 'warning.main',
-                                        zIndex: 0
-                                      }}
-                                    />
-                                  )}
-                                </Box>
-                              </Box>
-                            </Box>
-                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                              <IconButton
-                                size="small"
-                                disabled={!passenger.hasUnpaidItems}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (passenger.hasUnpaidItems) {
-                                    toggleExpanded(passenger.id);
-                                  }
-                                }}
-                                sx={{
-                                  opacity: passenger.hasUnpaidItems ? 1 : 0.3,
-                                  color: passenger.hasUnpaidItems ? 'inherit' : 'grey.500'
-                                }}
-                              >
-                                {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                              </IconButton>
-                            </Box>
-                          </Box>
-                        </Box>
-
-                        {/* Expanded Content */}
-                        {isExpanded && (
-                          <Box sx={{ p: 1.5, bgcolor: 'grey.50' }}>
-                            {/* Flight Ticket */}
-                            <Paper
-                              sx={{
-                                p: 1,
-                                mb: 0.5,
-                                cursor: passengerData.ticket.status === 'Paid' ? 'not-allowed' : 'pointer',
-                                border: 1,
-                                borderColor: (() => {
-                                  if (passengerData.ticket.status === 'Paid') return 'grey.400';
-                                  return isItemSelected(passenger.id, 'ticket') ? 'success.main' : 'grey.300';
-                                })(),
-                                bgcolor: (() => {
-                                  if (passengerData.ticket.status === 'Paid') return 'grey.100';
-                                  return isItemSelected(passenger.id, 'ticket') ? 'success.light' : 'white';
-                                })(),
-                                opacity: passengerData.ticket.status === 'Paid' ? 0.6 : 1,
-                                transition: 'all 0.2s',
-                                '&:hover': {
-                                  borderColor: passengerData.ticket.status === 'Paid' ? 'grey.400' : 'success.main',
-                                  bgcolor: passengerData.ticket.status === 'Paid' ? 'grey.100' : (isItemSelected(passenger.id, 'ticket') ? 'success.main' : 'success.light')
-                                }
-                              }}
-                              onClick={() => {
-                                if (passengerData.ticket.status !== 'Paid') {
-                                  toggleItem(passenger.id, 'ticket');
-                                }
-                              }}
-                            >
-                              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-                                  <FlightIcon sx={{ mr: 1, color: passengerData.ticket.status === 'Paid' ? 'grey.500' : 'primary.main', fontSize: 18 }} />
-                                  <Box sx={{ flex: 1 }}>
-                                    <Typography variant="body2" sx={{ fontWeight: 'medium', fontSize: '0.875rem' }}>
-                                      Flight Ticket
-                                    </Typography>
-                                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                                      {passengerData.ticket.flightNumber || 'N/A'}
-                                    </Typography>
-                                  </Box>
-                                </Box>
-                                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
-                                  <Typography variant="caption" sx={{ 
-                                    color: passengerData.ticket.status === 'Paid' ? 'success.main' : 'warning.main',
-                                    fontWeight: 'medium',
-                                    fontSize: '0.75rem'
-                                  }}>
-                                    {passengerData.ticket.status}
-                                  </Typography>
-                                  <Typography variant="body2" sx={{ 
-                                    fontWeight: 'bold',
-                                    fontSize: '0.875rem',
-                                    color: 'primary.main'
-                                  }}>
-                                    ${passengerData.ticket.price}
-                                  </Typography>
-                                  {isItemSelected(passenger.id, 'ticket') && (
-                                    <CheckIcon sx={{ color: 'success.main', fontSize: 16 }} />
-                                  )}
-                                </Box>
-                              </Box>
-                            </Paper>
-
-                            {/* Ancillaries */}
-                            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'medium' }}>
-                              Ancillaries:
-                            </Typography>
-                            
-                            {/* Seat */}
-                            <Paper
-                              sx={{
-                                p: 1,
-                                mb: 0.5,
-                                cursor: passengerData.ancillaries.seat.status === 'Paid' ? 'not-allowed' : 'pointer',
-                                border: 1,
-                                borderColor: (() => {
-                                  if (passengerData.ancillaries.seat.status === 'Paid') return 'grey.400';
-                                  return isItemSelected(passenger.id, 'seat') ? 'info.main' : 'grey.300';
-                                })(),
-                                bgcolor: (() => {
-                                  if (passengerData.ancillaries.seat.status === 'Paid') return 'grey.100';
-                                  return isItemSelected(passenger.id, 'seat') ? 'info.light' : 'white';
-                                })(),
-                                opacity: passengerData.ancillaries.seat.status === 'Paid' ? 0.6 : 1,
-                                transition: 'all 0.2s',
-                                '&:hover': {
-                                  borderColor: passengerData.ancillaries.seat.status === 'Paid' ? 'grey.400' : 'info.main',
-                                  bgcolor: passengerData.ancillaries.seat.status === 'Paid' ? 'grey.100' : (isItemSelected(passenger.id, 'seat') ? 'info.main' : 'info.light')
-                                }
-                              }}
-                              onClick={() => {
-                                if (passengerData.ancillaries.seat.status !== 'Paid') {
-                                  toggleItem(passenger.id, 'seat');
-                                }
-                              }}
-                            >
-                              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-                                  <SeatIcon sx={{ mr: 1, color: passengerData.ancillaries.seat.status === 'Paid' ? 'grey.500' : 'info.main', fontSize: 18 }} />
-                                  <Box sx={{ flex: 1 }}>
-                                    <Typography variant="body2" sx={{ fontWeight: 'medium', fontSize: '0.875rem' }}>
-                                      Seat Selection
-                                    </Typography>
-                                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                                      {passengerData.ancillaries.seat.seatNumber || 'N/A'}
-                                    </Typography>
-                                  </Box>
-                                </Box>
-                                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
-                                  <Typography variant="caption" sx={{ 
-                                    color: passengerData.ancillaries.seat.status === 'Paid' ? 'success.main' : 'warning.main',
-                                    fontWeight: 'medium',
-                                    fontSize: '0.75rem'
-                                  }}>
-                                    {passengerData.ancillaries.seat.status}
-                                  </Typography>
-                                  <Typography variant="body2" sx={{ 
-                                    fontWeight: 'bold',
-                                    fontSize: '0.875rem',
-                                    color: 'primary.main'
-                                  }}>
-                                    ${passengerData.ancillaries.seat.price}
-                                  </Typography>
-                                  {isItemSelected(passenger.id, 'seat') && (
-                                    <CheckIcon sx={{ color: 'info.main', fontSize: 16 }} />
-                                  )}
-                                </Box>
-                              </Box>
-                            </Paper>
-
-                            {/* Baggage */}
-                            <Paper
-                              sx={{
-                                p: 1,
-                                cursor: passengerData.ancillaries.bag.status === 'Paid' ? 'not-allowed' : 'pointer',
-                                border: 1,
-                                borderColor: (() => {
-                                  if (passengerData.ancillaries.bag.status === 'Paid') return 'grey.400';
-                                  return isItemSelected(passenger.id, 'bag') ? 'warning.main' : 'grey.300';
-                                })(),
-                                bgcolor: (() => {
-                                  if (passengerData.ancillaries.bag.status === 'Paid') return 'grey.100';
-                                  return isItemSelected(passenger.id, 'bag') ? 'warning.light' : 'white';
-                                })(),
-                                opacity: passengerData.ancillaries.bag.status === 'Paid' ? 0.6 : 1,
-                                transition: 'all 0.2s',
-                                '&:hover': {
-                                  borderColor: passengerData.ancillaries.bag.status === 'Paid' ? 'grey.400' : 'warning.main',
-                                  bgcolor: passengerData.ancillaries.bag.status === 'Paid' ? 'grey.100' : (isItemSelected(passenger.id, 'bag') ? 'warning.main' : 'warning.light')
-                                }
-                              }}
-                              onClick={() => {
-                                if (passengerData.ancillaries.bag.status !== 'Paid') {
-                                  toggleItem(passenger.id, 'bag');
-                                }
-                              }}
-                            >
-                              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-                                  <BagIcon sx={{ mr: 1, color: passengerData.ancillaries.bag.status === 'Paid' ? 'grey.500' : 'warning.main', fontSize: 18 }} />
-                                  <Box sx={{ flex: 1 }}>
-                                    <Typography variant="body2" sx={{ fontWeight: 'medium', fontSize: '0.875rem' }}>
-                                      Baggage
-                                    </Typography>
-                                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                                      {passengerData.ancillaries.bag.weight ? `${passengerData.ancillaries.bag.weight}kg` : 'N/A'}
-                                    </Typography>
-                                  </Box>
-                                </Box>
-                                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
-                                  <Typography variant="caption" sx={{ 
-                                    color: passengerData.ancillaries.bag.status === 'Paid' ? 'success.main' : 'warning.main',
-                                    fontWeight: 'medium',
-                                    fontSize: '0.75rem'
-                                  }}>
-                                    {passengerData.ancillaries.bag.status}
-                                  </Typography>
-                                  <Typography variant="body2" sx={{ 
-                                    fontWeight: 'bold',
-                                    fontSize: '0.875rem',
-                                    color: 'primary.main'
-                                  }}>
-                                    ${passengerData.ancillaries.bag.price}
-                                  </Typography>
-                                  {isItemSelected(passenger.id, 'bag') && (
-                                    <CheckIcon sx={{ color: 'warning.main', fontSize: 16 }} />
-                                  )}
-                                </Box>
-                              </Box>
-                            </Paper>
-                          </Box>
-                        )}
-                      </Paper>
+                        passenger={passengerData}
+                        passengerData={passengerData}
+                        isExpanded={isExpanded}
+                        isItemSelected={isItemSelected}
+                        togglePassenger={togglePassenger}
+                        toggleAllItemsForPassenger={toggleAllItemsForPassenger}
+                        toggleItem={toggleItem}
+                        toggleExpanded={toggleExpanded}
+                        copyToClipboard={copyToClipboard}
+                      />
                     );
                   })}
                 </Box>
@@ -1663,6 +1543,7 @@ export default function PaymentPortal() {
                   removeMethod={removeMethodWrapper}
                   toggleItem={toggleItem}
                   onCopyMethod={handleCopyMethod}
+                  getGeneratedNumber={getGeneratedNumber}
                 />
 
                 {/* No items selected message */}
@@ -1816,6 +1697,12 @@ export default function PaymentPortal() {
                         itemPrice = passenger.ancillaries.seat.price;
                       } else if (itemType === 'bag') {
                         itemPrice = passenger.ancillaries.bag.price;
+                      } else if (itemType === 'secondBag') {
+                        itemPrice = passenger.ancillaries.secondBag?.price || 0;
+                      } else if (itemType === 'thirdBag') {
+                        itemPrice = passenger.ancillaries.thirdBag?.price || 0;
+                      } else if (itemType === 'uatp') {
+                        itemPrice = passenger.ancillaries.uatp?.price || 0;
                       }
                       
                       return totalPaid < itemPrice;
@@ -1864,6 +1751,22 @@ export default function PaymentPortal() {
         getRemainingAmount={getRemainingAmount}
         selectedItems={selectedItems}
       />
+      
+      {/* Toast notification for copy to clipboard */}
+      <Snackbar
+        open={toastOpen}
+        autoHideDuration={3000}
+        onClose={() => setToastOpen(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={() => setToastOpen(false)} 
+          severity="success" 
+          sx={{ width: '100%' }}
+        >
+          {toastMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

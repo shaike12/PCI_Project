@@ -1,11 +1,9 @@
 "use client";
 
 import { Box, Paper, Typography } from "@mui/material";
-import type { Reservation } from "@/types/reservation";
-import { PassengerCard } from "./PassengerCard";
+import type { Reservation, Passenger } from "@/types/reservation";
+import PassengerCard from "./PassengerCard";
 import { PassengerItemRow } from "./PassengerItemRow";
-
-type Passenger = { id: string; fullName: string; hasUnpaidItems: boolean };
 
 interface PassengerListProps {
   availablePassengers: Passenger[];
@@ -14,9 +12,10 @@ interface PassengerListProps {
   selectedItems: { [key: string]: string[] };
   togglePassenger: (passengerId: string) => void;
   toggleAllItemsForPassenger: (passengerId: string) => void;
-  isItemSelected: (passengerId: string, item: 'ticket' | 'seat' | 'bag') => boolean;
-  toggleItem: (passengerId: string, item: 'ticket' | 'seat' | 'bag') => void;
+  isItemSelected: (passengerId: string, itemType: string) => boolean;
+  toggleItem: (passengerId: string, itemType: string) => void;
   toggleExpanded: (passengerId: string) => void;
+  copyToClipboard: (text: string, label: string) => void;
 }
 
 export function PassengerList({
@@ -29,6 +28,7 @@ export function PassengerList({
   isItemSelected,
   toggleItem,
   toggleExpanded,
+  copyToClipboard,
 }: PassengerListProps) {
   const countSelectedPassengers = Object.values(selectedItems).filter((items) => items && items.length > 0).length;
 
@@ -66,36 +66,8 @@ export function PassengerList({
               toggleAllItemsForPassenger={toggleAllItemsForPassenger}
               toggleItem={toggleItem}
               toggleExpanded={toggleExpanded}
-            >
-              {isExpanded && (
-                <Box sx={{ p: 1.5, bgcolor: 'grey.50' }}>
-                  <PassengerItemRow
-                    itemType="ticket"
-                    passengerData={passengerData}
-                    isSelected={isItemSelected(passenger.id, 'ticket')}
-                    onToggle={() => toggleItem(passenger.id, 'ticket')}
-                  />
-
-                  <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'medium' }}>
-                    Ancillaries:
-                  </Typography>
-
-                  <PassengerItemRow
-                    itemType="seat"
-                    passengerData={passengerData}
-                    isSelected={isItemSelected(passenger.id, 'seat')}
-                    onToggle={() => toggleItem(passenger.id, 'seat')}
-                  />
-
-                  <PassengerItemRow
-                    itemType="bag"
-                    passengerData={passengerData}
-                    isSelected={isItemSelected(passenger.id, 'bag')}
-                    onToggle={() => toggleItem(passenger.id, 'bag')}
-                  />
-                </Box>
-              )}
-            </PassengerCard>
+              copyToClipboard={copyToClipboard}
+            />
           );
         })}
       </Box>

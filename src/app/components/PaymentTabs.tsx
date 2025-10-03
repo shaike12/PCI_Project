@@ -34,6 +34,7 @@ interface PaymentTabsProps {
   removeMethod: (itemKey: string, formIndex: number) => void;
   toggleItem: (passengerId: string, itemType: string) => void;
   onCopyMethod?: (itemKey: string, method: 'credit' | 'voucher' | 'points') => void;
+  getGeneratedNumber?: (itemKey: string) => string | null;
 }
 
 export function PaymentTabs(props: PaymentTabsProps) {
@@ -54,7 +55,8 @@ export function PaymentTabs(props: PaymentTabsProps) {
     setItemExpandedMethod,
     removeMethod,
     toggleItem,
-    onCopyMethod
+    onCopyMethod,
+    getGeneratedNumber
   } = props;
 
   // Safely resolve a passenger index
@@ -78,14 +80,21 @@ export function PaymentTabs(props: PaymentTabsProps) {
       const idx = resolvePassengerIndex(pid);
       const p = idx >= 0 ? reservation.passengers[idx] : undefined;
       if (!p) return false;
-      const hasUnpaid = p.ticket.status !== 'Paid' || p.ancillaries.seat.status !== 'Paid' || p.ancillaries.bag.status !== 'Paid';
+      const hasUnpaid = (
+        p.ticket.status !== 'Paid' ||
+        (p.ancillaries.seat && p.ancillaries.seat.status !== 'Paid') ||
+        (p.ancillaries.bag && p.ancillaries.bag.status !== 'Paid') ||
+        (p.ancillaries.secondBag && p.ancillaries.secondBag.status !== 'Paid') ||
+        (p.ancillaries.thirdBag && p.ancillaries.thirdBag.status !== 'Paid') ||
+        (p.ancillaries.uatp && p.ancillaries.uatp.status !== 'Paid')
+      );
       return hasUnpaid;
     })
     .map(([pid]) => pid);
 
   const tabsValue = tabIds.includes(activePaymentPassenger || '') ? (activePaymentPassenger as string) : (tabIds[0] ?? false);
 
-  if (Object.values(selectedItems).flat().length === 0) return null;
+  // If nothing explicitly selected, we will default to unpaid items for the active passenger below
 
   return (
     <Box sx={{ mb: 2, minHeight: 0, display: 'flex', flexDirection: 'column', flex: 1 }}>
@@ -103,10 +112,13 @@ export function PaymentTabs(props: PaymentTabsProps) {
           
           if (!passenger) return null;
           
-          const unpaidItems = [];
+          const unpaidItems: string[] = [];
           if (passenger.ticket.status !== 'Paid') unpaidItems.push('ticket');
-          if (passenger.ancillaries.seat.status !== 'Paid') unpaidItems.push('seat');
-          if (passenger.ancillaries.bag.status !== 'Paid') unpaidItems.push('bag');
+          if (passenger.ancillaries.seat && passenger.ancillaries.seat.status !== 'Paid') unpaidItems.push('seat');
+          if (passenger.ancillaries.bag && passenger.ancillaries.bag.status !== 'Paid') unpaidItems.push('bag');
+          if (passenger.ancillaries.secondBag && passenger.ancillaries.secondBag.status !== 'Paid') unpaidItems.push('secondBag');
+          if (passenger.ancillaries.thirdBag && passenger.ancillaries.thirdBag.status !== 'Paid') unpaidItems.push('thirdBag');
+          if (passenger.ancillaries.uatp && passenger.ancillaries.uatp.status !== 'Paid') unpaidItems.push('uatp');
           
           const getIcon = (itemType: string, isPaid: boolean = false) => {
             const iconProps = { fontSize: 16, mr: 0.5 };
@@ -170,12 +182,59 @@ export function PaymentTabs(props: PaymentTabsProps) {
                     />
                   </Tooltip>
                 );
+              case 'secondBag': 
+                return (
+                  <Tooltip title={tooltipTitle} arrow>
+                    <LuggageIcon 
+                      sx={{ 
+                        ...iconProps, 
+                        color,
+                        cursor: (isPaid || !isActiveTab) ? 'default' : 'pointer',
+                        '&:hover': (isPaid || !isActiveTab) ? {} : { opacity: 0.7 }
+                      }} 
+                      onClick={handleIconClick}
+                    />
+                  </Tooltip>
+                );
+              case 'thirdBag': 
+                return (
+                  <Tooltip title={tooltipTitle} arrow>
+                    <LuggageIcon 
+                      sx={{ 
+                        ...iconProps, 
+                        color,
+                        cursor: (isPaid || !isActiveTab) ? 'default' : 'pointer',
+                        '&:hover': (isPaid || !isActiveTab) ? {} : { opacity: 0.7 }
+                      }} 
+                      onClick={handleIconClick}
+                    />
+                  </Tooltip>
+                );
+              case 'uatp': 
+                return (
+                  <Tooltip title={tooltipTitle} arrow>
+                    <CreditCardIcon 
+                      sx={{ 
+                        ...iconProps, 
+                        color,
+                        cursor: (isPaid || !isActiveTab) ? 'default' : 'pointer',
+                        '&:hover': (isPaid || !isActiveTab) ? {} : { opacity: 0.7 }
+                      }} 
+                      onClick={handleIconClick}
+                    />
+                  </Tooltip>
+                );
               default: return null;
             }
           };
           
+          // Determine items to display: selected items or default to unpaid items
+          const itemsForThisPassenger = (selectedItems[pid] && selectedItems[pid]!.length > 0)
+            ? selectedItems[pid]!
+            : unpaidItems;
+
           // Calculate total remaining amount for this passenger
-          const passengerRemaining = (selectedItems[pid] || []).reduce((total, itemType) => {
+          const passengerRemaining = itemsForThisPassenger.reduce((total, itemType) => {
             const itemKey = `${pid}-${itemType}`;
             const amounts = getRemainingAmount(itemKey);
             return total + amounts.remaining;
@@ -188,10 +247,19 @@ export function PaymentTabs(props: PaymentTabsProps) {
               label={
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexDirection: 'column' }}>
                   <span>{passenger.name}</span>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <Box sx={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: 'repeat(4, 1fr)', 
+                    gap: 0.5,
+                    maxWidth: '120px',
+                    justifyItems: 'center'
+                  }}>
                     {passenger.ticket.status !== 'Paid' && getIcon('ticket', false)}
-                    {passenger.ancillaries.seat.status !== 'Paid' && getIcon('seat', false)}
-                    {passenger.ancillaries.bag.status !== 'Paid' && getIcon('bag', false)}
+                    {passenger.ancillaries.seat && passenger.ancillaries.seat.status !== 'Paid' && getIcon('seat', false)}
+                    {passenger.ancillaries.bag && passenger.ancillaries.bag.status !== 'Paid' && getIcon('bag', false)}
+                    {passenger.ancillaries.secondBag && passenger.ancillaries.secondBag.status !== 'Paid' && getIcon('secondBag', false)}
+                    {passenger.ancillaries.thirdBag && passenger.ancillaries.thirdBag.status !== 'Paid' && getIcon('thirdBag', false)}
+                    {passenger.ancillaries.uatp && passenger.ancillaries.uatp.status !== 'Paid' && getIcon('uatp', false)}
                   </Box>
                   {passengerRemaining > 0 ? (
                     <Typography variant="caption" sx={{ 
@@ -247,7 +315,22 @@ export function PaymentTabs(props: PaymentTabsProps) {
           transition: 'all 0.3s ease-in-out'
         }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, flex: 1, overflowY: 'auto', pr: 1 }}>
-            {(selectedItems[tabsValue] || []).map((itemType) => {
+            {( (selectedItems[tabsValue] && selectedItems[tabsValue]!.length > 0) ? selectedItems[tabsValue]! : (
+              (() => {
+                const idx = resolvePassengerIndex(tabsValue as string);
+                const p = idx >= 0 ? reservation.passengers[idx] : undefined;
+                const defaults: string[] = [];
+                if (p) {
+                  if (p.ticket.status !== 'Paid') defaults.push('ticket');
+                  if (p.ancillaries.seat && p.ancillaries.seat.status !== 'Paid') defaults.push('seat');
+                  if (p.ancillaries.bag && p.ancillaries.bag.status !== 'Paid') defaults.push('bag');
+                  if (p.ancillaries.secondBag && p.ancillaries.secondBag.status !== 'Paid') defaults.push('secondBag');
+                  if (p.ancillaries.thirdBag && p.ancillaries.thirdBag.status !== 'Paid') defaults.push('thirdBag');
+                  if (p.ancillaries.uatp && p.ancillaries.uatp.status !== 'Paid') defaults.push('uatp');
+                }
+                return defaults;
+              })()
+            ) ).map((itemType) => {
               const pIndex = resolvePassengerIndex(tabsValue);
               const p = pIndex >= 0 ? reservation.passengers[pIndex] : undefined;
               if (!p) return null;
@@ -270,6 +353,21 @@ export function PaymentTabs(props: PaymentTabsProps) {
                 price = p.ancillaries.bag.price;
                 color = 'warning.main';
                 icon = <LuggageIcon sx={{ fontSize: 18, mr: 1 }} />;
+              } else if (itemType === 'secondBag') {
+                title = 'Second Bag';
+                price = p.ancillaries.secondBag?.price || 0;
+                color = 'warning.main';
+                icon = <LuggageIcon sx={{ fontSize: 18, mr: 1 }} />;
+              } else if (itemType === 'thirdBag') {
+                title = 'Third Bag';
+                price = p.ancillaries.thirdBag?.price || 0;
+                color = 'warning.main';
+                icon = <LuggageIcon sx={{ fontSize: 18, mr: 1 }} />;
+              } else if (itemType === 'uatp') {
+                title = 'UATP';
+                price = p.ancillaries.uatp?.price || 0;
+                color = 'info.main';
+                icon = <CreditCardIcon sx={{ fontSize: 18, mr: 1 }} />;
               }
 
               const itemKey = `${tabsValue}-${itemType}`;
@@ -296,6 +394,7 @@ export function PaymentTabs(props: PaymentTabsProps) {
                   removeMethod={removeMethod}
                   confirmAddMethod={confirmAddMethod}
                   onCopyMethod={onCopyMethod}
+                  getGeneratedNumber={getGeneratedNumber}
                 />
               );
 

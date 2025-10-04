@@ -68,10 +68,9 @@ function PassengerCard({
         }}
         onClick={() => {
           if (process.env.NODE_ENV !== 'production') {
-            console.log('[DEBUG] Passenger name clicked:', passenger.id);
+            console.log('[DEBUG] Passenger card clicked:', passenger.id);
           }
-          togglePassenger(passenger.id);
-          toggleExpanded(passenger.id);
+          toggleAllItemsForPassenger(passenger.id);
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -89,10 +88,6 @@ function PassengerCard({
                 whiteSpace: 'nowrap',
                 flex: 1,
                 minWidth: 0
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleAllItemsForPassenger(passenger.id);
               }}
               title="Select/Deselect all items for this passenger"
             >
@@ -120,7 +115,7 @@ function PassengerCard({
                   transform: passengerData.ticket.status === 'Paid' ? 'none' : 'scale(1.1)'
                 }
               }}
-              title={passengerData.ticket.status === 'Paid' ? 'Ticket Already Paid' : (isItemSelected(passenger.id, 'ticket') ? 'Remove product' : 'Add product')}
+              title={passengerData.ticket.status === 'Paid' ? 'Ticket Already Completed' : (isItemSelected(passenger.id, 'ticket') ? 'Remove flight ticket' : 'Add flight ticket')}
               onClick={(e) => {
                 e.stopPropagation();
                 if (passengerData.ticket.status !== 'Paid') {
@@ -155,7 +150,7 @@ function PassengerCard({
                   transform: passengerData.ancillaries.seat.status === 'Paid' ? 'none' : 'scale(1.1)'
                 }
               }}
-              title={passengerData.ancillaries.seat.status === 'Paid' ? 'Seat Already Paid' : (isItemSelected(passenger.id, 'seat') ? 'Remove product' : 'Add product')}
+              title={passengerData.ancillaries.seat.status === 'Paid' ? 'Seat Already Completed' : (isItemSelected(passenger.id, 'seat') ? 'Remove seat' : 'Add seat')}
               onClick={(e) => {
                 e.stopPropagation();
                 if (passengerData.ancillaries.seat.status !== 'Paid') {
@@ -191,7 +186,7 @@ function PassengerCard({
                   transform: passengerData.ancillaries.bag.status === 'Paid' ? 'none' : 'scale(1.1)'
                 }
               }}
-              title={passengerData.ancillaries.bag.status === 'Paid' ? 'Baggage Already Paid' : (isItemSelected(passenger.id, 'bag') ? 'Remove product' : 'Add product')}
+              title={passengerData.ancillaries.bag.status === 'Paid' ? 'Baggage Already Completed' : (isItemSelected(passenger.id, 'bag') ? 'Remove baggage' : 'Add baggage')}
               onClick={(e) => {
                 e.stopPropagation();
                 if (passengerData.ancillaries.bag.status !== 'Paid') {
@@ -227,7 +222,7 @@ function PassengerCard({
                     transform: passengerData.ancillaries.secondBag.status === 'Paid' ? 'none' : 'scale(1.1)'
                   }
                 }}
-                title={passengerData.ancillaries.secondBag.status === 'Paid' ? 'Second Bag Already Paid' : (isItemSelected(passenger.id, 'secondBag') ? 'Remove product' : 'Add product')}
+                title={passengerData.ancillaries.secondBag.status === 'Paid' ? 'Second Bag Already Completed' : (isItemSelected(passenger.id, 'secondBag') ? 'Remove second baggage' : 'Add second baggage')}
                 onClick={(e) => {
                   e.stopPropagation();
                   if (passengerData.ancillaries.secondBag && passengerData.ancillaries.secondBag.status !== 'Paid') {
@@ -263,7 +258,7 @@ function PassengerCard({
                     transform: passengerData.ancillaries.thirdBag.status === 'Paid' ? 'none' : 'scale(1.1)'
                   }
                 }}
-                title={passengerData.ancillaries.thirdBag.status === 'Paid' ? 'Third Bag Already Paid' : (isItemSelected(passenger.id, 'thirdBag') ? 'Remove product' : 'Add product')}
+                title={passengerData.ancillaries.thirdBag.status === 'Paid' ? 'Third Bag Already Completed' : (isItemSelected(passenger.id, 'thirdBag') ? 'Remove third baggage' : 'Add third baggage')}
                 onClick={(e) => {
                   e.stopPropagation();
                   if (passengerData.ancillaries.thirdBag && passengerData.ancillaries.thirdBag.status !== 'Paid') {
@@ -299,7 +294,7 @@ function PassengerCard({
                     transform: passengerData.ancillaries.uatp.status === 'Paid' ? 'none' : 'scale(1.1)'
                   }
                 }}
-                title={passengerData.ancillaries.uatp.status === 'Paid' ? 'UATP Already Paid' : (isItemSelected(passenger.id, 'uatp') ? 'Remove product' : 'Add product')}
+                title={passengerData.ancillaries.uatp.status === 'Paid' ? 'UATP Already Completed' : (isItemSelected(passenger.id, 'uatp') ? 'Remove UATP voucher' : 'Add UATP voucher')}
                 onClick={(e) => {
                   e.stopPropagation();
                   if (passengerData.ancillaries.uatp && passengerData.ancillaries.uatp.status !== 'Paid') {
@@ -468,10 +463,7 @@ function PassengerCard({
                 <EventSeatIcon sx={{ mr: 1, color: passengerData.ancillaries.seat.status === 'Paid' ? 'grey.500' : 'warning.main', fontSize: 18 }} />
                 <Box sx={{ flex: 1 }}>
                   <Typography variant="body2" sx={{ fontWeight: 'medium', fontSize: '0.875rem' }}>
-                    Seat Selection
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                    {passengerData.ancillaries.seat.seatNumber || 'N/A'}
+                    Seat ({passengerData.ancillaries.seat.seatNumber || 'N/A'})
                   </Typography>
                   {passengerData.ancillaries.seat.ancillaryNumber && (
                     <Typography 
@@ -556,7 +548,7 @@ function PassengerCard({
                 <LuggageIcon sx={{ mr: 1, color: passengerData.ancillaries.bag.status === 'Paid' ? 'grey.500' : 'warning.main', fontSize: 18 }} />
                 <Box sx={{ flex: 1 }}>
                   <Typography variant="body2" sx={{ fontWeight: 'medium', fontSize: '0.875rem' }}>
-                    Baggage
+                    Baggage (XBAF)
                   </Typography>
                   <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
                     {passengerData.ancillaries.bag.weight ? `${passengerData.ancillaries.bag.weight}kg` : 'N/A'}
@@ -643,7 +635,7 @@ function PassengerCard({
                   <LuggageIcon sx={{ mr: 1, color: passengerData.ancillaries.secondBag?.status === 'Paid' ? 'grey.500' : 'warning.main', fontSize: 18 }} />
                   <Box sx={{ flex: 1 }}>
                     <Typography variant="body2" sx={{ fontWeight: 'medium', fontSize: '0.875rem' }}>
-                      Second Bag
+                      Second Bag (XBAS)
                     </Typography>
                     <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
                       {passengerData.ancillaries.secondBag?.weight ? `${passengerData.ancillaries.secondBag?.weight}kg` : 'N/A'}
@@ -730,7 +722,7 @@ function PassengerCard({
                   <LuggageIcon sx={{ mr: 1, color: passengerData.ancillaries.thirdBag?.status === 'Paid' ? 'grey.500' : 'warning.main', fontSize: 18 }} />
                   <Box sx={{ flex: 1 }}>
                     <Typography variant="body2" sx={{ fontWeight: 'medium', fontSize: '0.875rem' }}>
-                      Third Bag
+                      Third Bag (XBAT)
                     </Typography>
                     <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
                       {passengerData.ancillaries.thirdBag?.weight ? `${passengerData.ancillaries.thirdBag?.weight}kg` : 'N/A'}

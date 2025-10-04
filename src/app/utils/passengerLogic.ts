@@ -34,11 +34,11 @@ export const getPassengerTabLabel = (pid: string, reservation: any, resolvePasse
     unpaidItems.push('Ticket');
     totalAmount += passenger.ticket.price;
   }
-  if (passenger.ancillaries.seat.status !== 'Paid') {
+  if (passenger.ancillaries.seat && passenger.ancillaries.seat.status !== 'Paid') {
     unpaidItems.push('Seat');
     totalAmount += passenger.ancillaries.seat.price;
   }
-  if (passenger.ancillaries.bag.status !== 'Paid') {
+  if (passenger.ancillaries.bag && passenger.ancillaries.bag.status !== 'Paid') {
     unpaidItems.push('Bag');
     totalAmount += passenger.ancillaries.bag.price;
   }
@@ -150,8 +150,8 @@ export const toggleAllItemsForPassenger = (
   const unpaidItems: string[] = [];
   
   if (passengerData.ticket.status !== 'Paid') unpaidItems.push('ticket');
-  if (passengerData.ancillaries.seat.status !== 'Paid') unpaidItems.push('seat');
-  if (passengerData.ancillaries.bag.status !== 'Paid') unpaidItems.push('bag');
+  if (passengerData.ancillaries.seat && passengerData.ancillaries.seat.status !== 'Paid') unpaidItems.push('seat');
+  if (passengerData.ancillaries.bag && passengerData.ancillaries.bag.status !== 'Paid') unpaidItems.push('bag');
   if (passengerData.ancillaries.secondBag && passengerData.ancillaries.secondBag.status !== 'Paid') unpaidItems.push('secondBag');
   if (passengerData.ancillaries.thirdBag && passengerData.ancillaries.thirdBag.status !== 'Paid') unpaidItems.push('thirdBag');
   if (passengerData.ancillaries.uatp && passengerData.ancillaries.uatp.status !== 'Paid') unpaidItems.push('uatp');

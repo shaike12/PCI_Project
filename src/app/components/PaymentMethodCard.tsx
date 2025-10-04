@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, Paper, Typography, IconButton, Slider } from "@mui/material";
+import { Box, Paper, Typography, IconButton, Slider, Tooltip } from "@mui/material";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -8,6 +8,7 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { PaymentMethodCreditForm } from "./PaymentMethodCreditForm";
 import { PaymentMethodVoucherForm } from "./PaymentMethodVoucherForm";
 import { PaymentMethodPointsForm } from "./PaymentMethodPointsForm";
+import { validateCreditCard } from "../utils/paymentLogic";
 
 interface PaymentMethodCardProps {
   itemKey: string;
@@ -25,6 +26,47 @@ interface PaymentMethodCardProps {
   removeMethod: (itemKey: string, formIndex: number) => void;
   onCopyMethod?: (itemKey: string, method: 'credit' | 'voucher' | 'points') => void;
 }
+
+// Function to get detailed validation message for incomplete forms
+const getValidationMessage = (method: string, paymentData: any, voucherIndex?: number): string => {
+  if (method === 'credit') {
+    const credit = paymentData?.credit;
+    if (!credit) return 'Credit card form not initialized';
+    
+    const missing = [];
+    if (!credit.cardNumber) missing.push('Card Number');
+    else if (!validateCreditCard(credit.cardNumber)) missing.push('Valid Card Number');
+    if (!credit.holderName) missing.push('Cardholder Name');
+    if (!credit.expiryDate) missing.push('Expiry Date');
+    if (!credit.cvv) missing.push('CVV');
+    if (!credit.amount || parseFloat(credit.amount) <= 0) missing.push('Amount');
+    
+    return missing.length > 0 ? `Missing: ${missing.join(', ')}` : 'All fields completed';
+  } else if (method === 'voucher') {
+    const vouchers = paymentData?.vouchers || [];
+    const voucher = vouchers[voucherIndex || 0];
+    if (!voucher) return 'Voucher form not initialized';
+    
+    const missing = [];
+    if (!voucher.voucherNumber) missing.push('Voucher Number');
+    if (!voucher.expiryDate) missing.push('Expiry Date');
+    if (!voucher.amount || parseFloat(voucher.amount) <= 0) missing.push('Amount');
+    
+    return missing.length > 0 ? `Missing: ${missing.join(', ')}` : 'All fields completed';
+  } else if (method === 'points') {
+    const points = paymentData?.points;
+    if (!points) return 'Points form not initialized';
+    
+    const missing = [];
+    if (!points.memberNumber) missing.push('Member Number');
+    if (!points.awardReference) missing.push('Award Reference');
+    if (!points.amount || parseFloat(points.amount) <= 0) missing.push('Amount');
+    
+    return missing.length > 0 ? `Missing: ${missing.join(', ')}` : 'All fields completed';
+  }
+  
+  return 'Unknown payment method';
+};
 
 export function PaymentMethodCard({
   itemKey,
@@ -71,9 +113,13 @@ export function PaymentMethodCard({
             {method === 'credit' ? 'Credit Card' : method === 'voucher' ? 'UATP Voucher' : 'Points'}
           </Typography>
           {isComplete ? (
-            <Box sx={{ width: 16, height: 16, borderRadius: '50%', backgroundColor: 'success.main', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '10px', fontWeight: 'bold' }}>✓</Box>
+            <Tooltip title="All fields completed" arrow>
+              <Box sx={{ width: 16, height: 16, borderRadius: '50%', backgroundColor: 'success.main', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '10px', fontWeight: 'bold', cursor: 'help' }}>✓</Box>
+            </Tooltip>
           ) : (
-            <Box sx={{ width: 16, height: 16, borderRadius: '50%', backgroundColor: 'warning.main', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '10px', fontWeight: 'bold' }}>!</Box>
+            <Tooltip title={getValidationMessage(method, paymentData, method === 'voucher' ? formMethods.slice(0, idx).filter(m => m === 'voucher').length : undefined)} arrow>
+              <Box sx={{ width: 16, height: 16, borderRadius: '50%', backgroundColor: 'warning.main', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '10px', fontWeight: 'bold', cursor: 'help' }}>!</Box>
+            </Tooltip>
           )}
           {!expanded && methodAmount > 0 && (
             <Box sx={{ flex: 1, mx: 2 }}>

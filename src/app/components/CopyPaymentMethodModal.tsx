@@ -187,8 +187,8 @@ export function CopyPaymentMethodModal({
   const getItemLabel = (itemType: string) => {
     switch (itemType) {
       case 'ticket': return 'Flight Ticket';
-      case 'seat': return 'Seat Selection';
-      case 'bag': return 'Baggage';
+      case 'seat': return 'Seat';
+      case 'bag': return 'Baggage (XBAF)';
       default: return itemType;
     }
   };

@@ -1,11 +1,14 @@
 "use client";
 
-import { Box, Paper, Typography, Chip } from "@mui/material";
+import { Box, Paper, Typography, Chip, IconButton } from "@mui/material";
 import FlightIcon from "@mui/icons-material/Flight";
 import EventSeatIcon from "@mui/icons-material/EventSeat";
 import LuggageIcon from "@mui/icons-material/Luggage";
+import CreditCardIcon from "@mui/icons-material/CreditCard";
+import CardGiftcardIcon from "@mui/icons-material/CardGiftcard";
+import StarIcon from "@mui/icons-material/Star";
 import { PaymentMethodCard } from "./PaymentMethodCard";
-import { PaymentMethodButtons } from "./PaymentMethodButtons";
+import { validateCreditCard } from "../utils/paymentLogic";
 
 interface ItemDetailsProps {
   itemKey: string;
@@ -29,6 +32,42 @@ interface ItemDetailsProps {
   onCopyMethod?: (itemKey: string, method: 'credit' | 'voucher' | 'points') => void;
   getGeneratedNumber?: (itemKey: string) => string | null;
 }
+
+// Function to check if all payment methods are properly filled
+const areAllPaymentMethodsComplete = (formMethods: string[], paymentData: any): boolean => {
+  if (formMethods.length === 0) return false;
+  
+  return formMethods.every(method => {
+    if (method === 'credit') {
+      const credit = paymentData?.credit;
+      return credit && 
+             credit.cardNumber && 
+             validateCreditCard(credit.cardNumber) &&
+             credit.holderName && 
+             credit.expiryDate && 
+             credit.cvv && 
+             credit.amount && 
+             parseFloat(credit.amount) > 0;
+    } else if (method === 'voucher') {
+      const vouchers = paymentData?.vouchers || [];
+      const voucherIndex = formMethods.slice(0, formMethods.indexOf(method)).filter(m => m === 'voucher').length;
+      const voucher = vouchers[voucherIndex];
+      return voucher && 
+             voucher.voucherNumber && 
+             voucher.expiryDate && 
+             voucher.amount && 
+             parseFloat(voucher.amount) > 0;
+    } else if (method === 'points') {
+      const points = paymentData?.points;
+      return points && 
+             points.memberNumber && 
+             points.awardReference && 
+             points.amount && 
+             parseFloat(points.amount) > 0;
+    }
+    return false;
+  });
+};
 
 export function ItemDetails({
   itemKey,
@@ -71,6 +110,73 @@ export function ItemDetails({
             {title}
           </Typography>
         </Box>
+        
+        {/* Payment Method Add Buttons - Between title and price */}
+        {(() => {
+          const showInitialButtons = formMethods.length === 0 && !isItemFullyPaid(itemKey);
+          const showAdditionalButtons = formMethods.length >= 1 && formMethods.length < 3 && !isItemFullyPaid(itemKey);
+          
+          if (!showInitialButtons && !showAdditionalButtons) {
+            return null;
+          }
+
+          return (
+            <Box sx={{ display: 'flex', gap: 0.5 }}>
+              {(!formMethods.includes('credit')) && (
+                <IconButton
+                  size="small"
+                  onClick={() => confirmAddMethod(itemKey, 'credit')}
+                  sx={{ 
+                    color: '#5E837C',
+                    '&:hover': { bgcolor: '#5E837C', color: 'white' },
+                    border: 1,
+                    borderColor: '#5E837C',
+                    width: 32,
+                    height: 32
+                  }}
+                  title="Add Credit Card"
+                >
+                  <CreditCardIcon sx={{ fontSize: 16 }} />
+                </IconButton>
+              )}
+              {formMethods.filter(m => m === 'voucher').length < 2 && (
+                <IconButton
+                  size="small"
+                  onClick={() => confirmAddMethod(itemKey, 'voucher')}
+                  sx={{ 
+                    color: '#C69386',
+                    '&:hover': { bgcolor: '#C69386', color: 'white' },
+                    border: 1,
+                    borderColor: '#C69386',
+                    width: 32,
+                    height: 32
+                  }}
+                  title="Add UATP Voucher"
+                >
+                  <CardGiftcardIcon sx={{ fontSize: 16 }} />
+                </IconButton>
+              )}
+              {(!formMethods.includes('points')) && (
+                <IconButton
+                  size="small"
+                  onClick={() => confirmAddMethod(itemKey, 'points')}
+                  sx={{ 
+                    color: '#2443A8',
+                    '&:hover': { bgcolor: '#2443A8', color: 'white' },
+                    border: 1,
+                    borderColor: '#2443A8',
+                    width: 32,
+                    height: 32
+                  }}
+                  title="Add Points"
+                >
+                  <StarIcon sx={{ fontSize: 16 }} />
+                </IconButton>
+              )}
+            </Box>
+          );
+        })()}
+        
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
             ${price.toLocaleString()}
@@ -78,8 +184,8 @@ export function ItemDetails({
           {isItemFullyPaid(itemKey) ? (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Chip 
-                label="Paid" 
-                color="success" 
+                label="Complete" 
+                color={areAllPaymentMethodsComplete(formMethods, paymentData) ? "success" : "warning"}
                 size="small" 
                 sx={{ fontWeight: 'bold' }}
               />
@@ -130,12 +236,6 @@ export function ItemDetails({
                 />
               ))}
 
-              <PaymentMethodButtons
-                itemKey={itemKey}
-                formMethods={formMethods}
-                isItemFullyPaid={isItemFullyPaid}
-                confirmAddMethod={confirmAddMethod}
-              />
             </Box>
           );
         }

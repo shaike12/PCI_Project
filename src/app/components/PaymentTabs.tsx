@@ -128,7 +128,7 @@ export function PaymentTabs(props: PaymentTabsProps) {
             const iconProps = { fontSize: 16, mr: 0.5 };
             const isActiveTab = activePaymentPassenger === pid;
             const isItemSelected = selectedItems[pid]?.includes(itemType) || false;
-            const tooltipTitle = isPaid ? 'Paid already' : (isActiveTab ? (isItemSelected ? 'Remove product' : 'Add product') : 'Select tab to edit');
+            const tooltipTitle = isPaid ? 'Already completed' : (isActiveTab ? (isItemSelected ? 'Remove product' : 'Add product') : 'Select tab to edit');
             
             const handleIconClick = (e: React.MouseEvent) => {
               e.stopPropagation();
@@ -348,22 +348,22 @@ export function PaymentTabs(props: PaymentTabsProps) {
                 color = 'success.main';
                 icon = <FlightIcon sx={{ fontSize: 18, mr: 1 }} />;
               } else if (itemType === 'seat') {
-                title = 'Seat Selection';
+                title = `Seat (${p.ancillaries.seat.seatNumber || 'N/A'})`;
                 price = p.ancillaries.seat.price;
                 color = 'info.main';
                 icon = <EventSeatIcon sx={{ fontSize: 18, mr: 1 }} />;
               } else if (itemType === 'bag') {
-                title = 'Baggage';
+                title = 'Baggage (XBAF)';
                 price = p.ancillaries.bag.price;
                 color = 'warning.main';
                 icon = <LuggageIcon sx={{ fontSize: 18, mr: 1 }} />;
               } else if (itemType === 'secondBag') {
-                title = 'Second Bag';
+                title = 'Second Bag (XBAS)';
                 price = p.ancillaries.secondBag?.price || 0;
                 color = 'warning.main';
                 icon = <LuggageIcon sx={{ fontSize: 18, mr: 1 }} />;
               } else if (itemType === 'thirdBag') {
-                title = 'Third Bag';
+                title = 'Third Bag (XBAT)';
                 price = p.ancillaries.thirdBag?.price || 0;
                 color = 'warning.main';
                 icon = <LuggageIcon sx={{ fontSize: 18, mr: 1 }} />;

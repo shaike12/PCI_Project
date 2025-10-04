@@ -35,7 +35,7 @@ export function PassengerItemRow({ itemType, passengerData, isSelected, onToggle
     borderColor = status === 'Paid' ? 'grey.400' : (isSelected ? 'warning.main' : 'grey.300');
     bgColor = status === 'Paid' ? 'grey.100' : (isSelected ? 'warning.light' : 'white');
   } else if (itemType === 'seat') {
-    title = 'Seat Selection';
+    title = `Seat (${passengerData.ancillaries.seat.seatNumber || 'N/A'})`;
     price = passengerData.ancillaries.seat.price;
     status = passengerData.ancillaries.seat.status;
     number = passengerData.ancillaries.seat.ancillaryNumber || '';
@@ -44,7 +44,7 @@ export function PassengerItemRow({ itemType, passengerData, isSelected, onToggle
     borderColor = status === 'Paid' ? 'grey.400' : (isSelected ? 'warning.main' : 'grey.300');
     bgColor = status === 'Paid' ? 'grey.100' : (isSelected ? 'warning.light' : 'white');
   } else if (itemType === 'bag') {
-    title = 'Baggage';
+    title = 'Baggage (XBAF)';
     price = passengerData.ancillaries.bag.price;
     status = passengerData.ancillaries.bag.status;
     number = passengerData.ancillaries.bag.ancillaryNumber || '';
@@ -53,7 +53,7 @@ export function PassengerItemRow({ itemType, passengerData, isSelected, onToggle
     borderColor = status === 'Paid' ? 'grey.400' : (isSelected ? 'warning.main' : 'grey.300');
     bgColor = status === 'Paid' ? 'grey.100' : (isSelected ? 'warning.light' : 'white');
   } else if (itemType === 'secondBag') {
-    title = 'Second Bag';
+    title = 'Second Bag (XBAS)';
     price = passengerData.ancillaries.secondBag?.price || 0;
     status = passengerData.ancillaries.secondBag?.status || 'Unpaid';
     number = passengerData.ancillaries.secondBag?.ancillaryNumber || '';
@@ -62,7 +62,7 @@ export function PassengerItemRow({ itemType, passengerData, isSelected, onToggle
     borderColor = status === 'Paid' ? 'grey.400' : (isSelected ? 'warning.main' : 'grey.300');
     bgColor = status === 'Paid' ? 'grey.100' : (isSelected ? 'warning.light' : 'white');
   } else if (itemType === 'thirdBag') {
-    title = 'Third Bag';
+    title = 'Third Bag (XBAT)';
     price = passengerData.ancillaries.thirdBag?.price || 0;
     status = passengerData.ancillaries.thirdBag?.status || 'Unpaid';
     number = passengerData.ancillaries.thirdBag?.ancillaryNumber || '';

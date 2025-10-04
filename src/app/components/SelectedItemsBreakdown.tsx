@@ -157,7 +157,7 @@ export function SelectedItemsBreakdown({ selectedItems, reservation }: SelectedI
                 <EventSeatIcon color="secondary" />
               </ListItemIcon>
               <ListItemText 
-                primary="Seat Selection" 
+                primary="Seat" 
                 secondary={`${Object.entries(selectedItems).filter(([_, items]) => items.includes('seat')).length} selected`}
               />
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
@@ -172,7 +172,7 @@ export function SelectedItemsBreakdown({ selectedItems, reservation }: SelectedI
                 <LuggageIcon color="success" />
               </ListItemIcon>
               <ListItemText 
-                primary="Baggage" 
+                primary="Baggage (XBAF)" 
                 secondary={`${Object.entries(selectedItems).filter(([_, items]) => items.includes('bag')).length} selected`}
               />
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
@@ -187,7 +187,7 @@ export function SelectedItemsBreakdown({ selectedItems, reservation }: SelectedI
                 <LuggageIcon color="warning" />
               </ListItemIcon>
               <ListItemText 
-                primary="Second Bag" 
+                primary="Second Bag (XBAS)" 
                 secondary={`${Object.entries(selectedItems).filter(([_, items]) => items.includes('secondBag')).length} selected`}
               />
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
@@ -202,7 +202,7 @@ export function SelectedItemsBreakdown({ selectedItems, reservation }: SelectedI
                 <LuggageIcon color="warning" />
               </ListItemIcon>
               <ListItemText 
-                primary="Third Bag" 
+                primary="Third Bag (XBAT)" 
                 secondary={`${Object.entries(selectedItems).filter(([_, items]) => items.includes('thirdBag')).length} selected`}
               />
               <Typography variant="body2" sx={{ fontWeight: 600 }}>

@@ -1373,16 +1373,16 @@ export default function PaymentPortal() {
           itemName = 'Flight Ticket';
           amount = passengerData.ticket.price;
         } else if (itemType === 'seat') {
-          itemName = 'Seat Selection';
+          itemName = `Seat (${passengerData.ancillaries.seat.seatNumber || 'N/A'})`;
           amount = passengerData.ancillaries.seat.price;
         } else if (itemType === 'bag') {
-          itemName = 'Baggage';
+          itemName = 'Baggage (XBAF)';
           amount = passengerData.ancillaries.bag.price;
         } else if (itemType === 'secondBag') {
-          itemName = 'Second Bag';
+          itemName = 'Second Bag (XBAS)';
           amount = passengerData.ancillaries.secondBag?.price || 0;
         } else if (itemType === 'thirdBag') {
-          itemName = 'Third Bag';
+          itemName = 'Third Bag (XBAT)';
           amount = passengerData.ancillaries.thirdBag?.price || 0;
         } else if (itemType === 'uatp') {
           itemName = 'UATP';

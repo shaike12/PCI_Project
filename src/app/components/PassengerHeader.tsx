@@ -47,15 +47,15 @@ export const PassengerHeader: React.FC<PassengerHeaderProps> = ({
           size="small"
           onClick={onToggleSelectAll}
           sx={{
-            borderColor: 'primary.main',
-            color: 'primary.main',
+            borderColor: '#1B358F',
+            color: '#1B358F',
             minWidth: 'auto',
             px: 0.75,
             py: 0.25,
             fontSize: '0.7rem',
             lineHeight: 1.2,
             '&:hover': {
-              borderColor: 'primary.dark',
+              borderColor: '#0f1f5f',
               bgcolor: 'primary.50'
             }
           }}

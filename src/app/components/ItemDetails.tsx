@@ -99,7 +99,7 @@ export function ItemDetails({
       p: 2, 
       mb: 2, 
       border: 1, 
-      borderColor: 'grey.300', 
+      borderColor: '#E4DFDA', 
       bgcolor: 'white',
       animation: 'slideIn 0.3s ease-out'
     }}>
@@ -127,10 +127,10 @@ export function ItemDetails({
                   size="small"
                   onClick={() => confirmAddMethod(itemKey, 'credit')}
                   sx={{ 
-                    color: '#5E837C',
-                    '&:hover': { bgcolor: '#5E837C', color: 'white' },
+                    color: '#1B358F',
+                    '&:hover': { bgcolor: '#1B358F', color: 'white' },
                     border: 1,
-                    borderColor: '#5E837C',
+                    borderColor: '#1B358F',
                     width: 32,
                     height: 32
                   }}
@@ -144,10 +144,10 @@ export function ItemDetails({
                   size="small"
                   onClick={() => confirmAddMethod(itemKey, 'voucher')}
                   sx={{ 
-                    color: '#C69386',
-                    '&:hover': { bgcolor: '#C69386', color: 'white' },
+                    color: '#D4B483',
+                    '&:hover': { bgcolor: '#D4B483', color: 'white' },
                     border: 1,
-                    borderColor: '#C69386',
+                    borderColor: '#D4B483',
                     width: 32,
                     height: 32
                   }}
@@ -161,10 +161,10 @@ export function ItemDetails({
                   size="small"
                   onClick={() => confirmAddMethod(itemKey, 'points')}
                   sx={{ 
-                    color: '#2443A8',
-                    '&:hover': { bgcolor: '#2443A8', color: 'white' },
+                    color: '#48A9A6',
+                    '&:hover': { bgcolor: '#48A9A6', color: 'white' },
                     border: 1,
-                    borderColor: '#2443A8',
+                    borderColor: '#48A9A6',
                     width: 32,
                     height: 32
                   }}
@@ -178,32 +178,42 @@ export function ItemDetails({
         })()}
         
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+          <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#1B358F' }}>
             ${price.toLocaleString()}
           </Typography>
           {isItemFullyPaid(itemKey) ? (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Chip 
                 label="Complete" 
-                color={areAllPaymentMethodsComplete(formMethods, paymentData) ? "success" : "warning"}
-                size="small" 
-                sx={{ fontWeight: 'bold' }}
+                sx={{
+                  backgroundColor: areAllPaymentMethodsComplete(formMethods, paymentData) ? '#48A9A6' : '#D4B483',
+                  color: 'white',
+                  fontWeight: 'bold'
+                }}
+                size="small"
               />
               {getGeneratedNumber && getGeneratedNumber(itemKey) && (
                 <Chip 
                   label={getGeneratedNumber(itemKey)} 
-                  color="info" 
-                  size="small" 
-                  sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}
+                  sx={{ 
+                    backgroundColor: '#48A9A6', 
+                    color: 'white',
+                    fontWeight: 'bold', 
+                    fontSize: '0.75rem' 
+                  }} 
+                  size="small"
                 />
               )}
             </Box>
           ) : (
             <Chip 
-              label={`$${amounts.remaining} remaining`} 
-              color="warning" 
-              size="small" 
-              sx={{ fontWeight: 'bold' }}
+              label={`$${amounts.remaining.toFixed(2)} remaining`} 
+              sx={{ 
+                fontWeight: 'bold',
+                backgroundColor: '#D4B483',
+                color: 'white'
+              }}
+              size="small"
             />
           )}
         </Box>

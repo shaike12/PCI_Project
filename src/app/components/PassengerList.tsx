@@ -13,6 +13,7 @@ interface PassengerListProps {
   togglePassenger: (passengerId: string) => void;
   toggleAllItemsForPassenger: (passengerId: string) => void;
   isItemSelected: (passengerId: string, itemType: string) => boolean;
+  hasSelectedItems: (passengerId: string) => boolean;
   toggleItem: (passengerId: string, itemType: string) => void;
   toggleExpanded: (passengerId: string) => void;
   copyToClipboard: (text: string, label: string) => void;
@@ -26,6 +27,7 @@ export function PassengerList({
   togglePassenger,
   toggleAllItemsForPassenger,
   isItemSelected,
+  hasSelectedItems,
   toggleItem,
   toggleExpanded,
   copyToClipboard,
@@ -62,6 +64,7 @@ export function PassengerList({
               passengerData={passengerData}
               isExpanded={isExpanded}
               isItemSelected={isItemSelected}
+              hasSelectedItems={hasSelectedItems}
               togglePassenger={togglePassenger}
               toggleAllItemsForPassenger={toggleAllItemsForPassenger}
               toggleItem={toggleItem}
@@ -72,8 +75,8 @@ export function PassengerList({
         })}
       </Box>
 
-      <Paper sx={{ p: 2, bgcolor: 'grey.100', m: 2, mt: 0 }}>
-        <Typography variant="body2" color="text.secondary">
+      <Paper sx={{ p: 2, bgcolor: '#E4DFDA', m: 2, mt: 0 }}>
+        <Typography variant="body2" sx={{ color: '#1B358F' }}>
           {countSelectedPassengers} passengers selected
         </Typography>
       </Paper>

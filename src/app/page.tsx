@@ -28,6 +28,10 @@ import {
   Person as PersonIcon,
   CreditCard as CreditCardIcon,
   Check as CheckIcon,
+  ContentCopy as CopyIcon,
+  Delete as DeleteIcon,
+  DeleteForever as DeleteAllIcon,
+  Refresh as RefreshIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
   Flight as FlightIcon,
@@ -73,7 +77,7 @@ import { clearAllLocalStorage } from './utils/localStorage';
 export default function PaymentPortal() {
   // Firebase hooks
   const { user, loading: authLoading, saveUserProgress, getUserProgress, updateUserProgress } = useFirebase();
-  const { getReservationByCode, updateReservation } = useReservations();
+  const { getReservationByCode, updateReservation, listReservations, deleteReservation, createReservation } = useReservations();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [currentReservation, setCurrentReservation] = useState<Reservation | null>(null);
   const [reservationCode, setReservationCode] = useState('');
@@ -142,9 +146,9 @@ export default function PaymentPortal() {
 
       // Update reservation status to mark items as paid
       if (currentReservation) {
-        // Check if this is a mock reservation (not loaded from Firebase)
-        if (currentReservation.id === 'mock-1') {
-          alert('Cannot update mock reservation. Please load a real reservation from Firebase first.');
+        // Check if this is a mock reservation or copied reservation (not loaded from Firebase)
+        if (currentReservation.id === 'mock-1' || currentReservation.id.startsWith('copy-')) {
+          alert('Cannot update mock or copied reservation. Please load a real reservation from Firebase first.');
           return;
         }
         
@@ -314,6 +318,9 @@ export default function PaymentPortal() {
         // Ensure all ancillaries exist in the loaded reservation
         const updatedReservation = ensureAncillariesExist(reservation);
         setCurrentReservation(updatedReservation);
+        
+        // Reload reservations list to make sure it's up to date
+        await loadAllReservations();
       } else {
         alert('Reservation not found');
       }
@@ -324,7 +331,7 @@ export default function PaymentPortal() {
   };
 
   const handleCreateNewReservation = async () => {
-    if (isCreatingReservation) return;
+    if (isCreatingReservation || !mounted) return;
     
     setIsCreatingReservation(true);
     try {
@@ -537,11 +544,148 @@ export default function PaymentPortal() {
       setItemExpandedMethod({});
       setActivePaymentPassenger('');
       
+      // Reload reservations list to include the new one
+      await loadAllReservations();
+      
     } catch (error) {
       console.error('Error creating reservation:', error);
       alert('Failed to create new reservation');
     } finally {
       setIsCreatingReservation(false);
+    }
+  };
+
+  // Load all reservations from database
+  const loadAllReservations = async () => {
+    if (!user) return;
+    
+    setIsLoadingReservations(true);
+    try {
+      // Use the existing listReservations function to get all reservations
+      const response = await listReservations({ limit: 100 }); // Get up to 100 reservations
+      setAllReservations(response.reservations);
+      console.log('Loaded reservations:', response.reservations.length);
+    } catch (error) {
+      console.error('Error loading reservations:', error);
+      setAllReservations([]);
+    } finally {
+      setIsLoadingReservations(false);
+    }
+  };
+
+  // Copy selected reservation to current screen
+  const handleCopyReservation = async () => {
+    if (!selectedReservationCode) {
+      alert('Please select a reservation to copy');
+      return;
+    }
+    
+    console.log('Loading reservation with code:', selectedReservationCode);
+    console.log('Available reservations:', allReservations.map(r => r.reservationCode));
+    
+    const reservationToCopy = allReservations.find(r => r.reservationCode === selectedReservationCode);
+    if (!reservationToCopy) {
+      alert('Reservation not found in the list');
+      return;
+    }
+    
+    console.log('Found reservation to copy:', reservationToCopy);
+    
+    try {
+      // Load the selected reservation to the current screen
+      setCurrentReservation(reservationToCopy);
+      setReservationCode(selectedReservationCode);
+      setNewReservationCode(null); // Clear new reservation code
+      
+      // Clear selections
+      setSelectedPassengers([]);
+      setSelectedItems({});
+      setItemPaymentMethods({});
+      setItemMethodForms({});
+      setItemExpandedMethod({});
+      setActivePaymentPassenger('');
+      
+      console.log('Reservation loaded successfully:', reservationToCopy);
+    } catch (error) {
+      console.error('Error loading reservation:', error);
+      alert('Failed to load reservation');
+    }
+  };
+
+  // Delete single reservation
+  const handleDeleteReservation = async () => {
+    if (!selectedReservationCode) return;
+    
+    if (!confirm(`Are you sure you want to delete reservation ${selectedReservationCode}?`)) {
+      return;
+    }
+    
+    try {
+      // Find the reservation to delete
+      const reservationToDelete = allReservations.find(r => r.reservationCode === selectedReservationCode);
+      if (!reservationToDelete) {
+        alert('Reservation not found');
+        return;
+      }
+      
+      // Delete from Firebase
+      await deleteReservation(reservationToDelete.id);
+      
+      // Update local state
+      const updatedReservations = allReservations.filter(r => r.reservationCode !== selectedReservationCode);
+      setAllReservations(updatedReservations);
+      setSelectedReservationCode('');
+      
+      // If we're deleting the current reservation, clear it
+      if (currentReservation?.reservationCode === selectedReservationCode) {
+        setCurrentReservation(null);
+        setReservationCode('');
+        setNewReservationCode(null);
+        setSelectedPassengers([]);
+        setSelectedItems({});
+        setItemPaymentMethods({});
+        setItemMethodForms({});
+        setItemExpandedMethod({});
+      }
+      
+      alert(`Reservation ${selectedReservationCode} deleted successfully!`);
+    } catch (error) {
+      console.error('Error deleting reservation:', error);
+      alert('Failed to delete reservation');
+    }
+  };
+
+  // Delete all reservations
+  const handleDeleteAllReservations = async () => {
+    if (!confirm('Are you sure you want to delete ALL reservations? This action cannot be undone!')) {
+      return;
+    }
+    
+    try {
+      // Delete each reservation from Firebase
+      const deletePromises = allReservations.map(reservation => 
+        deleteReservation(reservation.id)
+      );
+      
+      // Wait for all deletions to complete
+      await Promise.all(deletePromises);
+      
+      // Clear local state
+      setAllReservations([]);
+      setSelectedReservationCode('');
+      setCurrentReservation(null);
+      setReservationCode('');
+      setNewReservationCode(null);
+      setSelectedPassengers([]);
+      setSelectedItems({});
+      setItemPaymentMethods({});
+      setItemMethodForms({});
+      setItemExpandedMethod({});
+      
+      alert('All reservations deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting all reservations:', error);
+      alert('Failed to delete all reservations');
     }
   };
 
@@ -608,7 +752,12 @@ export default function PaymentPortal() {
   const [selectedPassengers, setSelectedPassengers] = useState<string[]>([]);
   const [expandedPassengers, setExpandedPassengers] = useState<string[]>([]);
   const [selectedItems, setSelectedItems] = useState<{[key: string]: string[]}>({});
-  const [isClient, setIsClient] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  
+  // Reservations dropdown state
+  const [allReservations, setAllReservations] = useState<Reservation[]>([]);
+  const [selectedReservationCode, setSelectedReservationCode] = useState<string>('');
+  const [isLoadingReservations, setIsLoadingReservations] = useState(false);
   
   // Payment method assignments for each selected item
   const [itemPaymentMethods, setItemPaymentMethods] = useState<{[key: string]: {
@@ -639,8 +788,15 @@ export default function PaymentPortal() {
   
 
   useEffect(() => {
-    setIsClient(true);
+    setMounted(true);
   }, []);
+
+  // Load reservations when user changes
+  useEffect(() => {
+    if (user && mounted) {
+      loadAllReservations();
+    }
+  }, [user, mounted]);
 
 
   // Memoized calculations for better performance
@@ -1092,14 +1248,14 @@ export default function PaymentPortal() {
 
   // Auto-save to Firebase when data changes
   useEffect(() => {
-    if (user && isClient) {
+    if (user && mounted) {
       const timeoutId = setTimeout(() => {
         syncToFirebase();
       }, 2000); // Debounce for 2 seconds
 
       return () => clearTimeout(timeoutId);
     }
-  }, [user, isClient, selectedItems, selectedPassengers, activePaymentPassenger, itemPaymentMethods, itemMethodForms, itemExpandedMethod, syncToFirebase]);
+  }, [user, mounted, selectedItems, selectedPassengers, activePaymentPassenger, itemPaymentMethods, itemMethodForms, itemExpandedMethod, syncToFirebase]);
 
   // togglePassenger is now imported from utils/passengerLogic
   const togglePassenger = (passengerId: string) => {
@@ -1176,6 +1332,51 @@ export default function PaymentPortal() {
   };
 
   // Old toggleItem function (to be removed):
+
+  // Clear all selected items for a passenger
+  const clearAllItemsForPassenger = (passengerId: string) => {
+    setSelectedItems(prev => {
+      const newSelectedItems = { ...prev };
+      delete newSelectedItems[passengerId];
+      return newSelectedItems;
+    });
+    
+    // Also remove from selected passengers if present
+    setSelectedPassengers(prev => prev.filter(id => id !== passengerId));
+    
+    // Clean up payment methods for this passenger
+    const passengerIndex = resolvePassengerIndex(passengerId);
+    const passengerData = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
+    if (!passengerData) return;
+    
+    const unpaidItems: string[] = [];
+    if (passengerData.ticket.status !== 'Paid') unpaidItems.push('ticket');
+    if (passengerData.ancillaries.seat && passengerData.ancillaries.seat.status !== 'Paid') unpaidItems.push('seat');
+    if (passengerData.ancillaries.bag && passengerData.ancillaries.bag.status !== 'Paid') unpaidItems.push('bag');
+    if (passengerData.ancillaries.secondBag && passengerData.ancillaries.secondBag.status !== 'Paid') unpaidItems.push('secondBag');
+    if (passengerData.ancillaries.thirdBag && passengerData.ancillaries.thirdBag.status !== 'Paid') unpaidItems.push('thirdBag');
+    if (passengerData.ancillaries.uatp && passengerData.ancillaries.uatp.status !== 'Paid') unpaidItems.push('uatp');
+    
+    // Remove payment methods for all items of this passenger
+    unpaidItems.forEach(itemType => {
+      const itemKey = `${passengerId}-${itemType}`;
+          setItemMethodForms(prev => {
+            const newForms = { ...prev };
+        delete newForms[itemKey];
+            return newForms;
+          });
+          setItemPaymentMethods(prev => {
+        const newMethods = { ...prev };
+        delete newMethods[itemKey];
+        return newMethods;
+      });
+      setItemExpandedMethod(prev => {
+        const newExpanded = { ...prev };
+        delete newExpanded[itemKey];
+        return newExpanded;
+      });
+    });
+  };
 
   // toggleAllItemsForPassenger is now imported from utils/passengerLogic
   const toggleAllItemsForPassenger = (passengerId: string) => {
@@ -1404,26 +1605,26 @@ export default function PaymentPortal() {
     return selectedItemsDetails;
   };
 
-  if (!isClient) {
+  if (!mounted) {
   return (
-      <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50', p: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <Box sx={{ minHeight: '100vh', bgcolor: '#E4DFDA', p: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Typography variant="h4">Loading...</Typography>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50', p: 2 }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: '#E4DFDA', p: 2 }}>
       <Container maxWidth="xl" sx={{display: 'flex', flexDirection: 'column' }}>
         {/* Header with PCI title and User Menu */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
           <Box sx={{ flex: 1 }}></Box>
-          <Typography variant="h3" component="h1" sx={{ fontWeight: 'bold', color: 'grey.800' }}>
+          <Typography variant="h3" component="h1" sx={{ fontWeight: 'bold', color: '#1B358F' }}>
           PCI
         </Typography>
           <Box sx={{ flex: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 2 }}>
             {newReservationCode && (
-              <Typography variant="body2" sx={{ color: 'success.main', fontWeight: 'bold' }}>
+              <Typography variant="body2" sx={{ color: '#48A9A6', fontWeight: 'bold' }}>
                 Created: {newReservationCode}
               </Typography>
             )}
@@ -1447,13 +1648,96 @@ export default function PaymentPortal() {
                 ))}
               </Select>
             </FormControl>
+            
+            {/* Reservations Dropdown */}
+            <FormControl size="small" sx={{ minWidth: 150 }}>
+              <InputLabel>Reservations</InputLabel>
+              <Select
+                value={selectedReservationCode}
+                label="Reservations"
+                onChange={(e) => setSelectedReservationCode(e.target.value)}
+                disabled={isLoadingReservations}
+                sx={{ 
+                  '& .MuiSelect-select': { 
+                    padding: '8px 14px',
+                    fontSize: '0.875rem'
+                  }
+                }}
+              >
+                <MenuItem value="">
+                  <em>Select Reservation</em>
+                </MenuItem>
+                {allReservations.map((reservation) => (
+                  <MenuItem key={reservation.id} value={reservation.reservationCode}>
+                    {reservation.reservationCode} ({reservation.passengers.length} passengers)
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            
+            {/* Refresh Reservations Button */}
+            <IconButton
+              size="small"
+              onClick={loadAllReservations}
+              disabled={isLoadingReservations}
+              title="Refresh Reservations List"
+              sx={{ 
+                color: '#1B358F',
+                '&:hover': { backgroundColor: 'rgba(27, 53, 143, 0.1)' }
+              }}
+            >
+              <RefreshIcon />
+            </IconButton>
+            
+            {/* Action Buttons */}
+            {selectedReservationCode && (
+              <>
+                <IconButton
+                  size="small"
+                  onClick={handleCopyReservation}
+                  title="Load Reservation to Screen"
+                  sx={{ 
+                    color: '#48A9A6',
+                    '&:hover': { backgroundColor: 'rgba(72, 169, 166, 0.1)' }
+                  }}
+                >
+                  <CopyIcon />
+                </IconButton>
+                <IconButton
+                  size="small"
+                  onClick={handleDeleteReservation}
+                  title="Delete Reservation"
+                  sx={{ 
+                    color: '#C1666B',
+                    '&:hover': { backgroundColor: 'rgba(193, 102, 107, 0.1)' }
+                  }}
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </>
+            )}
+            
+            {/* Delete All Button */}
+            {allReservations.length > 0 && (
+              <IconButton
+                size="small"
+                onClick={handleDeleteAllReservations}
+                title="Delete All Reservations"
+                sx={{ 
+                  color: '#C1666B',
+                  '&:hover': { backgroundColor: 'rgba(193, 102, 107, 0.1)' }
+                }}
+              >
+                <DeleteAllIcon />
+              </IconButton>
+            )}
             <Button
               variant="contained"
-              color="primary"
               size="small"
               onClick={handleCreateNewReservation}
               disabled={isCreatingReservation}
               sx={{ 
+                color: '#1B358F',
                 minWidth: 120,
                 textTransform: 'none',
                 fontWeight: 'bold'
@@ -1475,7 +1759,7 @@ export default function PaymentPortal() {
             <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
               <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                  <PersonIcon sx={{ color: 'primary.main', mr: 1, fontSize: 28 }} />
+                  <PersonIcon sx={{ color: '#1B358F', mr: 1, fontSize: 28 }} />
                   <Typography variant="h6" component="h2" sx={{ fontWeight: 'semibold' }}>
                     Passenger Details
                   </Typography>
@@ -1568,6 +1852,7 @@ export default function PaymentPortal() {
                         passengerData={passengerData}
                         isExpanded={isExpanded}
                         isItemSelected={isItemSelected}
+                        hasSelectedItems={(passengerId: string) => selectedItems[passengerId] && selectedItems[passengerId].length > 0}
                         togglePassenger={togglePassenger}
                         toggleAllItemsForPassenger={toggleAllItemsForPassenger}
                         toggleItem={toggleItem}
@@ -1579,8 +1864,8 @@ export default function PaymentPortal() {
                 </Box>
               </CardContent>
               
-              <Paper sx={{ p: 2, bgcolor: 'grey.100', m: 2, mt: 0 }}>
-                <Typography variant="body2" color="text.secondary">
+              <Paper sx={{ p: 2, bgcolor: '#E4DFDA', m: 2, mt: 0 }}>
+                <Typography variant="body2" sx={{ color: '#1B358F' }}>
                   {selectedPassengers.length} passengers selected
                 </Typography>
               </Paper>
@@ -1592,7 +1877,7 @@ export default function PaymentPortal() {
             <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
               <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                  <CreditCardIcon sx={{ color: 'success.main', mr: 1, fontSize: 28 }} />
+                  <CreditCardIcon sx={{ color: '#48A9A6', mr: 1, fontSize: 28 }} />
                   <Typography variant="h6" component="h2" sx={{ fontWeight: 'semibold' }}>
                     Payment Methods
                   </Typography>
@@ -1618,17 +1903,18 @@ export default function PaymentPortal() {
                   setItemExpandedMethod={setItemExpandedMethod}
                   removeMethod={removeMethodWrapper}
                   toggleItem={toggleItem}
+                  clearAllItemsForPassenger={clearAllItemsForPassenger}
                   onCopyMethod={handleCopyMethod}
                   getGeneratedNumber={getGeneratedNumber}
                 />
 
                 {/* No items selected message */}
                 {getSelectedItemsDetails().length === 0 && (
-                  <Box sx={{ mb: 3, p: 3, textAlign: 'center', bgcolor: 'grey.100', borderRadius: 2 }}>
-                    <Typography variant="body1" color="text.secondary">
+                  <Box sx={{ mb: 3, p: 3, textAlign: 'center', bgcolor: '#E4DFDA', borderRadius: 2 }}>
+                    <Typography variant="body1" sx={{ color: '#1B358F' }}>
                       No items selected for payment
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    <Typography variant="body2" sx={{ color: '#1B358F', mt: 1 }}>
                       Select items from the passengers section to configure payment methods
                     </Typography>
                   </Box>
@@ -1645,14 +1931,14 @@ export default function PaymentPortal() {
                 {/* Header */}
                 <Box sx={{ p: 3, pb: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <Avatar sx={{ bgcolor: 'primary.main', mr: 2, width: 40, height: 40 }}>
+                    <Avatar sx={{ bgcolor: '#1B358F', mr: 2, width: 40, height: 40 }}>
                       <ReceiptLongIcon />
                     </Avatar>
                     <Box>
-                      <Typography variant="h6" component="h2" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                      <Typography variant="h6" component="h2" sx={{ fontWeight: 600, color: '#1B358F' }}>
                     Payment Summary
                   </Typography>
-                      <Typography variant="caption" color="text.secondary">
+                      <Typography variant="caption" sx={{ color: '#1B358F' }}>
                         Real-time calculation
                   </Typography>
                     </Box>
@@ -1664,14 +1950,14 @@ export default function PaymentPortal() {
                       icon={<PersonIcon />} 
                       label={`${passengersWithSelectedItems.length} Passengers`} 
                       size="small" 
-                      color="primary" 
+                      sx={{ color: '#1B358F' }} 
                       variant="outlined"
                     />
                     <Chip 
                       icon={<ShoppingCartIcon />} 
                       label={`${Object.values(selectedItems).flat().length} Items`} 
                       size="small" 
-                      color="secondary" 
+                      sx={{ color: '#48A9A6' }} 
                       variant="outlined"
                     />
                   </Box>
@@ -1681,17 +1967,17 @@ export default function PaymentPortal() {
                   {total > 0 && (
                     <Box sx={{ mb: 3, px: 1 }}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#1B358F' }}>
                           Payment Progress
                         </Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 600, color: paymentProgress === 100 ? 'success.main' : 'primary.main' }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: paymentProgress === 100 ? '#48A9A6' : '#1B358F' }}>
                           {paymentProgress.toFixed(1)}%
                     </Typography>
                   </Box>
                       <Box sx={{ 
                         width: '100%', 
                         height: 8, 
-                        backgroundColor: 'grey.200', 
+                        backgroundColor: '#E4DFDA', 
                         borderRadius: 4,
                         overflow: 'hidden',
                         position: 'relative',
@@ -1700,16 +1986,16 @@ export default function PaymentPortal() {
                         <Box sx={{
                           width: `${paymentProgress}%`,
                           height: '100%',
-                          backgroundColor: paymentProgress === 100 ? 'success.main' : 'primary.main',
+                          backgroundColor: paymentProgress === 100 ? '#48A9A6' : '#1B358F',
                           borderRadius: 4,
                           transition: 'all 0.3s ease-in-out'
                         }} />
                       </Box>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
+                        <Typography variant="caption" sx={{ color: '#1B358F', fontSize: '0.75rem' }}>
                           Total: ${total.toLocaleString()}
                         </Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
+                        <Typography variant="caption" sx={{ color: '#1B358F', fontSize: '0.75rem' }}>
                           Selected: ${computeSelectedAmount(reservation, selectedItems).toLocaleString()}
                         </Typography>
                       </Box>

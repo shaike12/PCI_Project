@@ -103,8 +103,8 @@ export function PaymentMethodCard({
       p: 1.5, 
       mt: 1, 
       border: 1, 
-      borderColor: expanded ? 'primary.light' : (isComplete ? 'success.light' : 'warning.light'), 
-      bgcolor: expanded ? 'white' : (isComplete ? 'success.50' : 'warning.50'),
+      borderColor: expanded ? '#E4DFDA' : (isComplete ? '#E4DFDA' : '#E4DFDA'), 
+      bgcolor: 'white',
       position: 'relative'
     }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: expanded ? 1 : 0 }}>
@@ -114,11 +114,11 @@ export function PaymentMethodCard({
           </Typography>
           {isComplete ? (
             <Tooltip title="All fields completed" arrow>
-              <Box sx={{ width: 16, height: 16, borderRadius: '50%', backgroundColor: 'success.main', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '10px', fontWeight: 'bold', cursor: 'help' }}>✓</Box>
+              <Box sx={{ width: 16, height: 16, borderRadius: '50%', backgroundColor: '#48A9A6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '10px', fontWeight: 'bold', cursor: 'help' }}>✓</Box>
             </Tooltip>
           ) : (
             <Tooltip title={getValidationMessage(method, paymentData, method === 'voucher' ? formMethods.slice(0, idx).filter(m => m === 'voucher').length : undefined)} arrow>
-              <Box sx={{ width: 16, height: 16, borderRadius: '50%', backgroundColor: 'warning.main', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '10px', fontWeight: 'bold', cursor: 'help' }}>!</Box>
+              <Box sx={{ width: 16, height: 16, borderRadius: '50%', backgroundColor: '#D4B483', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '10px', fontWeight: 'bold', cursor: 'help' }}>!</Box>
             </Tooltip>
           )}
           {!expanded && methodAmount > 0 && (
@@ -150,11 +150,14 @@ export function PaymentMethodCard({
                     updateMethodField(itemKey, 'voucher', 'amount', minValue.toString(), voucherIdx);
                   } else if (method === 'points') {
                     updateMethodField(itemKey, 'points', 'amount', minValue.toString());
+                    // Also update points to use based on the amount
+                    const pointsToUse = Math.round(minValue * 50); // 50 points = $1
+                    updateMethodField(itemKey, 'points', 'pointsToUse', pointsToUse.toString());
                   }
                 }}
                 size="small"
                 sx={{ 
-                  color: 'primary.main',
+                  color: '#1B358F',
                   '& .MuiSlider-thumb': {
                     width: 16,
                     height: 16,
@@ -172,8 +175,13 @@ export function PaymentMethodCard({
           )}
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+          <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#1B358F' }}>
             ${methodAmount.toLocaleString()}
+            {method === 'points' && paymentData?.points?.pointsToUse && (
+              <span style={{ fontSize: '0.8em', color: '#48A9A6', marginLeft: '8px' }}>
+                ({paymentData.points.pointsToUse.toLocaleString()} pts)
+              </span>
+            )}
           </Typography>
           <IconButton 
             size="small" 
@@ -194,8 +202,8 @@ export function PaymentMethodCard({
               });
             }}
             sx={{ 
-              color: expanded ? 'primary.main' : 'text.secondary',
-              '&:hover': { bgcolor: 'primary.light', color: 'white' }
+              color: expanded ? '#1B358F' : '#1B358F',
+              '&:hover': { bgcolor: '#E4DFDA', color: 'white' }
             }}
           >
             {expanded ? <ExpandLessIcon fontSize="small" /> : <EditIcon fontSize="small" />}
@@ -205,8 +213,8 @@ export function PaymentMethodCard({
               size="small" 
               onClick={() => onCopyMethod(itemKey, method)}
               sx={{ 
-                color: 'info.main',
-                '&:hover': { bgcolor: 'info.light', color: 'white' }
+                color: '#48A9A6',
+                '&:hover': { bgcolor: '#E4DFDA', color: 'white' }
               }}
               title="Copy payment method to other passengers"
             >
@@ -217,8 +225,8 @@ export function PaymentMethodCard({
             size="small" 
             onClick={() => removeMethod(itemKey, idx)}
             sx={{ 
-              color: 'error.main',
-              '&:hover': { bgcolor: 'error.light', color: 'white' }
+              color: '#C1666B',
+              '&:hover': { bgcolor: '#E4DFDA', color: 'white' }
             }}
           >
             <DeleteIcon fontSize="small" />

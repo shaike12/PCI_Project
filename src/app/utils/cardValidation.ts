@@ -16,31 +16,31 @@ export const getCardIconProps = (cardType: string) => {
     case 'Visa':
       return {
         text: 'VISA',
-        backgroundColor: '#1A1F71',
+        backgroundColor: '#1B358F',
         fontSize: '10px'
       };
     case 'Mastercard':
       return {
         text: 'MC',
-        backgroundColor: '#EB001B',
+        backgroundColor: '#C1666B',
         fontSize: '8px'
       };
     case 'American Express':
       return {
         text: 'AMEX',
-        backgroundColor: '#006FCF',
+        backgroundColor: '#48A9A6',
         fontSize: '8px'
       };
     case 'Discover':
       return {
         text: 'DISC',
-        backgroundColor: '#FF6000',
+        backgroundColor: '#D4B483',
         fontSize: '8px'
       };
     default:
       return {
         text: '?',
-        backgroundColor: 'grey.400',
+        backgroundColor: '#C1666B',
         fontSize: '8px'
       };
   }

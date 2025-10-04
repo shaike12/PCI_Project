@@ -108,7 +108,7 @@ export default function UserMenu({ onSyncToCloud, onSyncFromCloud, onShowAuthMod
         onClose={handleMenuClose}
       >
         <Box sx={{ px: 2, py: 1 }}>
-          <Typography variant="subtitle2" color="text.secondary">
+          <Typography variant="subtitle2" sx={{ color: '#1B358F' }}>
             Signed in as
           </Typography>
           <Typography variant="body2" noWrap>

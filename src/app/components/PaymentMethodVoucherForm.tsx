@@ -23,19 +23,19 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
   const currentVoucherNumber = paymentData?.vouchers?.[voucherIndex]?.voucherNumber ?? '';
   
   const [isSaved, setIsSaved] = useState(false);
-  const [localAmount, setLocalAmount] = useState(storedAmount || fallbackAmount.toString());
+  const [localAmount, setLocalAmount] = useState((storedAmount || fallbackAmount).toFixed(2));
 
   // Update local amount when stored amount changes (after save)
   useEffect(() => {
     if (storedAmount !== undefined && storedAmount !== null && storedAmount !== '') {
-      setLocalAmount(storedAmount.toString());
+      setLocalAmount(storedAmount.toFixed(2));
     }
   }, [storedAmount]);
 
   return (
-    <Box sx={{ mt: 2, p: 3, bgcolor: 'grey.50', borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
+    <Box sx={{ mt: 2, p: 3, bgcolor: 'white', borderRadius: 2, border: '1px solid', borderColor: '#E4DFDA' }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+        <Typography variant="subtitle2" sx={{ color: '#1B358F', fontWeight: 600 }}>
           UATP Voucher Details #{index + 1}
         </Typography>
         <Button
@@ -47,7 +47,7 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
             const inputValue = localAmount;
             // Handle empty input
             if (inputValue === '' || inputValue === null || inputValue === undefined) {
-              setLocalAmount('1');
+              setLocalAmount('1.00');
               updateMethodField(itemKey, 'voucher', 'amount', '1', voucherIndex);
               return;
             }
@@ -55,7 +55,7 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
             const value = parseFloat(inputValue);
             // Handle invalid input (NaN)
             if (isNaN(value)) {
-              setLocalAmount('1');
+              setLocalAmount('1.00');
               updateMethodField(itemKey, 'voucher', 'amount', '1', voucherIndex);
               return;
             }
@@ -78,7 +78,7 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
             const cappedValue = currentRemaining > 0 ? Math.min(minValue, currentRemaining) : (originalPrice > 0 ? Math.min(minValue, originalPrice) : 1);
             
             console.log(`[Voucher] Save - Input: ${value}, Original Price: ${originalPrice}, Current Paid: ${currentPaidAmount}, Current Remaining: ${currentRemaining}, Capped: ${cappedValue}`);
-            setLocalAmount(cappedValue.toString());
+            setLocalAmount(cappedValue.toFixed(2));
             updateMethodField(itemKey, 'voucher', 'amount', cappedValue.toString(), voucherIndex);
             
             // Collapse the form after saving
@@ -90,8 +90,8 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
             }
           }}
           sx={{
-            bgcolor: '#5E837C',
-            '&:hover': { bgcolor: '#4a6b65' },
+            bgcolor: '#D4B483',
+            '&:hover': { bgcolor: '#c19f5f' },
             fontSize: '0.75rem',
             px: 2,
             py: 0.5

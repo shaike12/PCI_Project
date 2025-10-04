@@ -178,7 +178,7 @@ export default function ReservationManager() {
               <Typography color="textSecondary" gutterBottom>
                 Active
               </Typography>
-              <Typography variant="h4" color="primary">
+              <Typography variant="h4" sx={{ color: '#1B358F' }}>
                 {stats.active}
               </Typography>
             </CardContent>
@@ -189,7 +189,7 @@ export default function ReservationManager() {
               <Typography color="textSecondary" gutterBottom>
                 Completed
               </Typography>
-              <Typography variant="h4" color="success.main">
+              <Typography variant="h4" color="#48A9A6">
                 {stats.completed}
               </Typography>
             </CardContent>
@@ -200,7 +200,7 @@ export default function ReservationManager() {
               <Typography color="textSecondary" gutterBottom>
                 Total Revenue
               </Typography>
-              <Typography variant="h4" color="success.main">
+              <Typography variant="h4" color="#48A9A6">
                 ${stats.totalRevenue.toLocaleString()}
               </Typography>
             </CardContent>
@@ -330,7 +330,7 @@ export default function ReservationManager() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleDeleteReservation} color="error" variant="contained">
+          <Button onClick={handleDeleteReservation} sx={{ backgroundColor: '#C1666B', color: 'white' }} variant="contained">
             Delete
           </Button>
         </DialogActions>
@@ -394,7 +394,7 @@ function ReservationTable({
                 <IconButton onClick={() => onView(reservation)} size="small">
                   <ViewIcon />
                 </IconButton>
-                <IconButton onClick={() => onDelete(reservation)} size="small" color="error">
+                <IconButton onClick={() => onDelete(reservation)} size="small" sx={{ color: '#C1666B' }}>
                   <DeleteIcon />
                 </IconButton>
               </TableCell>

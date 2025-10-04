@@ -205,11 +205,11 @@ export function CopyPaymentMethodModal({
       
       <DialogContent>
         <Box sx={{ mb: 2 }}>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+          <Typography variant="body2" sx={{ color: '#1B358F', mb: 1 }}>
             Copying from:
           </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1, bgcolor: 'grey.100', borderRadius: 1 }}>
-            <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1, bgcolor: '#E4DFDA', borderRadius: 1 }}>
+            <Avatar sx={{ width: 32, height: 32, bgcolor: '#1B358F' }}>
               <PersonIcon fontSize="small" />
             </Avatar>
             <Box>
@@ -218,7 +218,7 @@ export function CopyPaymentMethodModal({
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                 {getItemIcon(sourceItemType)}
-                <Typography variant="caption" color="text.secondary">
+                <Typography variant="caption" sx={{ color: '#1B358F' }}>
                   {getItemLabel(sourceItemType)}
                 </Typography>
               </Box>
@@ -229,7 +229,7 @@ export function CopyPaymentMethodModal({
         <Divider sx={{ my: 2 }} />
 
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" sx={{ color: '#1B358F' }}>
             Select passengers to copy the payment method to:
           </Typography>
           <Button 
@@ -300,7 +300,7 @@ export function CopyPaymentMethodModal({
                     />
                   </ListItemIcon>
                   <ListItemIcon>
-                    <Avatar sx={{ width: 32, height: 32, bgcolor: isSourcePassenger ? 'grey.400' : 'primary.main' }}>
+                    <Avatar sx={{ width: 32, height: 32, bgcolor: isSourcePassenger ? '#C1666B' : '#1B358F' }}>
                       <PersonIcon fontSize="small" />
                     </Avatar>
                   </ListItemIcon>
@@ -317,9 +317,9 @@ export function CopyPaymentMethodModal({
                             py: 0.25,
                             borderRadius: 1,
                             border: '1px solid',
-                            borderColor: isSourcePassenger ? 'grey.400' : 'primary.main',
-                            color: isSourcePassenger ? 'grey.600' : 'primary.main',
-                            bgcolor: isSourcePassenger ? 'grey.100' : 'primary.light',
+                            borderColor: isSourcePassenger ? '#C1666B' : '#1B358F',
+                            color: isSourcePassenger ? '#1B358F' : '#1B358F',
+                            bgcolor: isSourcePassenger ? '#E4DFDA' : '#E4DFDA',
                             fontSize: '0.7rem',
                             height: 20,
                             lineHeight: '20px'
@@ -336,9 +336,9 @@ export function CopyPaymentMethodModal({
                             py: 0.25,
                             borderRadius: 1,
                             border: '1px solid',
-                            borderColor: hasRemainingBalance ? 'success.main' : 'grey.400',
-                            color: hasRemainingBalance ? 'success.main' : 'grey.600',
-                            bgcolor: hasRemainingBalance ? 'success.light' : 'grey.100',
+                            borderColor: hasRemainingBalance ? '#48A9A6' : '#C1666B',
+                            color: hasRemainingBalance ? '#48A9A6' : '#1B358F',
+                            bgcolor: hasRemainingBalance ? '#E4DFDA' : '#E4DFDA',
                             fontSize: '0.7rem',
                             height: 20,
                             lineHeight: '20px'
@@ -377,7 +377,7 @@ export function CopyPaymentMethodModal({
           return true;
         }).length === 0 && (
           <Box sx={{ textAlign: 'center', py: 3 }}>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{ color: '#1B358F' }}>
               No passengers with remaining balance available for copying
             </Typography>
           </Box>
@@ -391,7 +391,7 @@ export function CopyPaymentMethodModal({
         <Button 
           onClick={handleCopyToAll}
           variant="contained"
-          color="primary"
+          sx={{ backgroundColor: '#1B358F', color: 'white' }}
           disabled={passengers.filter(p => p.id !== sourcePassengerId && selectedPassengers.includes(p.id)).length === 0}
         >
           Copy to All Other Passengers
@@ -399,7 +399,7 @@ export function CopyPaymentMethodModal({
         <Button 
           onClick={handleCopyToSelected}
           variant="outlined"
-          color="primary"
+          sx={{ backgroundColor: '#1B358F', color: 'white' }}
           disabled={selectedPassengerIds.length === 0}
         >
           Copy to Selected ({selectedPassengerIds.length})

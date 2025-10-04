@@ -60,13 +60,13 @@ export function PaymentMethodsSummary({ itemPaymentMethods, onClearAll, onClearA
       <AccordionSummary expandIcon={<ExpandMoreIcon />}> 
         <Box sx={{ display: "flex", alignItems: "center", width: "100%" }}>
           <Box sx={{ display: "flex", alignItems: "center", mr: 1 }}>
-            <PaymentIcon sx={{ color: "success.main" }} />
+            <PaymentIcon sx={{ color: "#48A9A6" }} />
             {totalPaymentMethods > 0 && (
               <Typography variant="caption" sx={{ 
                 ml: 0.5, 
-                color: "success.main", 
+                color: "#48A9A6", 
                 fontWeight: "bold",
-                backgroundColor: "success.light",
+                backgroundColor: "#E4DFDA",
                 borderRadius: "50%",
                 width: 18,
                 height: 18,
@@ -82,7 +82,7 @@ export function PaymentMethodsSummary({ itemPaymentMethods, onClearAll, onClearA
           <Typography variant="subtitle2" sx={{ fontWeight: 600, flex: 1 }}>
             Payment Methods
           </Typography>
-          <Typography variant="body2" sx={{ fontWeight: 600, color: "success.main" }}>
+          <Typography variant="body2" sx={{ fontWeight: 600, color: "#48A9A6" }}>
             ${totalPaymentAmount.toLocaleString()}
           </Typography>
           {totalPaymentMethods > 0 && (
@@ -103,9 +103,9 @@ export function PaymentMethodsSummary({ itemPaymentMethods, onClearAll, onClearA
               }}
               sx={{
                 ml: 2,
-                color: 'error.main',
+                color: '#C1666B',
                 border: 1,
-                borderColor: 'error.main',
+                borderColor: '#C1666B',
                 width: 32,
                 height: 32,
                 display: 'inline-flex',
@@ -115,7 +115,7 @@ export function PaymentMethodsSummary({ itemPaymentMethods, onClearAll, onClearA
                 cursor: 'pointer',
                 '&:hover': {
                   backgroundColor: 'error.50',
-                  borderColor: 'error.dark',
+                  borderColor: '#a04a4f',
                 },
               }}
               title="Clear All Payment Methods"
@@ -135,9 +135,9 @@ export function PaymentMethodsSummary({ itemPaymentMethods, onClearAll, onClearA
               }}
               sx={{
                 ml: 1,
-                color: 'warning.main',
+                color: '#D4B483',
                 border: 1,
-                borderColor: 'warning.main',
+                borderColor: '#D4B483',
                 width: 32,
                 height: 32,
                 display: 'inline-flex',
@@ -147,7 +147,7 @@ export function PaymentMethodsSummary({ itemPaymentMethods, onClearAll, onClearA
                 cursor: 'pointer',
                 '&:hover': {
                   backgroundColor: 'warning.50',
-                  borderColor: 'warning.dark',
+                  borderColor: '#c19f5f',
                 },
               }}
               title="Clear All Data (including incorrect data)"
@@ -162,7 +162,7 @@ export function PaymentMethodsSummary({ itemPaymentMethods, onClearAll, onClearA
           {totalCreditAmount > 0 && (
             <ListItem sx={{ px: 0 }}>
               <ListItemIcon sx={{ minWidth: 36 }}>
-                <CreditCardIcon color="primary" />
+                <CreditCardIcon sx={{ color: '#1B358F' }} />
               </ListItemIcon>
               <ListItemText primary="Credit Card" secondary="Visa, Mastercard, Amex" />
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
@@ -174,7 +174,7 @@ export function PaymentMethodsSummary({ itemPaymentMethods, onClearAll, onClearA
           {totalVoucherAmount > 0 && (
             <ListItem sx={{ px: 0 }}>
               <ListItemIcon sx={{ minWidth: 36 }}>
-                <CardGiftcardIcon color="secondary" />
+                <CardGiftcardIcon sx={{ color: '#48A9A6' }} />
               </ListItemIcon>
               <ListItemText primary="UATP Voucher" secondary="UATP vouchers" />
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
@@ -186,7 +186,7 @@ export function PaymentMethodsSummary({ itemPaymentMethods, onClearAll, onClearA
           {totalPointsAmount > 0 && (
             <ListItem sx={{ px: 0 }}>
               <ListItemIcon sx={{ minWidth: 36 }}>
-                <StarIcon color="warning" />
+                <StarIcon sx={{ color: '#D4B483' }} />
               </ListItemIcon>
               <ListItemText primary="Points" secondary={`${totalPointsUsed.toLocaleString()} points (50 points = $1)`} />
               <Typography variant="body2" sx={{ fontWeight: 600 }}>

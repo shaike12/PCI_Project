@@ -21,7 +21,7 @@ export function PaymentMethodCreditForm({ itemKey, paymentData, updateMethodFiel
   const originalPrice = getOriginalItemPrice(itemKey);
   
   const [isSaved, setIsSaved] = useState(false);
-  const [localAmount, setLocalAmount] = useState(storedAmount || fallbackAmount.toString());
+  const [localAmount, setLocalAmount] = useState((storedAmount || fallbackAmount).toFixed(2));
 
   // Update local amount when stored amount changes (after save)
   useEffect(() => {
@@ -31,7 +31,7 @@ export function PaymentMethodCreditForm({ itemKey, paymentData, updateMethodFiel
     
     if (storedAmount !== undefined && storedAmount !== null && storedAmount !== '') {
       console.log('- Setting localAmount to storedAmount:', storedAmount.toString());
-      setLocalAmount(storedAmount.toString());
+      setLocalAmount(storedAmount.toFixed(2));
     } else {
       console.log('- storedAmount is empty/undefined, not updating localAmount');
     }
@@ -52,7 +52,7 @@ export function PaymentMethodCreditForm({ itemKey, paymentData, updateMethodFiel
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            bgcolor: '#1A1F71',
+            bgcolor: '#1B358F',
             color: '#fff',
             fontWeight: 800,
             fontSize: '10px',
@@ -73,7 +73,7 @@ export function PaymentMethodCreditForm({ itemKey, paymentData, updateMethodFiel
                 width: 14,
                 height: 14,
                 borderRadius: '50%',
-                bgcolor: '#EB001B'
+                bgcolor: '#C1666B'
               }} />
               <Box sx={{
                 position: 'absolute',
@@ -83,7 +83,7 @@ export function PaymentMethodCreditForm({ itemKey, paymentData, updateMethodFiel
                 width: 14,
                 height: 14,
                 borderRadius: '50%',
-                bgcolor: '#FF5F00'
+                bgcolor: '#D4B483'
               }} />
             </Box>
           </Box>
@@ -99,7 +99,7 @@ export function PaymentMethodCreditForm({ itemKey, paymentData, updateMethodFiel
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            bgcolor: '#006FCF',
+            bgcolor: '#48A9A6',
             color: '#fff',
             fontWeight: 800,
             fontSize: '9px',
@@ -133,9 +133,9 @@ export function PaymentMethodCreditForm({ itemKey, paymentData, updateMethodFiel
   };
 
   return (
-    <Box sx={{ mt: 2, p: 3, bgcolor: 'grey.50', borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
+    <Box sx={{ mt: 2, p: 3, bgcolor: 'white', borderRadius: 2, border: '1px solid', borderColor: '#E4DFDA' }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+        <Typography variant="subtitle2" sx={{ color: '#1B358F', fontWeight: 600 }}>
           Credit Card Details
         </Typography>
         <Button
@@ -158,7 +158,7 @@ export function PaymentMethodCreditForm({ itemKey, paymentData, updateMethodFiel
             // Handle empty input
             if (inputValue === '' || inputValue === null || inputValue === undefined) {
               console.log('- Empty input detected, setting to 1');
-              setLocalAmount('1');
+              setLocalAmount('1.00');
               updateMethodField(itemKey, 'credit', 'amount', '1');
               return;
             }
@@ -169,7 +169,7 @@ export function PaymentMethodCreditForm({ itemKey, paymentData, updateMethodFiel
             // Handle invalid input (NaN)
             if (isNaN(value)) {
               console.log('- NaN input detected, setting to 1');
-              setLocalAmount('1');
+              setLocalAmount('1.00');
               updateMethodField(itemKey, 'credit', 'amount', '1');
               return;
             }
@@ -206,7 +206,7 @@ export function PaymentMethodCreditForm({ itemKey, paymentData, updateMethodFiel
             console.log('- About to set localAmount to:', cappedValue.toString());
             console.log('- About to call updateMethodField with:', cappedValue.toString());
             
-             setLocalAmount(cappedValue.toString());
+             setLocalAmount(cappedValue.toFixed(2));
              updateMethodField(itemKey, 'credit', 'amount', cappedValue.toString());
              
              // Collapse the form after saving
@@ -220,8 +220,8 @@ export function PaymentMethodCreditForm({ itemKey, paymentData, updateMethodFiel
              console.log('=== SAVE COMPLETED ===');
           }}
           sx={{
-            bgcolor: '#5E837C',
-            '&:hover': { bgcolor: '#4a6b65' },
+            bgcolor: '#1B358F',
+            '&:hover': { bgcolor: '#0f1f5f' },
             fontSize: '0.75rem',
             px: 2,
             py: 0.5

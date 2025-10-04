@@ -20,8 +20,8 @@ export function ActionButtons({ confirmDisabled, onConfirm, onCancel }: ActionBu
         startIcon={<CheckCircleIcon />}
         sx={{ 
           mb: 2,
-          bgcolor: 'primary.main',
-          '&:hover': { bgcolor: 'primary.dark' },
+          bgcolor: '#1B358F',
+          '&:hover': { bgcolor: '#0f1f5f' },
           fontWeight: 600,
           py: 1.5
         }}
@@ -37,8 +37,8 @@ export function ActionButtons({ confirmDisabled, onConfirm, onCancel }: ActionBu
         size="large"
         startIcon={<CloseIcon />}
         sx={{ 
-          borderColor: 'grey.300', 
-          color: 'text.secondary',
+          borderColor: '#E4DFDA', 
+          color: '#1B358F',
           fontWeight: 500,
           py: 1.5
         }}

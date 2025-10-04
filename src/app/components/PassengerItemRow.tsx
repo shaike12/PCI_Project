@@ -21,8 +21,8 @@ export function PassengerItemRow({ itemType, passengerData, isSelected, onToggle
   let icon: any = <FlightIcon sx={{ fontSize: 18 }} />;
   let status = '';
   let number = '';
-  let color = 'primary.main';
-  let borderColor = 'grey.300';
+  let color = '#1B358F';
+  let borderColor = '#E4DFDA';
   let bgColor = 'white';
 
   if (itemType === 'ticket') {
@@ -31,54 +31,54 @@ export function PassengerItemRow({ itemType, passengerData, isSelected, onToggle
     status = passengerData.ticket.status;
     number = passengerData.ticket.ticketNumber || '';
     icon = <FlightIcon sx={{ fontSize: 18 }} />;
-    color = 'warning.main';
-    borderColor = status === 'Paid' ? 'grey.400' : (isSelected ? 'warning.main' : 'grey.300');
-    bgColor = status === 'Paid' ? 'grey.100' : (isSelected ? 'warning.light' : 'white');
+    color = '#D4B483';
+    borderColor = status === 'Paid' ? '#C1666B' : (isSelected ? '#D4B483' : '#E4DFDA');
+    bgColor = status === 'Paid' ? '#E4DFDA' : (isSelected ? '#E4DFDA' : 'white');
   } else if (itemType === 'seat') {
     title = `Seat (${passengerData.ancillaries.seat.seatNumber || 'N/A'})`;
     price = passengerData.ancillaries.seat.price;
     status = passengerData.ancillaries.seat.status;
     number = passengerData.ancillaries.seat.ancillaryNumber || '';
     icon = <EventSeatIcon sx={{ fontSize: 18 }} />;
-    color = 'warning.main';
-    borderColor = status === 'Paid' ? 'grey.400' : (isSelected ? 'warning.main' : 'grey.300');
-    bgColor = status === 'Paid' ? 'grey.100' : (isSelected ? 'warning.light' : 'white');
+    color = '#D4B483';
+    borderColor = status === 'Paid' ? '#C1666B' : (isSelected ? '#D4B483' : '#E4DFDA');
+    bgColor = status === 'Paid' ? '#E4DFDA' : (isSelected ? '#E4DFDA' : 'white');
   } else if (itemType === 'bag') {
     title = 'Baggage (XBAF)';
     price = passengerData.ancillaries.bag.price;
     status = passengerData.ancillaries.bag.status;
     number = passengerData.ancillaries.bag.ancillaryNumber || '';
     icon = <LuggageIcon sx={{ fontSize: 18 }} />;
-    color = 'warning.main';
-    borderColor = status === 'Paid' ? 'grey.400' : (isSelected ? 'warning.main' : 'grey.300');
-    bgColor = status === 'Paid' ? 'grey.100' : (isSelected ? 'warning.light' : 'white');
+    color = '#D4B483';
+    borderColor = status === 'Paid' ? '#C1666B' : (isSelected ? '#D4B483' : '#E4DFDA');
+    bgColor = status === 'Paid' ? '#E4DFDA' : (isSelected ? '#E4DFDA' : 'white');
   } else if (itemType === 'secondBag') {
     title = 'Second Bag (XBAS)';
     price = passengerData.ancillaries.secondBag?.price || 0;
     status = passengerData.ancillaries.secondBag?.status || 'Unpaid';
     number = passengerData.ancillaries.secondBag?.ancillaryNumber || '';
     icon = <LuggageIcon sx={{ fontSize: 18 }} />;
-    color = 'warning.main';
-    borderColor = status === 'Paid' ? 'grey.400' : (isSelected ? 'warning.main' : 'grey.300');
-    bgColor = status === 'Paid' ? 'grey.100' : (isSelected ? 'warning.light' : 'white');
+    color = '#D4B483';
+    borderColor = status === 'Paid' ? '#C1666B' : (isSelected ? '#D4B483' : '#E4DFDA');
+    bgColor = status === 'Paid' ? '#E4DFDA' : (isSelected ? '#E4DFDA' : 'white');
   } else if (itemType === 'thirdBag') {
     title = 'Third Bag (XBAT)';
     price = passengerData.ancillaries.thirdBag?.price || 0;
     status = passengerData.ancillaries.thirdBag?.status || 'Unpaid';
     number = passengerData.ancillaries.thirdBag?.ancillaryNumber || '';
     icon = <LuggageIcon sx={{ fontSize: 18 }} />;
-    color = 'warning.main';
-    borderColor = status === 'Paid' ? 'grey.400' : (isSelected ? 'warning.main' : 'grey.300');
-    bgColor = status === 'Paid' ? 'grey.100' : (isSelected ? 'warning.light' : 'white');
+    color = '#D4B483';
+    borderColor = status === 'Paid' ? '#C1666B' : (isSelected ? '#D4B483' : '#E4DFDA');
+    bgColor = status === 'Paid' ? '#E4DFDA' : (isSelected ? '#E4DFDA' : 'white');
   } else if (itemType === 'uatp') {
     title = 'UATP';
     price = passengerData.ancillaries.uatp?.price || 0;
     status = passengerData.ancillaries.uatp?.status || 'Unpaid';
     number = passengerData.ancillaries.uatp?.ancillaryNumber || '';
     icon = <CreditCardIcon sx={{ fontSize: 18 }} />;
-    color = 'warning.main';
-    borderColor = status === 'Paid' ? 'grey.400' : (isSelected ? 'warning.main' : 'grey.300');
-    bgColor = status === 'Paid' ? 'grey.100' : (isSelected ? 'warning.light' : 'white');
+    color = '#D4B483';
+    borderColor = status === 'Paid' ? '#C1666B' : (isSelected ? '#D4B483' : '#E4DFDA');
+    bgColor = status === 'Paid' ? '#E4DFDA' : (isSelected ? '#E4DFDA' : 'white');
   }
 
   const isPaid = status === 'Paid';
@@ -95,8 +95,8 @@ export function PassengerItemRow({ itemType, passengerData, isSelected, onToggle
         opacity: isPaid ? 0.6 : 1,
         transition: 'all 0.2s',
         '&:hover': {
-          borderColor: isPaid ? 'grey.400' : (isSelected ? color : color),
-          bgcolor: isPaid ? 'grey.100' : (isSelected ? color : `${color}.light`)
+          borderColor: isPaid ? '#C1666B' : (isSelected ? color : color),
+          bgcolor: isPaid ? '#E4DFDA' : (isSelected ? color : `${color}.light`)
         }
       }}
       onClick={() => {
@@ -110,7 +110,7 @@ export function PassengerItemRow({ itemType, passengerData, isSelected, onToggle
           {React.cloneElement(icon, { 
             sx: { 
               mr: 1, 
-              color: isPaid ? 'grey.500' : color, 
+              color: isPaid ? '#C1666B' : color, 
               fontSize: 18 
             } 
           })}
@@ -119,7 +119,7 @@ export function PassengerItemRow({ itemType, passengerData, isSelected, onToggle
               {title}
             </Typography>
             {status === 'Paid' && number && (
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+              <Typography variant="caption" sx={{ color: '#1B358F', fontSize: '0.75rem' }}>
                 {number}
               </Typography>
             )}
@@ -127,7 +127,7 @@ export function PassengerItemRow({ itemType, passengerData, isSelected, onToggle
         </Box>
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
           <Typography variant="caption" sx={{ 
-            color: isPaid ? 'success.main' : 'warning.main',
+            color: isPaid ? '#48A9A6' : '#D4B483',
             fontWeight: 'medium',
             fontSize: '0.75rem'
           }}>
@@ -136,7 +136,7 @@ export function PassengerItemRow({ itemType, passengerData, isSelected, onToggle
           <Typography variant="body2" sx={{ 
             fontWeight: 'bold',
             fontSize: '0.875rem',
-            color: 'primary.main'
+            color: '#1B358F'
           }}>
             ${price}
           </Typography>

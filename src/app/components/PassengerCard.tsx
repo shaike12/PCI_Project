@@ -24,6 +24,7 @@ interface PassengerCardProps {
   passengerData: any;
   isExpanded: boolean;
   isItemSelected: (passengerId: string, itemType: string) => boolean;
+  hasSelectedItems: (passengerId: string) => boolean;
   togglePassenger: (passengerId: string) => void;
   toggleAllItemsForPassenger: (passengerId: string) => void;
   toggleItem: (passengerId: string, itemType: string) => void;
@@ -36,6 +37,7 @@ function PassengerCard({
   passengerData,
   isExpanded,
   isItemSelected,
+  hasSelectedItems,
   togglePassenger,
   toggleAllItemsForPassenger,
   toggleItem,
@@ -49,7 +51,7 @@ function PassengerCard({
       sx={{
         mb: 1.5,
         border: 1,
-        borderColor: 'grey.300',
+        borderColor: '#E4DFDA',
         overflow: 'hidden'
       }}
     >
@@ -58,12 +60,42 @@ function PassengerCard({
         sx={{
           p: 1.5,
           cursor: 'pointer',
-          bgcolor: 'white',
+          bgcolor: (() => {
+            // Check if passenger has selected items for payment
+            if (hasSelectedItems(passenger.id)) {
+              return '#EFE3D1'; // Light beige background for selected passengers
+            }
+            // Check if all items are paid (no items to pay for)
+            const allPaid = passengerData.ticket.status === 'Paid' && 
+                           passengerData.ancillaries.seat.status === 'Paid' && 
+                           passengerData.ancillaries.bag.status === 'Paid' &&
+                           (!passengerData.ancillaries.secondBag || passengerData.ancillaries.secondBag.status === 'Paid') &&
+                           (!passengerData.ancillaries.thirdBag || passengerData.ancillaries.thirdBag.status === 'Paid') &&
+                           (!passengerData.ancillaries.uatp || passengerData.ancillaries.uatp.status === 'Paid');
+            if (allPaid) {
+              return '#48A9A6'; // Teal background for fully paid passengers
+            }
+            return 'white'; // White background for passengers with no selected items
+          })(),
           color: 'inherit',
           opacity: 1,
           transition: 'all 0.2s',
           '&:hover': {
-            bgcolor: 'grey.50'
+            bgcolor: (() => {
+              if (hasSelectedItems(passenger.id)) {
+                return '#d4c4a8'; // Darker beige on hover for selected passengers
+              }
+              const allPaid = passengerData.ticket.status === 'Paid' && 
+                             passengerData.ancillaries.seat.status === 'Paid' && 
+                             passengerData.ancillaries.bag.status === 'Paid' &&
+                             (!passengerData.ancillaries.secondBag || passengerData.ancillaries.secondBag.status === 'Paid') &&
+                             (!passengerData.ancillaries.thirdBag || passengerData.ancillaries.thirdBag.status === 'Paid') &&
+                             (!passengerData.ancillaries.uatp || passengerData.ancillaries.uatp.status === 'Paid');
+              if (allPaid) {
+                return '#3a8a87'; // Darker teal on hover for fully paid passengers
+              }
+              return '#E4DFDA'; // Light background on hover for unselected passengers
+            })()
           }
         }}
         onClick={() => {
@@ -127,8 +159,8 @@ function PassengerCard({
                 sx={{
                   fontSize: 20,
                   color: (() => {
-                    if (passengerData.ticket.status === 'Paid') return 'grey.500';
-                    return isItemSelected(passenger.id, 'ticket') ? 'success.main' : 'success.main';
+                    if (passengerData.ticket.status === 'Paid') return '#C1666B';
+                    return isItemSelected(passenger.id, 'ticket') ? '#48A9A6' : '#48A9A6';
                   })(),
                   opacity: passengerData.ticket.status === 'Paid' ? 0.3 : 1,
                   zIndex: 2,
@@ -162,8 +194,8 @@ function PassengerCard({
                 sx={{
                   fontSize: 20,
                   color: (() => {
-                    if (passengerData.ancillaries.seat.status === 'Paid') return 'grey.500';
-                    return isItemSelected(passenger.id, 'seat') ? 'warning.main' : 'warning.main';
+                    if (passengerData.ancillaries.seat.status === 'Paid') return '#C1666B';
+                    return isItemSelected(passenger.id, 'seat') ? '#48A9A6' : '#48A9A6';
                   })(),
                   opacity: passengerData.ancillaries.seat.status === 'Paid' ? 0.3 : 1,
                   zIndex: 2,
@@ -198,8 +230,8 @@ function PassengerCard({
                 sx={{
                   fontSize: 20,
                   color: (() => {
-                    if (passengerData.ancillaries.bag.status === 'Paid') return 'grey.500';
-                    return isItemSelected(passenger.id, 'bag') ? 'warning.main' : 'warning.main';
+                    if (passengerData.ancillaries.bag.status === 'Paid') return '#C1666B';
+                    return isItemSelected(passenger.id, 'bag') ? '#48A9A6' : '#48A9A6';
                   })(),
                   opacity: passengerData.ancillaries.bag.status === 'Paid' ? 0.3 : 1,
                   zIndex: 2,
@@ -216,13 +248,13 @@ function PassengerCard({
                   position: 'relative',
                   width: '20px',
                   height: '20px',
-                  cursor: passengerData.ancillaries.secondBag.status === 'Paid' ? 'not-allowed' : 'pointer',
+                  cursor: (passengerData.ancillaries.secondBag && passengerData.ancillaries.secondBag.status === 'Paid') ? 'not-allowed' : 'pointer',
                   transition: 'all 0.2s',
                   '&:hover': {
-                    transform: passengerData.ancillaries.secondBag.status === 'Paid' ? 'none' : 'scale(1.1)'
+                    transform: (passengerData.ancillaries.secondBag && passengerData.ancillaries.secondBag.status === 'Paid') ? 'none' : 'scale(1.1)'
                   }
                 }}
-                title={passengerData.ancillaries.secondBag.status === 'Paid' ? 'Second Bag Already Completed' : (isItemSelected(passenger.id, 'secondBag') ? 'Remove second baggage' : 'Add second baggage')}
+                title={(passengerData.ancillaries.secondBag && passengerData.ancillaries.secondBag.status === 'Paid') ? 'Second Bag Already Completed' : (isItemSelected(passenger.id, 'secondBag') ? 'Remove second baggage' : 'Add second baggage')}
                 onClick={(e) => {
                   e.stopPropagation();
                   if (passengerData.ancillaries.secondBag && passengerData.ancillaries.secondBag.status !== 'Paid') {
@@ -234,10 +266,10 @@ function PassengerCard({
                   sx={{
                     fontSize: 20,
                     color: (() => {
-                      if (passengerData.ancillaries.secondBag.status === 'Paid') return 'grey.500';
-                      return isItemSelected(passenger.id, 'secondBag') ? 'warning.main' : 'warning.main';
+                      if (passengerData.ancillaries.secondBag && passengerData.ancillaries.secondBag.status === 'Paid') return '#C1666B';
+                      return isItemSelected(passenger.id, 'secondBag') ? '#48A9A6' : '#48A9A6';
                     })(),
-                    opacity: passengerData.ancillaries.secondBag.status === 'Paid' ? 0.3 : 1,
+                    opacity: (passengerData.ancillaries.secondBag && passengerData.ancillaries.secondBag.status === 'Paid') ? 0.3 : 1,
                     zIndex: 2,
                     position: 'relative'
                   }}
@@ -252,13 +284,13 @@ function PassengerCard({
                   position: 'relative',
                   width: '20px',
                   height: '20px',
-                  cursor: passengerData.ancillaries.thirdBag.status === 'Paid' ? 'not-allowed' : 'pointer',
+                  cursor: (passengerData.ancillaries.thirdBag && passengerData.ancillaries.thirdBag.status === 'Paid') ? 'not-allowed' : 'pointer',
                   transition: 'all 0.2s',
                   '&:hover': {
-                    transform: passengerData.ancillaries.thirdBag.status === 'Paid' ? 'none' : 'scale(1.1)'
+                    transform: (passengerData.ancillaries.thirdBag && passengerData.ancillaries.thirdBag.status === 'Paid') ? 'none' : 'scale(1.1)'
                   }
                 }}
-                title={passengerData.ancillaries.thirdBag.status === 'Paid' ? 'Third Bag Already Completed' : (isItemSelected(passenger.id, 'thirdBag') ? 'Remove third baggage' : 'Add third baggage')}
+                title={(passengerData.ancillaries.thirdBag && passengerData.ancillaries.thirdBag.status === 'Paid') ? 'Third Bag Already Completed' : (isItemSelected(passenger.id, 'thirdBag') ? 'Remove third baggage' : 'Add third baggage')}
                 onClick={(e) => {
                   e.stopPropagation();
                   if (passengerData.ancillaries.thirdBag && passengerData.ancillaries.thirdBag.status !== 'Paid') {
@@ -270,10 +302,10 @@ function PassengerCard({
                   sx={{
                     fontSize: 20,
                     color: (() => {
-                      if (passengerData.ancillaries.thirdBag.status === 'Paid') return 'grey.500';
-                      return isItemSelected(passenger.id, 'thirdBag') ? 'warning.main' : 'warning.main';
+                      if (passengerData.ancillaries.thirdBag && passengerData.ancillaries.thirdBag.status === 'Paid') return '#C1666B';
+                      return isItemSelected(passenger.id, 'thirdBag') ? '#48A9A6' : '#48A9A6';
                     })(),
-                    opacity: passengerData.ancillaries.thirdBag.status === 'Paid' ? 0.3 : 1,
+                    opacity: (passengerData.ancillaries.thirdBag && passengerData.ancillaries.thirdBag.status === 'Paid') ? 0.3 : 1,
                     zIndex: 2,
                     position: 'relative'
                   }}
@@ -288,13 +320,13 @@ function PassengerCard({
                   position: 'relative',
                   width: '20px',
                   height: '20px',
-                  cursor: passengerData.ancillaries.uatp.status === 'Paid' ? 'not-allowed' : 'pointer',
+                  cursor: (passengerData.ancillaries.uatp && passengerData.ancillaries.uatp.status === 'Paid') ? 'not-allowed' : 'pointer',
                   transition: 'all 0.2s',
                   '&:hover': {
-                    transform: passengerData.ancillaries.uatp.status === 'Paid' ? 'none' : 'scale(1.1)'
+                    transform: (passengerData.ancillaries.uatp && passengerData.ancillaries.uatp.status === 'Paid') ? 'none' : 'scale(1.1)'
                   }
                 }}
-                title={passengerData.ancillaries.uatp.status === 'Paid' ? 'UATP Already Completed' : (isItemSelected(passenger.id, 'uatp') ? 'Remove UATP voucher' : 'Add UATP voucher')}
+                title={(passengerData.ancillaries.uatp && passengerData.ancillaries.uatp.status === 'Paid') ? 'UATP Already Completed' : (isItemSelected(passenger.id, 'uatp') ? 'Remove UATP voucher' : 'Add UATP voucher')}
                 onClick={(e) => {
                   e.stopPropagation();
                   if (passengerData.ancillaries.uatp && passengerData.ancillaries.uatp.status !== 'Paid') {
@@ -306,10 +338,10 @@ function PassengerCard({
                   sx={{
                     fontSize: 20,
                     color: (() => {
-                      if (passengerData.ancillaries.uatp.status === 'Paid') return 'grey.500';
-                      return isItemSelected(passenger.id, 'uatp') ? 'warning.main' : 'warning.main';
+                      if (passengerData.ancillaries.uatp && passengerData.ancillaries.uatp.status === 'Paid') return '#C1666B';
+                      return isItemSelected(passenger.id, 'uatp') ? '#48A9A6' : '#48A9A6';
                     })(),
-                    opacity: passengerData.ancillaries.uatp.status === 'Paid' ? 0.3 : 1,
+                    opacity: (passengerData.ancillaries.uatp && passengerData.ancillaries.uatp.status === 'Paid') ? 0.3 : 1,
                     zIndex: 2,
                     position: 'relative'
                   }}
@@ -337,7 +369,7 @@ function PassengerCard({
 
       {/* Expanded Content */}
       {isExpanded && (
-        <Box sx={{ p: 1.5, bgcolor: 'grey.50' }}>
+        <Box sx={{ p: 1.5, bgcolor: 'white' }}>
           {/* Flight Ticket */}
           <Paper
             sx={{
@@ -346,18 +378,18 @@ function PassengerCard({
               cursor: passengerData.ticket.status === 'Paid' ? 'not-allowed' : 'pointer',
               border: 1,
               borderColor: (() => {
-                if (passengerData.ticket.status === 'Paid') return 'grey.400';
-                return isItemSelected(passenger.id, 'ticket') ? 'success.main' : 'grey.300';
+                if (passengerData.ticket.status === 'Paid') return '#C1666B';
+                return isItemSelected(passenger.id, 'ticket') ? '#48A9A6' : '#E4DFDA';
               })(),
               bgcolor: (() => {
-                if (passengerData.ticket.status === 'Paid') return 'grey.100';
-                return isItemSelected(passenger.id, 'ticket') ? 'success.light' : 'white';
+                if (passengerData.ticket.status === 'Paid') return '#E4DFDA';
+                return isItemSelected(passenger.id, 'ticket') ? '#E4DFDA' : 'white';
               })(),
               opacity: passengerData.ticket.status === 'Paid' ? 0.6 : 1,
               transition: 'all 0.2s',
               '&:hover': {
-                borderColor: passengerData.ticket.status === 'Paid' ? 'grey.400' : 'success.main',
-                bgcolor: passengerData.ticket.status === 'Paid' ? 'grey.100' : (isItemSelected(passenger.id, 'ticket') ? 'success.main' : 'success.light')
+                borderColor: passengerData.ticket.status === 'Paid' ? '#C1666B' : '#48A9A6',
+                bgcolor: passengerData.ticket.status === 'Paid' ? '#E4DFDA' : (isItemSelected(passenger.id, 'ticket') ? '#48A9A6' : '#E4DFDA')
               }
             }}
             onClick={() => {
@@ -368,12 +400,12 @@ function PassengerCard({
           >
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-                <FlightIcon sx={{ mr: 1, color: passengerData.ticket.status === 'Paid' ? 'grey.500' : 'success.main', fontSize: 18 }} />
+                <FlightIcon sx={{ mr: 1, color: passengerData.ticket.status === 'Paid' ? '#C1666B' : '#48A9A6', fontSize: 18 }} />
                 <Box sx={{ flex: 1 }}>
                   <Typography variant="body2" sx={{ fontWeight: 'medium', fontSize: '0.875rem' }}>
                     Flight Ticket
                   </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                  <Typography variant="caption" sx={{ color: '#1B358F', fontSize: '0.75rem' }}>
                     {passengerData.ticket.seatNumber || 'N/A'}
                   </Typography>
                   {passengerData.ticket.ticketNumber && (
@@ -381,7 +413,7 @@ function PassengerCard({
                       variant="caption" 
                       sx={{ 
                         fontSize: '0.7rem', 
-                        color: 'success.main', 
+                        color: '#48A9A6', 
                         fontWeight: 'bold',
                         display: 'block',
                         mt: 0.25,
@@ -405,7 +437,7 @@ function PassengerCard({
               </Box>
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
                 <Typography variant="caption" sx={{ 
-                  color: passengerData.ticket.status === 'Paid' ? 'success.main' : 'warning.main',
+                  color: passengerData.ticket.status === 'Paid' ? '#48A9A6' : '#D4B483',
                   fontWeight: 'medium',
                   fontSize: '0.75rem'
                 }}>
@@ -414,12 +446,12 @@ function PassengerCard({
                 <Typography variant="body2" sx={{ 
                   fontWeight: 'bold',
                   fontSize: '0.875rem',
-                  color: 'primary.main'
+                  color: '#1B358F'
                 }}>
                   ${passengerData.ticket.price}
                 </Typography>
                 {isItemSelected(passenger.id, 'ticket') && (
-                  <CheckIcon sx={{ color: 'success.main', fontSize: 16 }} />
+                  <CheckIcon sx={{ color: '#48A9A6', fontSize: 16 }} />
                 )}
               </Box>
             </Box>
@@ -438,18 +470,18 @@ function PassengerCard({
               cursor: passengerData.ancillaries.seat.status === 'Paid' ? 'not-allowed' : 'pointer',
               border: 1,
               borderColor: (() => {
-                if (passengerData.ancillaries.seat.status === 'Paid') return 'grey.400';
-                return isItemSelected(passenger.id, 'seat') ? 'warning.main' : 'grey.300';
+                if (passengerData.ancillaries.seat.status === 'Paid') return '#C1666B';
+                return isItemSelected(passenger.id, 'seat') ? '#D4B483' : '#E4DFDA';
               })(),
               bgcolor: (() => {
-                if (passengerData.ancillaries.seat.status === 'Paid') return 'grey.100';
-                return isItemSelected(passenger.id, 'seat') ? 'warning.light' : 'white';
+                if (passengerData.ancillaries.seat.status === 'Paid') return '#E4DFDA';
+                return isItemSelected(passenger.id, 'seat') ? '#E4DFDA' : 'white';
               })(),
               opacity: passengerData.ancillaries.seat.status === 'Paid' ? 0.6 : 1,
               transition: 'all 0.2s',
               '&:hover': {
-                borderColor: passengerData.ancillaries.seat.status === 'Paid' ? 'grey.400' : 'warning.main',
-                bgcolor: passengerData.ancillaries.seat.status === 'Paid' ? 'grey.100' : (isItemSelected(passenger.id, 'seat') ? 'warning.main' : 'warning.light')
+                borderColor: passengerData.ancillaries.seat.status === 'Paid' ? '#C1666B' : '#D4B483',
+                bgcolor: passengerData.ancillaries.seat.status === 'Paid' ? '#E4DFDA' : (isItemSelected(passenger.id, 'seat') ? '#D4B483' : '#E4DFDA')
               }
             }}
             onClick={() => {
@@ -460,7 +492,7 @@ function PassengerCard({
           >
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-                <EventSeatIcon sx={{ mr: 1, color: passengerData.ancillaries.seat.status === 'Paid' ? 'grey.500' : 'warning.main', fontSize: 18 }} />
+                <EventSeatIcon sx={{ mr: 1, color: passengerData.ancillaries.seat.status === 'Paid' ? '#C1666B' : '#D4B483', fontSize: 18 }} />
                 <Box sx={{ flex: 1 }}>
                   <Typography variant="body2" sx={{ fontWeight: 'medium', fontSize: '0.875rem' }}>
                     Seat ({passengerData.ancillaries.seat.seatNumber || 'N/A'})
@@ -470,7 +502,7 @@ function PassengerCard({
                       variant="caption" 
                       sx={{ 
                         fontSize: '0.7rem', 
-                        color: 'warning.main', 
+                        color: '#D4B483', 
                         fontWeight: 'bold',
                         display: 'block',
                         mt: 0.25,
@@ -494,7 +526,7 @@ function PassengerCard({
               </Box>
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
                 <Typography variant="caption" sx={{ 
-                  color: passengerData.ancillaries.seat.status === 'Paid' ? 'success.main' : 'warning.main',
+                  color: passengerData.ancillaries.seat.status === 'Paid' ? '#48A9A6' : '#D4B483',
                   fontWeight: 'medium',
                   fontSize: '0.75rem'
                 }}>
@@ -503,12 +535,12 @@ function PassengerCard({
                 <Typography variant="body2" sx={{ 
                   fontWeight: 'bold',
                   fontSize: '0.875rem',
-                  color: 'primary.main'
+                  color: '#1B358F'
                 }}>
                   ${passengerData.ancillaries.seat.price}
                 </Typography>
                 {isItemSelected(passenger.id, 'seat') && (
-                  <CheckIcon sx={{ color: 'warning.main', fontSize: 16 }} />
+                  <CheckIcon sx={{ color: '#D4B483', fontSize: 16 }} />
                 )}
               </Box>
             </Box>
@@ -523,18 +555,18 @@ function PassengerCard({
               cursor: passengerData.ancillaries.bag.status === 'Paid' ? 'not-allowed' : 'pointer',
               border: 1,
               borderColor: (() => {
-                if (passengerData.ancillaries.bag.status === 'Paid') return 'grey.400';
-                return isItemSelected(passenger.id, 'bag') ? 'warning.main' : 'grey.300';
+                if (passengerData.ancillaries.bag.status === 'Paid') return '#C1666B';
+                return isItemSelected(passenger.id, 'bag') ? '#D4B483' : '#E4DFDA';
               })(),
               bgcolor: (() => {
-                if (passengerData.ancillaries.bag.status === 'Paid') return 'grey.100';
-                return isItemSelected(passenger.id, 'bag') ? 'warning.light' : 'white';
+                if (passengerData.ancillaries.bag.status === 'Paid') return '#E4DFDA';
+                return isItemSelected(passenger.id, 'bag') ? '#E4DFDA' : 'white';
               })(),
               opacity: passengerData.ancillaries.bag.status === 'Paid' ? 0.6 : 1,
               transition: 'all 0.2s',
               '&:hover': {
-                borderColor: passengerData.ancillaries.bag.status === 'Paid' ? 'grey.400' : 'warning.main',
-                bgcolor: passengerData.ancillaries.bag.status === 'Paid' ? 'grey.100' : (isItemSelected(passenger.id, 'bag') ? 'warning.main' : 'warning.light')
+                borderColor: passengerData.ancillaries.bag.status === 'Paid' ? '#C1666B' : '#D4B483',
+                bgcolor: passengerData.ancillaries.bag.status === 'Paid' ? '#E4DFDA' : (isItemSelected(passenger.id, 'bag') ? '#D4B483' : '#E4DFDA')
               }
             }}
             onClick={() => {
@@ -545,12 +577,12 @@ function PassengerCard({
           >
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-                <LuggageIcon sx={{ mr: 1, color: passengerData.ancillaries.bag.status === 'Paid' ? 'grey.500' : 'warning.main', fontSize: 18 }} />
+                <LuggageIcon sx={{ mr: 1, color: passengerData.ancillaries.bag.status === 'Paid' ? '#C1666B' : '#D4B483', fontSize: 18 }} />
                 <Box sx={{ flex: 1 }}>
                   <Typography variant="body2" sx={{ fontWeight: 'medium', fontSize: '0.875rem' }}>
                     Baggage (XBAF)
                   </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                  <Typography variant="caption" sx={{ color: '#1B358F', fontSize: '0.75rem' }}>
                     {passengerData.ancillaries.bag.weight ? `${passengerData.ancillaries.bag.weight}kg` : 'N/A'}
                   </Typography>
                   {passengerData.ancillaries.bag.ancillaryNumber && (
@@ -558,7 +590,7 @@ function PassengerCard({
                       variant="caption" 
                       sx={{ 
                         fontSize: '0.7rem', 
-                        color: 'warning.main', 
+                        color: '#D4B483', 
                         fontWeight: 'bold',
                         display: 'block',
                         mt: 0.25,
@@ -582,7 +614,7 @@ function PassengerCard({
               </Box>
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
                 <Typography variant="caption" sx={{ 
-                  color: passengerData.ancillaries.bag.status === 'Paid' ? 'success.main' : 'warning.main',
+                  color: passengerData.ancillaries.bag.status === 'Paid' ? '#48A9A6' : '#D4B483',
                   fontWeight: 'medium',
                   fontSize: '0.75rem'
                 }}>
@@ -591,12 +623,12 @@ function PassengerCard({
                 <Typography variant="body2" sx={{ 
                   fontWeight: 'bold',
                   fontSize: '0.875rem',
-                  color: 'primary.main'
+                  color: '#1B358F'
                 }}>
                   ${passengerData.ancillaries.bag.price}
                 </Typography>
                 {isItemSelected(passenger.id, 'bag') && (
-                  <CheckIcon sx={{ color: 'warning.main', fontSize: 16 }} />
+                  <CheckIcon sx={{ color: '#D4B483', fontSize: 16 }} />
                 )}
               </Box>
             </Box>
@@ -612,16 +644,16 @@ function PassengerCard({
                 cursor: passengerData.ancillaries.secondBag?.status === 'Paid' ? 'not-allowed' : 'pointer',
                 border: 1,
                 borderColor: passengerData.ancillaries.secondBag?.status === 'Paid' 
-                  ? 'grey.400' 
-                  : (isItemSelected(passenger.id, 'secondBag') ? 'warning.main' : 'grey.300'),
+                  ? '#C1666B' 
+                  : (isItemSelected(passenger.id, 'secondBag') ? '#D4B483' : '#E4DFDA'),
                 bgcolor: passengerData.ancillaries.secondBag?.status === 'Paid' 
-                  ? 'grey.100' 
-                  : (isItemSelected(passenger.id, 'secondBag') ? 'warning.light' : 'white'),
+                  ? '#E4DFDA' 
+                  : (isItemSelected(passenger.id, 'secondBag') ? '#E4DFDA' : 'white'),
                 opacity: passengerData.ancillaries.secondBag?.status === 'Paid' ? 0.6 : 1,
                 transition: 'all 0.2s',
                 '&:hover': {
-                  borderColor: passengerData.ancillaries.secondBag?.status === 'Paid' ? 'grey.400' : 'warning.main',
-                  bgcolor: passengerData.ancillaries.secondBag?.status === 'Paid' ? 'grey.100' : (isItemSelected(passenger.id, 'secondBag') ? 'warning.main' : 'warning.light')
+                  borderColor: passengerData.ancillaries.secondBag?.status === 'Paid' ? '#C1666B' : '#D4B483',
+                  bgcolor: passengerData.ancillaries.secondBag?.status === 'Paid' ? '#E4DFDA' : (isItemSelected(passenger.id, 'secondBag') ? '#D4B483' : '#E4DFDA')
                 }
               }}
               onClick={() => {
@@ -632,12 +664,12 @@ function PassengerCard({
             >
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-                  <LuggageIcon sx={{ mr: 1, color: passengerData.ancillaries.secondBag?.status === 'Paid' ? 'grey.500' : 'warning.main', fontSize: 18 }} />
+                  <LuggageIcon sx={{ mr: 1, color: passengerData.ancillaries.secondBag?.status === 'Paid' ? '#C1666B' : '#D4B483', fontSize: 18 }} />
                   <Box sx={{ flex: 1 }}>
                     <Typography variant="body2" sx={{ fontWeight: 'medium', fontSize: '0.875rem' }}>
                       Second Bag (XBAS)
                     </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                    <Typography variant="caption" sx={{ color: '#1B358F', fontSize: '0.75rem' }}>
                       {passengerData.ancillaries.secondBag?.weight ? `${passengerData.ancillaries.secondBag?.weight}kg` : 'N/A'}
                     </Typography>
                     {passengerData.ancillaries.secondBag?.ancillaryNumber && (
@@ -645,7 +677,7 @@ function PassengerCard({
                         variant="caption" 
                         sx={{ 
                           fontSize: '0.7rem', 
-                          color: 'warning.main', 
+                          color: '#D4B483', 
                           fontWeight: 'bold',
                           display: 'block',
                           mt: 0.25,
@@ -669,7 +701,7 @@ function PassengerCard({
                 </Box>
                 <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
                   <Typography variant="caption" sx={{ 
-                    color: passengerData.ancillaries.secondBag?.status === 'Paid' ? 'success.main' : 'warning.main',
+                    color: passengerData.ancillaries.secondBag?.status === 'Paid' ? '#48A9A6' : '#D4B483',
                     fontWeight: 'medium',
                     fontSize: '0.75rem'
                   }}>
@@ -678,12 +710,12 @@ function PassengerCard({
                   <Typography variant="body2" sx={{ 
                     fontWeight: 'bold',
                     fontSize: '0.875rem',
-                    color: 'primary.main'
+                    color: '#1B358F'
                   }}>
                     ${passengerData.ancillaries.secondBag?.price || 0}
                   </Typography>
                   {isItemSelected(passenger.id, 'secondBag') && (
-                    <CheckIcon sx={{ color: 'warning.main', fontSize: 16 }} />
+                    <CheckIcon sx={{ color: '#D4B483', fontSize: 16 }} />
                   )}
                 </Box>
               </Box>
@@ -699,16 +731,16 @@ function PassengerCard({
                 cursor: passengerData.ancillaries.thirdBag?.status === 'Paid' ? 'not-allowed' : 'pointer',
                 border: 1,
                 borderColor: passengerData.ancillaries.thirdBag?.status === 'Paid' 
-                  ? 'grey.400' 
-                  : (isItemSelected(passenger.id, 'thirdBag') ? 'warning.main' : 'grey.300'),
+                  ? '#C1666B' 
+                  : (isItemSelected(passenger.id, 'thirdBag') ? '#D4B483' : '#E4DFDA'),
                 bgcolor: passengerData.ancillaries.thirdBag?.status === 'Paid' 
-                  ? 'grey.100' 
-                  : (isItemSelected(passenger.id, 'thirdBag') ? 'warning.light' : 'white'),
+                  ? '#E4DFDA' 
+                  : (isItemSelected(passenger.id, 'thirdBag') ? '#E4DFDA' : 'white'),
                 opacity: passengerData.ancillaries.thirdBag?.status === 'Paid' ? 0.6 : 1,
                 transition: 'all 0.2s',
                 '&:hover': {
-                  borderColor: passengerData.ancillaries.thirdBag?.status === 'Paid' ? 'grey.400' : 'warning.main',
-                  bgcolor: passengerData.ancillaries.thirdBag?.status === 'Paid' ? 'grey.100' : (isItemSelected(passenger.id, 'thirdBag') ? 'warning.main' : 'warning.light')
+                  borderColor: passengerData.ancillaries.thirdBag?.status === 'Paid' ? '#C1666B' : '#D4B483',
+                  bgcolor: passengerData.ancillaries.thirdBag?.status === 'Paid' ? '#E4DFDA' : (isItemSelected(passenger.id, 'thirdBag') ? '#D4B483' : '#E4DFDA')
                 }
               }}
               onClick={() => {
@@ -719,12 +751,12 @@ function PassengerCard({
             >
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-                  <LuggageIcon sx={{ mr: 1, color: passengerData.ancillaries.thirdBag?.status === 'Paid' ? 'grey.500' : 'warning.main', fontSize: 18 }} />
+                  <LuggageIcon sx={{ mr: 1, color: passengerData.ancillaries.thirdBag?.status === 'Paid' ? '#C1666B' : '#D4B483', fontSize: 18 }} />
                   <Box sx={{ flex: 1 }}>
                     <Typography variant="body2" sx={{ fontWeight: 'medium', fontSize: '0.875rem' }}>
                       Third Bag (XBAT)
                     </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                    <Typography variant="caption" sx={{ color: '#1B358F', fontSize: '0.75rem' }}>
                       {passengerData.ancillaries.thirdBag?.weight ? `${passengerData.ancillaries.thirdBag?.weight}kg` : 'N/A'}
                     </Typography>
                     {passengerData.ancillaries.thirdBag?.ancillaryNumber && (
@@ -732,7 +764,7 @@ function PassengerCard({
                         variant="caption" 
                         sx={{ 
                           fontSize: '0.7rem', 
-                          color: 'warning.main', 
+                          color: '#D4B483', 
                           fontWeight: 'bold',
                           display: 'block',
                           mt: 0.25,
@@ -756,7 +788,7 @@ function PassengerCard({
                 </Box>
                 <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
                   <Typography variant="caption" sx={{ 
-                    color: passengerData.ancillaries.thirdBag?.status === 'Paid' ? 'success.main' : 'warning.main',
+                    color: passengerData.ancillaries.thirdBag?.status === 'Paid' ? '#48A9A6' : '#D4B483',
                     fontWeight: 'medium',
                     fontSize: '0.75rem'
                   }}>
@@ -765,12 +797,12 @@ function PassengerCard({
                   <Typography variant="body2" sx={{ 
                     fontWeight: 'bold',
                     fontSize: '0.875rem',
-                    color: 'primary.main'
+                    color: '#1B358F'
                   }}>
                     ${passengerData.ancillaries.thirdBag?.price || 0}
                   </Typography>
                   {isItemSelected(passenger.id, 'thirdBag') && (
-                    <CheckIcon sx={{ color: 'warning.main', fontSize: 16 }} />
+                    <CheckIcon sx={{ color: '#D4B483', fontSize: 16 }} />
                   )}
                 </Box>
               </Box>
@@ -785,16 +817,16 @@ function PassengerCard({
                 cursor: passengerData.ancillaries.uatp?.status === 'Paid' ? 'not-allowed' : 'pointer',
                 border: 1,
                 borderColor: passengerData.ancillaries.uatp?.status === 'Paid' 
-                  ? 'grey.400' 
-                  : (isItemSelected(passenger.id, 'uatp') ? 'warning.main' : 'grey.300'),
+                  ? '#C1666B' 
+                  : (isItemSelected(passenger.id, 'uatp') ? '#D4B483' : '#E4DFDA'),
                 bgcolor: passengerData.ancillaries.uatp?.status === 'Paid' 
-                  ? 'grey.100' 
-                  : (isItemSelected(passenger.id, 'uatp') ? 'warning.light' : 'white'),
+                  ? '#E4DFDA' 
+                  : (isItemSelected(passenger.id, 'uatp') ? '#E4DFDA' : 'white'),
                 opacity: passengerData.ancillaries.uatp?.status === 'Paid' ? 0.6 : 1,
                 transition: 'all 0.2s',
                 '&:hover': {
-                  borderColor: passengerData.ancillaries.uatp?.status === 'Paid' ? 'grey.400' : 'warning.main',
-                  bgcolor: passengerData.ancillaries.uatp?.status === 'Paid' ? 'grey.100' : (isItemSelected(passenger.id, 'uatp') ? 'warning.main' : 'warning.light')
+                  borderColor: passengerData.ancillaries.uatp?.status === 'Paid' ? '#C1666B' : '#D4B483',
+                  bgcolor: passengerData.ancillaries.uatp?.status === 'Paid' ? '#E4DFDA' : (isItemSelected(passenger.id, 'uatp') ? '#D4B483' : '#E4DFDA')
                 }
               }}
               onClick={() => {
@@ -805,12 +837,12 @@ function PassengerCard({
             >
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-                  <CreditCardIcon sx={{ mr: 1, color: passengerData.ancillaries.uatp?.status === 'Paid' ? 'grey.500' : 'warning.main', fontSize: 18 }} />
+                  <CreditCardIcon sx={{ mr: 1, color: passengerData.ancillaries.uatp?.status === 'Paid' ? '#C1666B' : '#D4B483', fontSize: 18 }} />
                   <Box sx={{ flex: 1 }}>
                     <Typography variant="body2" sx={{ fontWeight: 'medium', fontSize: '0.875rem' }}>
                       UATP
                     </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                    <Typography variant="caption" sx={{ color: '#1B358F', fontSize: '0.75rem' }}>
                       {passengerData.ancillaries.uatp?.uatpNumber || 'N/A'}
                     </Typography>
                     {passengerData.ancillaries.uatp?.status === 'Paid' && passengerData.ancillaries.uatp?.ancillaryNumber && (
@@ -818,7 +850,7 @@ function PassengerCard({
                         variant="caption" 
                         sx={{ 
                           fontSize: '0.7rem', 
-                          color: 'warning.main', 
+                          color: '#D4B483', 
                           fontWeight: 'bold',
                           display: 'block',
                           mt: 0.25,
@@ -842,7 +874,7 @@ function PassengerCard({
                 </Box>
                 <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
                   <Typography variant="caption" sx={{ 
-                    color: passengerData.ancillaries.uatp?.status === 'Paid' ? 'success.main' : 'warning.main',
+                    color: passengerData.ancillaries.uatp?.status === 'Paid' ? '#48A9A6' : '#D4B483',
                     fontWeight: 'medium',
                     fontSize: '0.75rem'
                   }}>
@@ -851,12 +883,12 @@ function PassengerCard({
                   <Typography variant="body2" sx={{ 
                     fontWeight: 'bold',
                     fontSize: '0.875rem',
-                    color: 'primary.main'
+                    color: '#1B358F'
                   }}>
                     ${passengerData.ancillaries.uatp?.price || 0}
                   </Typography>
                   {isItemSelected(passenger.id, 'uatp') && (
-                    <CheckIcon sx={{ color: 'warning.main', fontSize: 16 }} />
+                    <CheckIcon sx={{ color: '#D4B483', fontSize: 16 }} />
                   )}
                 </Box>
               </Box>

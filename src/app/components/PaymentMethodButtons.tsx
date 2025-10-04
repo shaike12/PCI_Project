@@ -35,10 +35,10 @@ export function PaymentMethodButtons({
           size="small"
           onClick={() => confirmAddMethod(itemKey, 'credit')}
           sx={{ 
-            color: 'success.main',
-            '&:hover': { bgcolor: 'success.light', color: 'white' },
+            color: '#48A9A6',
+            '&:hover': { bgcolor: '#E4DFDA', color: 'white' },
             border: 1,
-            borderColor: 'success.main',
+            borderColor: '#48A9A6',
             width: 32,
             height: 32
           }}
@@ -52,10 +52,10 @@ export function PaymentMethodButtons({
           size="small"
           onClick={() => confirmAddMethod(itemKey, 'voucher')}
           sx={{ 
-            color: 'warning.main',
-            '&:hover': { bgcolor: 'warning.light', color: 'white' },
+            color: '#D4B483',
+            '&:hover': { bgcolor: '#E4DFDA', color: 'white' },
             border: 1,
-            borderColor: 'warning.main',
+            borderColor: '#D4B483',
             width: 32,
             height: 32
           }}
@@ -69,10 +69,10 @@ export function PaymentMethodButtons({
           size="small"
           onClick={() => confirmAddMethod(itemKey, 'points')}
           sx={{ 
-            color: 'info.main',
-            '&:hover': { bgcolor: 'info.light', color: 'white' },
+            color: '#48A9A6',
+            '&:hover': { bgcolor: '#E4DFDA', color: 'white' },
             border: 1,
-            borderColor: 'info.main',
+            borderColor: '#48A9A6',
             width: 32,
             height: 32
           }}

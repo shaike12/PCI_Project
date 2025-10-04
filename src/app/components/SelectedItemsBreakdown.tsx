@@ -107,13 +107,13 @@ export function SelectedItemsBreakdown({ selectedItems, reservation }: SelectedI
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
         <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', mr: 1 }}>
-            <ShoppingCartIcon sx={{ color: 'primary.main' }} />
+            <ShoppingCartIcon sx={{ color: '#1B358F' }} />
             {Object.values(selectedItems).flat().length > 0 && (
               <Typography variant="caption" sx={{ 
                 ml: 0.5, 
-                color: 'primary.main', 
+                color: '#1B358F', 
                 fontWeight: 'bold',
-                backgroundColor: 'primary.light',
+                backgroundColor: '#E4DFDA',
                 borderRadius: '50%',
                 width: 18,
                 height: 18,
@@ -129,7 +129,7 @@ export function SelectedItemsBreakdown({ selectedItems, reservation }: SelectedI
           <Typography variant="subtitle2" sx={{ fontWeight: 600, flex: 1 }}>
             Selected Items
           </Typography>
-          <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main' }}>
+          <Typography variant="body2" sx={{ fontWeight: 600, color: '#1B358F' }}>
             ${totalSelected.toLocaleString()}
           </Typography>
         </Box>
@@ -139,7 +139,7 @@ export function SelectedItemsBreakdown({ selectedItems, reservation }: SelectedI
           {selectedTickets > 0 && (
             <ListItem sx={{ px: 0 }}>
               <ListItemIcon sx={{ minWidth: 36 }}>
-                <FlightIcon color="primary" />
+                <FlightIcon sx={{ color: '#1B358F' }} />
               </ListItemIcon>
               <ListItemText 
                 primary="Flight Tickets" 
@@ -154,7 +154,7 @@ export function SelectedItemsBreakdown({ selectedItems, reservation }: SelectedI
           {selectedSeats > 0 && (
             <ListItem sx={{ px: 0 }}>
               <ListItemIcon sx={{ minWidth: 36 }}>
-                <EventSeatIcon color="secondary" />
+                <EventSeatIcon sx={{ color: '#48A9A6' }} />
               </ListItemIcon>
               <ListItemText 
                 primary="Seat" 
@@ -169,7 +169,7 @@ export function SelectedItemsBreakdown({ selectedItems, reservation }: SelectedI
           {selectedBags > 0 && (
             <ListItem sx={{ px: 0 }}>
               <ListItemIcon sx={{ minWidth: 36 }}>
-                <LuggageIcon color="success" />
+                <LuggageIcon sx={{ color: '#48A9A6' }} />
               </ListItemIcon>
               <ListItemText 
                 primary="Baggage (XBAF)" 
@@ -184,7 +184,7 @@ export function SelectedItemsBreakdown({ selectedItems, reservation }: SelectedI
           {selectedSecondBags > 0 && (
             <ListItem sx={{ px: 0 }}>
               <ListItemIcon sx={{ minWidth: 36 }}>
-                <LuggageIcon color="warning" />
+                <LuggageIcon sx={{ color: '#D4B483' }} />
               </ListItemIcon>
               <ListItemText 
                 primary="Second Bag (XBAS)" 
@@ -199,7 +199,7 @@ export function SelectedItemsBreakdown({ selectedItems, reservation }: SelectedI
           {selectedThirdBags > 0 && (
             <ListItem sx={{ px: 0 }}>
               <ListItemIcon sx={{ minWidth: 36 }}>
-                <LuggageIcon color="warning" />
+                <LuggageIcon sx={{ color: '#D4B483' }} />
               </ListItemIcon>
               <ListItemText 
                 primary="Third Bag (XBAT)" 
@@ -214,7 +214,7 @@ export function SelectedItemsBreakdown({ selectedItems, reservation }: SelectedI
           {selectedUatp > 0 && (
             <ListItem sx={{ px: 0 }}>
               <ListItemIcon sx={{ minWidth: 36 }}>
-                <CreditCardIcon color="info" />
+                <CreditCardIcon sx={{ color: '#48A9A6' }} />
               </ListItemIcon>
               <ListItemText 
                 primary="UATP" 

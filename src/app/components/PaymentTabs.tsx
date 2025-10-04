@@ -7,7 +7,7 @@ import EventSeatIcon from "@mui/icons-material/EventSeat";
 import LuggageIcon from "@mui/icons-material/Luggage";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
+import CloseIcon from "@mui/icons-material/Close";
 import CreditCardIcon from "@mui/icons-material/CreditCard";
 import CardGiftcardIcon from "@mui/icons-material/CardGiftcard";
 import StarIcon from "@mui/icons-material/Star";
@@ -35,6 +35,7 @@ interface PaymentTabsProps {
   setItemExpandedMethod: (updater: (prev: { [key: string]: number | null }) => { [key: string]: number | null }) => void;
   removeMethod: (itemKey: string, formIndex: number) => void;
   toggleItem: (passengerId: string, itemType: string) => void;
+  clearAllItemsForPassenger: (passengerId: string) => void;
   onCopyMethod?: (itemKey: string, method: 'credit' | 'voucher' | 'points') => void;
   getGeneratedNumber?: (itemKey: string) => string | null;
 }
@@ -59,6 +60,7 @@ export function PaymentTabs(props: PaymentTabsProps) {
     setItemExpandedMethod,
     removeMethod,
     toggleItem,
+    clearAllItemsForPassenger,
     onCopyMethod,
     getGeneratedNumber
   } = props;
@@ -128,7 +130,20 @@ export function PaymentTabs(props: PaymentTabsProps) {
             const iconProps = { fontSize: 16, mr: 0.5 };
             const isActiveTab = activePaymentPassenger === pid;
             const isItemSelected = selectedItems[pid]?.includes(itemType) || false;
-            const tooltipTitle = isPaid ? 'Already completed' : (isActiveTab ? (isItemSelected ? 'Remove product' : 'Add product') : 'Select tab to edit');
+            const getProductName = (itemType: string) => {
+              switch (itemType) {
+                case 'ticket': return 'flight ticket';
+                case 'seat': return 'seat';
+                case 'bag': return 'baggage';
+                case 'secondBag': return 'second baggage';
+                case 'thirdBag': return 'third baggage';
+                case 'uatp': return 'UATP voucher';
+                default: return 'product';
+              }
+            };
+            
+            const productName = getProductName(itemType);
+            const tooltipTitle = isPaid ? `${productName} already completed` : (isActiveTab ? (isItemSelected ? `Remove ${productName}` : `Add ${productName}`) : 'Select tab to edit');
             
             const handleIconClick = (e: React.MouseEvent) => {
               e.stopPropagation();
@@ -138,9 +153,9 @@ export function PaymentTabs(props: PaymentTabsProps) {
             };
             
             const color = (() => {
-              if (isPaid) return 'grey.500';            // paid = grey
-              if (isItemSelected) return 'primary.main'; // selected = primary
-              return 'grey.400';                         // unselected = light grey
+              if (isPaid) return '#C1666B';            // paid = grey
+              if (isItemSelected) return '#1B358F'; // selected = primary
+              return '#C1666B';                         // unselected = light grey
             })();
             
             switch (itemType) {
@@ -249,14 +264,82 @@ export function PaymentTabs(props: PaymentTabsProps) {
               key={pid}
               value={pid}
               label={
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexDirection: 'column' }}>
-                  <span>{passenger.name}</span>
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'stretch', 
+                  gap: 0.5, 
+                  flexDirection: 'column', 
+                  position: 'relative',
+                  minHeight: '120px',
+                  width: '140px',
+                  justifyContent: 'space-between'
+                }}>
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5, width: '100%', justifyContent: 'space-between' }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                      {(() => {
+                        const nameParts = passenger.name.split(' ');
+                        const firstName = nameParts[0] || '';
+                        const lastName = nameParts.slice(1).join(' ') || '';
+                        return (
+                          <>
+                            <Typography variant="caption" sx={{ 
+                              fontSize: '1rem', 
+                              fontWeight: 'bold', 
+                              lineHeight: 1,
+                              color: '#1B358F'
+                            }}>
+                              {firstName}
+                            </Typography>
+                            <Typography variant="caption" sx={{ 
+                              fontSize: '1rem', 
+                              fontWeight: 'bold', 
+                              lineHeight: 1,
+                              color: '#1B358F'
+                            }}>
+                              {lastName}
+                            </Typography>
+                          </>
+                        );
+                      })()}
+                    </Box>
+                    {/* Clear selection icon - only show if passenger has selected items */}
+                    {selectedItems[pid] && selectedItems[pid].length > 0 && (
+                      <Tooltip title="Clear all selections" arrow>
+                        <Box
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            clearAllItemsForPassenger(pid);
+                          }}
+                          sx={{
+                            width: 16,
+                            height: 16,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            borderRadius: '50%',
+                            color: '#C1666B',
+                            transition: 'all 0.2s',
+                            '&:hover': {
+                              bgcolor: '#C1666B',
+                              color: 'white'
+                            }
+                          }}
+                        >
+                          <CloseIcon sx={{ fontSize: 12 }} />
+                        </Box>
+                      </Tooltip>
+                    )}
+                  </Box>
+                  
+                  {/* Icons section - starts from top */}
                   <Box sx={{ 
                     display: 'grid', 
                     gridTemplateColumns: 'repeat(4, 1fr)', 
                     gap: 0.5,
-                    maxWidth: '120px',
-                    justifyItems: 'center'
+                    width: '100%',
+                    justifyItems: 'center',
+                    alignItems: 'flex-start'
                   }}>
                     {passenger.ticket.status !== 'Paid' && getIcon('ticket', false)}
                     {passenger.ancillaries.seat && passenger.ancillaries.seat.status !== 'Paid' && getIcon('seat', false)}
@@ -265,37 +348,43 @@ export function PaymentTabs(props: PaymentTabsProps) {
                     {passenger.ancillaries.thirdBag && passenger.ancillaries.thirdBag.status !== 'Paid' && getIcon('thirdBag', false)}
                     {passenger.ancillaries.uatp && passenger.ancillaries.uatp.status !== 'Paid' && getIcon('uatp', false)}
                   </Box>
-                  {passengerRemaining > 0 ? (
-                    <Typography variant="caption" sx={{ 
-                      color: 'error.main', 
-                      fontWeight: 'bold',
-                      fontSize: '0.7rem'
-                    }}>
-                      ${passengerRemaining.toLocaleString()} remaining
-                    </Typography>
-                  ) : (
-                    <Typography variant="caption" sx={{ 
-                      color: 'success.main', 
-                      fontWeight: 'bold',
-                      fontSize: '0.7rem'
-                    }}>
-                      Fully paid
-                    </Typography>
-                  )}
+                  
+                  {/* Remaining amount - always at bottom */}
+                  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end' }}>
+                    {passengerRemaining > 0 ? (
+                      <Typography variant="caption" sx={{ 
+                        color: '#C1666B', 
+                        fontWeight: 'bold',
+                        fontSize: '0.7rem',
+                        textAlign: 'center'
+                      }}>
+                        ${passengerRemaining.toFixed(2)} remaining
+                      </Typography>
+                    ) : (
+                      <Typography variant="caption" sx={{ 
+                        color: '#48A9A6', 
+                        fontWeight: 'bold',
+                        fontSize: '0.7rem',
+                        textAlign: 'center'
+                      }}>
+                        Fully paid
+                      </Typography>
+                    )}
+                  </Box>
                 </Box>
               }
               sx={{
                 transition: 'all 0.3s ease-in-out',
                 '&.Mui-selected': {
                   backgroundColor: 'primary.50',
-                color: 'primary.main',
+                color: '#1B358F',
                 fontWeight: 600,
                 borderRadius: 1,
                 transform: 'translateY(-1px)',
                 boxShadow: '0 2px 8px rgba(25, 118, 210, 0.15)'
               },
               '&:hover': {
-                backgroundColor: 'grey.50',
+                backgroundColor: '#E4DFDA',
                 transform: 'translateY(-1px)'
               }
             }}
@@ -309,7 +398,7 @@ export function PaymentTabs(props: PaymentTabsProps) {
           p: 2, 
           mt: 2, 
           border: 1, 
-          borderColor: 'grey.300', 
+          borderColor: '#E4DFDA', 
           bgcolor: 'white', 
           minHeight: 0, 
           flex: 1, 
@@ -340,37 +429,37 @@ export function PaymentTabs(props: PaymentTabsProps) {
               if (!p) return null;
               let title = '';
               let price = 0;
-              let color: any = 'primary.main';
+              let color: any = '#1B358F';
               let icon: any = <FlightIcon sx={{ fontSize: 18, mr: 1 }} />;
               if (itemType === 'ticket') {
                 title = 'Flight Ticket';
                 price = p.ticket.price;
-                color = 'success.main';
+                color = '#48A9A6';
                 icon = <FlightIcon sx={{ fontSize: 18, mr: 1 }} />;
               } else if (itemType === 'seat') {
                 title = `Seat (${p.ancillaries.seat.seatNumber || 'N/A'})`;
                 price = p.ancillaries.seat.price;
-                color = 'info.main';
+                color = '#48A9A6';
                 icon = <EventSeatIcon sx={{ fontSize: 18, mr: 1 }} />;
               } else if (itemType === 'bag') {
                 title = 'Baggage (XBAF)';
                 price = p.ancillaries.bag.price;
-                color = 'warning.main';
+                color = '#48A9A6';
                 icon = <LuggageIcon sx={{ fontSize: 18, mr: 1 }} />;
               } else if (itemType === 'secondBag') {
                 title = 'Second Bag (XBAS)';
                 price = p.ancillaries.secondBag?.price || 0;
-                color = 'warning.main';
+                color = '#48A9A6';
                 icon = <LuggageIcon sx={{ fontSize: 18, mr: 1 }} />;
               } else if (itemType === 'thirdBag') {
                 title = 'Third Bag (XBAT)';
                 price = p.ancillaries.thirdBag?.price || 0;
-                color = 'warning.main';
+                color = '#48A9A6';
                 icon = <LuggageIcon sx={{ fontSize: 18, mr: 1 }} />;
               } else if (itemType === 'uatp') {
                 title = 'UATP';
                 price = p.ancillaries.uatp?.price || 0;
-                color = 'info.main';
+                color = '#48A9A6';
                 icon = <CreditCardIcon sx={{ fontSize: 18, mr: 1 }} />;
               }
 

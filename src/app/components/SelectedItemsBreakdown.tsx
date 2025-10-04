@@ -57,43 +57,43 @@ export function SelectedItemsBreakdown({ selectedItems, reservation }: SelectedI
           }
           break;
         case 'seat':
-          if (passengerData.ancillaries.seat.status !== 'Paid') {
-            selectedSeats += passengerData.ancillaries.seat.price;
-            totalSelected += passengerData.ancillaries.seat.price;
-          } else {
-            totalPaid += passengerData.ancillaries.seat.price;
+          if (passengerData.ancillaries.seat && passengerData.ancillaries.seat.status !== 'Paid') {
+            selectedSeats += passengerData.ancillaries.seat.price || 0;
+            totalSelected += passengerData.ancillaries.seat.price || 0;
+          } else if (passengerData.ancillaries.seat) {
+            totalPaid += passengerData.ancillaries.seat.price || 0;
           }
           break;
         case 'bag':
-          if (passengerData.ancillaries.bag.status !== 'Paid') {
-            selectedBags += passengerData.ancillaries.bag.price;
-            totalSelected += passengerData.ancillaries.bag.price;
-          } else {
-            totalPaid += passengerData.ancillaries.bag.price;
+          if (passengerData.ancillaries.bag && passengerData.ancillaries.bag.status !== 'Paid') {
+            selectedBags += passengerData.ancillaries.bag.price || 0;
+            totalSelected += passengerData.ancillaries.bag.price || 0;
+          } else if (passengerData.ancillaries.bag) {
+            totalPaid += passengerData.ancillaries.bag.price || 0;
           }
           break;
         case 'secondBag':
           if (passengerData.ancillaries.secondBag && passengerData.ancillaries.secondBag.status !== 'Paid') {
-            selectedSecondBags += passengerData.ancillaries.secondBag.price;
-            totalSelected += passengerData.ancillaries.secondBag.price;
+            selectedSecondBags += passengerData.ancillaries.secondBag.price || 0;
+            totalSelected += passengerData.ancillaries.secondBag.price || 0;
           } else if (passengerData.ancillaries.secondBag) {
-            totalPaid += passengerData.ancillaries.secondBag.price;
+            totalPaid += passengerData.ancillaries.secondBag.price || 0;
           }
           break;
         case 'thirdBag':
           if (passengerData.ancillaries.thirdBag && passengerData.ancillaries.thirdBag.status !== 'Paid') {
-            selectedThirdBags += passengerData.ancillaries.thirdBag.price;
-            totalSelected += passengerData.ancillaries.thirdBag.price;
+            selectedThirdBags += passengerData.ancillaries.thirdBag.price || 0;
+            totalSelected += passengerData.ancillaries.thirdBag.price || 0;
           } else if (passengerData.ancillaries.thirdBag) {
-            totalPaid += passengerData.ancillaries.thirdBag.price;
+            totalPaid += passengerData.ancillaries.thirdBag.price || 0;
           }
           break;
         case 'uatp':
           if (passengerData.ancillaries.uatp && passengerData.ancillaries.uatp.status !== 'Paid') {
-            selectedUatp += passengerData.ancillaries.uatp.price;
-            totalSelected += passengerData.ancillaries.uatp.price;
+            selectedUatp += passengerData.ancillaries.uatp.price || 0;
+            totalSelected += passengerData.ancillaries.uatp.price || 0;
           } else if (passengerData.ancillaries.uatp) {
-            totalPaid += passengerData.ancillaries.uatp.price;
+            totalPaid += passengerData.ancillaries.uatp.price || 0;
           }
           break;
       }

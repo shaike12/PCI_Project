@@ -833,27 +833,27 @@ export default function PaymentPortal() {
       
       // Only count seat price if seat is selected and not paid
       if (selectedPassengerItems.includes('seat') && passenger.ancillaries.seat && passenger.ancillaries.seat.status !== 'Paid') {
-        passengerTotal += passenger.ancillaries.seat.price;
+        passengerTotal += passenger.ancillaries.seat.price || 0;
       }
       
       // Only count bag price if bag is selected and not paid
       if (selectedPassengerItems.includes('bag') && passenger.ancillaries.bag && passenger.ancillaries.bag.status !== 'Paid') {
-        passengerTotal += passenger.ancillaries.bag.price;
+        passengerTotal += passenger.ancillaries.bag.price || 0;
       }
       
       // Only count secondBag price if secondBag is selected and not paid
       if (selectedPassengerItems.includes('secondBag') && passenger.ancillaries.secondBag && passenger.ancillaries.secondBag.status !== 'Paid') {
-        passengerTotal += passenger.ancillaries.secondBag.price;
+        passengerTotal += passenger.ancillaries.secondBag.price || 0;
       }
       
       // Only count thirdBag price if thirdBag is selected and not paid
       if (selectedPassengerItems.includes('thirdBag') && passenger.ancillaries.thirdBag && passenger.ancillaries.thirdBag.status !== 'Paid') {
-        passengerTotal += passenger.ancillaries.thirdBag.price;
+        passengerTotal += passenger.ancillaries.thirdBag.price || 0;
       }
       
       // Only count uatp price if uatp is selected and not paid
       if (selectedPassengerItems.includes('uatp') && passenger.ancillaries.uatp && passenger.ancillaries.uatp.status !== 'Paid') {
-        passengerTotal += passenger.ancillaries.uatp.price;
+        passengerTotal += passenger.ancillaries.uatp.price || 0;
       }
       
       return sum + passengerTotal;

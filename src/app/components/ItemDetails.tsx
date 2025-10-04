@@ -179,7 +179,7 @@ export function ItemDetails({
         
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#1B358F' }}>
-            ${price.toLocaleString()}
+            ${(price || 0).toLocaleString()}
           </Typography>
           {isItemFullyPaid(itemKey) ? (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

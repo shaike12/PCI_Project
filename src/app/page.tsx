@@ -685,6 +685,21 @@ export default function PaymentPortal() {
         passengerTotal += passenger.ancillaries.bag.price;
       }
       
+      // Only count secondBag price if secondBag is selected and not paid
+      if (selectedPassengerItems.includes('secondBag') && passenger.ancillaries.secondBag && passenger.ancillaries.secondBag.status !== 'Paid') {
+        passengerTotal += passenger.ancillaries.secondBag.price;
+      }
+      
+      // Only count thirdBag price if thirdBag is selected and not paid
+      if (selectedPassengerItems.includes('thirdBag') && passenger.ancillaries.thirdBag && passenger.ancillaries.thirdBag.status !== 'Paid') {
+        passengerTotal += passenger.ancillaries.thirdBag.price;
+      }
+      
+      // Only count uatp price if uatp is selected and not paid
+      if (selectedPassengerItems.includes('uatp') && passenger.ancillaries.uatp && passenger.ancillaries.uatp.status !== 'Paid') {
+        passengerTotal += passenger.ancillaries.uatp.price;
+      }
+      
       return sum + passengerTotal;
   }, 0);
   }, [passengersWithSelectedItems, selectedItems, reservation.passengers]);
@@ -946,12 +961,47 @@ export default function PaymentPortal() {
     let passengerPaid = 0;
     selectedPassengerItems.forEach(itemType => {
       const itemKey = `${passengerId}-${itemType}`;
-        passengerPaid += getTotalPaidAmountWrapper(itemKey);
-    });
-    return sum + passengerPaid;
-  }, 0);
-    return (paidAmount / total) * 100;
-  }, [passengersWithSelectedItems, selectedItems, total, getTotalPaidAmountWrapper]);
+        const [passengerIdFromKey, itemTypeFromKey] = itemKey.split('-');
+        const passengerIndex = resolvePassengerIndex(passengerIdFromKey);
+        const passenger = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
+        
+        if (passenger) {
+          let dbStatus = '';
+    let itemPrice = 0;
+    
+          if (itemTypeFromKey === 'ticket') {
+            dbStatus = passenger.ticket.status;
+      itemPrice = passenger.ticket.price;
+          } else if (itemTypeFromKey === 'seat') {
+            dbStatus = passenger.ancillaries.seat?.status || 'Unpaid';
+            itemPrice = passenger.ancillaries.seat?.price || 0;
+          } else if (itemTypeFromKey === 'bag') {
+            dbStatus = passenger.ancillaries.bag?.status || 'Unpaid';
+            itemPrice = passenger.ancillaries.bag?.price || 0;
+          } else if (itemTypeFromKey === 'secondBag') {
+            dbStatus = passenger.ancillaries.secondBag?.status || 'Unpaid';
+            itemPrice = passenger.ancillaries.secondBag?.price || 0;
+          } else if (itemTypeFromKey === 'thirdBag') {
+            dbStatus = passenger.ancillaries.thirdBag?.status || 'Unpaid';
+            itemPrice = passenger.ancillaries.thirdBag?.price || 0;
+          } else if (itemTypeFromKey === 'uatp') {
+            dbStatus = passenger.ancillaries.uatp?.status || 'Unpaid';
+            itemPrice = passenger.ancillaries.uatp?.price || 0;
+          }
+          
+          // If item is already paid in database, add full price
+          if (dbStatus === 'Paid') {
+            passengerPaid += itemPrice;
+        } else {
+            // Otherwise, add the amount paid through payment methods
+            passengerPaid += getTotalPaidAmountWrapper(itemKey);
+          }
+        }
+      });
+      return sum + passengerPaid;
+    }, 0);
+    return Math.min((paidAmount / total) * 100, 100); // Cap at 100%
+  }, [passengersWithSelectedItems, selectedItems, total, getTotalPaidAmountWrapper, reservation, resolvePassengerIndex]);
 
   // Firebase sync functions
   // Helper function to clean data before sending to Firebase
@@ -1270,6 +1320,30 @@ export default function PaymentPortal() {
     };
   };
 
+  // getOriginalItemPrice function - returns the original price of the item for capping
+  const getOriginalItemPrice = (itemKey: string) => {
+    const [passengerId, itemType] = itemKey.split('-');
+    const passengerIndex = resolvePassengerIndex(passengerId);
+    const passenger = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
+    if (!passenger) return 0;
+    
+    if (itemType === 'ticket') {
+      return passenger.ticket.price;
+    } else if (itemType === 'seat') {
+      return passenger.ancillaries.seat?.price || 0;
+    } else if (itemType === 'bag') {
+      return passenger.ancillaries.bag?.price || 0;
+    } else if (itemType === 'secondBag') {
+      return passenger.ancillaries.secondBag?.price || 0;
+    } else if (itemType === 'thirdBag') {
+      return passenger.ancillaries.thirdBag?.price || 0;
+    } else if (itemType === 'uatp') {
+      return passenger.ancillaries.uatp?.price || 0;
+    }
+    
+    return 0;
+  };
+
   // Old getPassengerTabLabel function (to be removed):
 
 
@@ -1535,6 +1609,8 @@ export default function PaymentPortal() {
                   itemExpandedMethod={itemExpandedMethod}
                   getPassengerTabLabel={getPassengerTabLabel}
                   getRemainingAmount={getRemainingAmount}
+                  getOriginalItemPrice={getOriginalItemPrice}
+                  getTotalPaidAmountWrapper={getTotalPaidAmountWrapper}
                   isItemFullyPaid={isItemFullyPaidWrapper}
                   confirmAddMethod={confirmAddMethodWrapper}
                   isPaymentMethodComplete={isPaymentMethodCompleteWrapper}

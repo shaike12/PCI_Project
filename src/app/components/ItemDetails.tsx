@@ -18,6 +18,8 @@ interface ItemDetailsProps {
   paymentData: any;
   itemExpandedMethod: { [key: string]: number | null };
   getRemainingAmount: (itemKey: string) => { total: number; paid: number; remaining: number };
+  getOriginalItemPrice: (itemKey: string) => number;
+  getTotalPaidAmountWrapper: (itemKey: string) => number;
   isItemFullyPaid: (itemKey: string) => boolean;
   isPaymentMethodComplete: (itemKey: string, method: 'credit' | 'voucher' | 'points', voucherIndex: number) => boolean;
   updateMethodField: (itemKey: string, method: 'credit' | 'voucher' | 'points', field: string, value: string, voucherIndex?: number) => void;
@@ -39,6 +41,8 @@ export function ItemDetails({
   paymentData,
   itemExpandedMethod,
   getRemainingAmount,
+  getOriginalItemPrice,
+  getTotalPaidAmountWrapper,
   isItemFullyPaid,
   isPaymentMethodComplete,
   updateMethodField,
@@ -118,6 +122,8 @@ export function ItemDetails({
                   isPaymentMethodComplete={isPaymentMethodComplete}
                   updateMethodField={updateMethodField}
                   getRemainingAmount={getRemainingAmount}
+                  getOriginalItemPrice={getOriginalItemPrice}
+                  getTotalPaidAmountWrapper={getTotalPaidAmountWrapper}
                   setItemExpandedMethod={setItemExpandedMethod}
                   removeMethod={removeMethod}
                   onCopyMethod={onCopyMethod}

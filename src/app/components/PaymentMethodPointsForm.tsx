@@ -1,7 +1,7 @@
 "use client";
 
 import { Box, TextField, Typography, Button, CircularProgress } from "@mui/material";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 
 interface PaymentMethodPointsFormProps {
@@ -9,12 +9,26 @@ interface PaymentMethodPointsFormProps {
   paymentData?: any;
   updateMethodField: (itemKey: string, method: 'credit' | 'voucher' | 'points', field: string, value: string, voucherIndex?: number) => void;
   getRemainingAmount: (itemKey: string) => { total: number; paid: number; remaining: number };
+  getOriginalItemPrice: (itemKey: string) => number;
+  getTotalPaidAmountWrapper: (itemKey: string) => number;
+  setItemExpandedMethod?: (updater: (prev: { [key: string]: number | null }) => { [key: string]: number | null }) => void;
 }
 
-export function PaymentMethodPointsForm({ itemKey, paymentData, updateMethodField, getRemainingAmount }: PaymentMethodPointsFormProps) {
+export function PaymentMethodPointsForm({ itemKey, paymentData, updateMethodField, getRemainingAmount, getOriginalItemPrice, getTotalPaidAmountWrapper, setItemExpandedMethod }: PaymentMethodPointsFormProps) {
   const amounts = getRemainingAmount(itemKey);
   const storedAmount = paymentData?.points?.amount;
   const fallbackAmount = amounts.remaining;
+  const originalPrice = getOriginalItemPrice(itemKey);
+  
+  const [isSaved, setIsSaved] = useState(false);
+  const [localAmount, setLocalAmount] = useState(storedAmount || fallbackAmount.toString());
+
+  // Update local amount when stored amount changes (after save)
+  useEffect(() => {
+    if (storedAmount !== undefined && storedAmount !== null && storedAmount !== '') {
+      setLocalAmount(storedAmount.toString());
+    }
+  }, [storedAmount]);
   
   const [isChecking, setIsChecking] = useState(false);
   const [memberChecked, setMemberChecked] = useState(false);
@@ -50,9 +64,76 @@ export function PaymentMethodPointsForm({ itemKey, paymentData, updateMethodFiel
 
   return (
     <Box sx={{ mt: 2, p: 3, bgcolor: 'grey.50', borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
-      <Typography variant="subtitle2" sx={{ mb: 3, color: 'text.secondary', fontWeight: 600 }}>
-        Points Details
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+          Points Details
+        </Typography>
+        <Button
+          variant="contained"
+          size="small"
+          onClick={() => {
+            setIsSaved(true);
+            // Apply validation and capping immediately when saving
+            const inputValue = localAmount;
+            // Handle empty input
+            if (inputValue === '' || inputValue === null || inputValue === undefined) {
+              setLocalAmount('1');
+              updateMethodField(itemKey, 'points', 'amount', '1');
+              updateMethodField(itemKey, 'points', 'pointsToUse', '50');
+              return;
+            }
+            
+            const value = parseFloat(inputValue);
+            // Handle invalid input (NaN)
+            if (isNaN(value)) {
+              setLocalAmount('1');
+              updateMethodField(itemKey, 'points', 'amount', '1');
+              updateMethodField(itemKey, 'points', 'pointsToUse', '50');
+              return;
+            }
+            
+            // Don't allow negative values, and always cap at remaining amount
+            // If value is 0, set it to 1 dollar minimum
+            const minValue = value <= 0 ? 1 : Math.max(0.01, value);
+            
+            // Calculate remaining amount WITHOUT the current payment method
+            // We need to exclude the current points amount from the calculation
+            const currentPaidAmount = getTotalPaidAmountWrapper(itemKey);
+            
+            // Subtract the current points amount to get the amount paid by OTHER methods
+            const currentPointsAmount = parseFloat(storedAmount || '0') || 0;
+            const otherMethodsPaid = currentPaidAmount - currentPointsAmount;
+            
+            const currentRemaining = Math.max(0, originalPrice - otherMethodsPaid);
+            
+            // Always cap at current remaining amount, but ensure minimum is 1 if remaining is 0
+            const cappedAmount = currentRemaining > 0 ? Math.min(minValue, currentRemaining) : (originalPrice > 0 ? Math.min(minValue, originalPrice) : 1);
+            const pointsToUse = Math.round(cappedAmount * 50); // 50 points = $1
+            
+            console.log(`[Points] Save - Input: ${value}, Original Price: ${originalPrice}, Current Paid: ${currentPaidAmount}, Current Remaining: ${currentRemaining}, Capped: ${cappedAmount}`);
+            setLocalAmount(cappedAmount.toString());
+            updateMethodField(itemKey, 'points', 'amount', cappedAmount.toString());
+            updateMethodField(itemKey, 'points', 'pointsToUse', pointsToUse.toString());
+            
+            // Collapse the form after saving
+            if (setItemExpandedMethod) {
+              setItemExpandedMethod(prev => ({
+                ...prev,
+                [itemKey]: null
+              }));
+            }
+          }}
+          sx={{
+            bgcolor: '#5E837C',
+            '&:hover': { bgcolor: '#4a6b65' },
+            fontSize: '0.75rem',
+            px: 2,
+            py: 0.5
+          }}
+        >
+          Save
+        </Button>
+      </Box>
       
       {/* Payment Amount */}
       <Box sx={{ mb: 2.5 }}>
@@ -68,15 +149,21 @@ export function PaymentMethodPointsForm({ itemKey, paymentData, updateMethodFiel
           placeholder="$0.00"
           InputLabelProps={{ shrink: true }}
           type="number" 
-          value={(storedAmount === '' || storedAmount == null) ? fallbackAmount : (typeof storedAmount === 'string' ? parseFloat(storedAmount) || 0 : storedAmount)} 
+            value={localAmount}
           inputProps={{ suppressHydrationWarning: true }} 
           onChange={(e) => {
-            const dollarAmount = parseFloat(e.target.value) || 0;
-            if (dollarAmount <= amounts.remaining) {
-              const pointsToUse = Math.round(dollarAmount * 50); // 50 points = $1
-              updateMethodField(itemKey, 'points', 'amount', e.target.value);
-              updateMethodField(itemKey, 'points', 'pointsToUse', pointsToUse.toString());
-            }
+            const inputValue = e.target.value;
+            // Only update local state during typing, don't update the main state
+            setLocalAmount(inputValue);
+            // Update points calculation for display only
+            const value = parseFloat(inputValue) || 0;
+            const pointsToUse = Math.round(value * 50); // 50 points = $1
+            updateMethodField(itemKey, 'points', 'pointsToUse', pointsToUse.toString());
+          }}
+          onBlur={(e) => {
+            console.log('=== POINTS onBlur ===');
+            console.log('- onBlur does nothing - validation only happens on Save');
+            console.log('=== onBlur COMPLETED ===');
           }} 
         />
       </Box>

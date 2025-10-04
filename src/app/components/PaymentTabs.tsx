@@ -26,6 +26,8 @@ interface PaymentTabsProps {
 
   getPassengerTabLabel: (pid: string) => ReactNode;
   getRemainingAmount: (itemKey: string) => { total: number; paid: number; remaining: number };
+  getOriginalItemPrice: (itemKey: string) => number;
+  getTotalPaidAmountWrapper: (itemKey: string) => number;
   isItemFullyPaid: (itemKey: string) => boolean;
   confirmAddMethod: (itemKey: string, method: "credit" | "voucher" | "points") => void;
   isPaymentMethodComplete: (itemKey: string, method: "credit" | "voucher" | "points", voucherIndex: number) => boolean;
@@ -48,6 +50,8 @@ export function PaymentTabs(props: PaymentTabsProps) {
     itemExpandedMethod,
     getPassengerTabLabel,
     getRemainingAmount,
+    getOriginalItemPrice,
+    getTotalPaidAmountWrapper,
     isItemFullyPaid,
     confirmAddMethod,
     isPaymentMethodComplete,
@@ -124,7 +128,7 @@ export function PaymentTabs(props: PaymentTabsProps) {
             const iconProps = { fontSize: 16, mr: 0.5 };
             const isActiveTab = activePaymentPassenger === pid;
             const isItemSelected = selectedItems[pid]?.includes(itemType) || false;
-            const tooltipTitle = isPaid ? 'Paid already' : (isActiveTab ? 'Click to toggle selection' : 'Select tab to edit');
+            const tooltipTitle = isPaid ? 'Paid already' : (isActiveTab ? (isItemSelected ? 'Remove product' : 'Add product') : 'Select tab to edit');
             
             const handleIconClick = (e: React.MouseEvent) => {
               e.stopPropagation();
@@ -387,6 +391,8 @@ export function PaymentTabs(props: PaymentTabsProps) {
                   paymentData={paymentData}
                   itemExpandedMethod={itemExpandedMethod}
                   getRemainingAmount={getRemainingAmount}
+                  getOriginalItemPrice={getOriginalItemPrice}
+                  getTotalPaidAmountWrapper={getTotalPaidAmountWrapper}
                   isItemFullyPaid={isItemFullyPaid}
                   isPaymentMethodComplete={isPaymentMethodComplete}
                   updateMethodField={updateMethodField}

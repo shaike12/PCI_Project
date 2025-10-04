@@ -19,6 +19,8 @@ interface PaymentMethodCardProps {
   isPaymentMethodComplete: (itemKey: string, method: 'credit' | 'voucher' | 'points', voucherIndex: number) => boolean;
   updateMethodField: (itemKey: string, method: 'credit' | 'voucher' | 'points', field: string, value: string, voucherIndex?: number) => void;
   getRemainingAmount: (itemKey: string) => { total: number; paid: number; remaining: number };
+  getOriginalItemPrice: (itemKey: string) => number;
+  getTotalPaidAmountWrapper: (itemKey: string) => number;
   setItemExpandedMethod: (updater: (prev: { [key: string]: number | null }) => { [key: string]: number | null }) => void;
   removeMethod: (itemKey: string, formIndex: number) => void;
   onCopyMethod?: (itemKey: string, method: 'credit' | 'voucher' | 'points') => void;
@@ -34,6 +36,8 @@ export function PaymentMethodCard({
   isPaymentMethodComplete,
   updateMethodField,
   getRemainingAmount,
+  getOriginalItemPrice,
+  getTotalPaidAmountWrapper,
   setItemExpandedMethod,
   removeMethod,
   onCopyMethod
@@ -75,7 +79,7 @@ export function PaymentMethodCard({
             <Box sx={{ flex: 1, mx: 2 }}>
               <Slider
                 value={methodAmount}
-                min={0}
+                min={1}
                 max={(() => {
                   const amounts = getRemainingAmount(itemKey);
                   if (method === 'points') {
@@ -91,13 +95,15 @@ export function PaymentMethodCard({
                 step={1}
                 onChange={(_e: Event, newValue: number | number[]) => {
                   const value = typeof newValue === 'number' ? newValue : newValue[0];
+                  // Ensure minimum value is 1
+                  const minValue = Math.max(1, value);
                   if (method === 'credit') {
-                    updateMethodField(itemKey, 'credit', 'amount', value.toString());
+                    updateMethodField(itemKey, 'credit', 'amount', minValue.toString());
                   } else if (method === 'voucher') {
                     const voucherIdx = formMethods.slice(0, idx).filter(m => m === 'voucher').length;
-                    updateMethodField(itemKey, 'voucher', 'amount', value.toString(), voucherIdx);
+                    updateMethodField(itemKey, 'voucher', 'amount', minValue.toString(), voucherIdx);
                   } else if (method === 'points') {
-                    updateMethodField(itemKey, 'points', 'amount', value.toString());
+                    updateMethodField(itemKey, 'points', 'amount', minValue.toString());
                   }
                 }}
                 size="small"
@@ -181,6 +187,9 @@ export function PaymentMethodCard({
           paymentData={paymentData}
           updateMethodField={updateMethodField}
           getRemainingAmount={getRemainingAmount}
+          getOriginalItemPrice={getOriginalItemPrice}
+          getTotalPaidAmountWrapper={getTotalPaidAmountWrapper}
+          setItemExpandedMethod={setItemExpandedMethod}
         />
       )}
 
@@ -191,6 +200,9 @@ export function PaymentMethodCard({
           paymentData={paymentData}
           updateMethodField={updateMethodField}
           getRemainingAmount={getRemainingAmount}
+          getOriginalItemPrice={getOriginalItemPrice}
+          getTotalPaidAmountWrapper={getTotalPaidAmountWrapper}
+          setItemExpandedMethod={setItemExpandedMethod}
         />
       )}
 
@@ -200,6 +212,9 @@ export function PaymentMethodCard({
           paymentData={paymentData}
           updateMethodField={updateMethodField}
           getRemainingAmount={getRemainingAmount}
+          getOriginalItemPrice={getOriginalItemPrice}
+          getTotalPaidAmountWrapper={getTotalPaidAmountWrapper}
+          setItemExpandedMethod={setItemExpandedMethod}
         />
       )}
     </Paper>

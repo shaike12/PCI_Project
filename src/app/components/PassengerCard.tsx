@@ -120,7 +120,7 @@ function PassengerCard({
                   transform: passengerData.ticket.status === 'Paid' ? 'none' : 'scale(1.1)'
                 }
               }}
-              title={passengerData.ticket.status === 'Paid' ? 'Ticket Already Paid' : (isItemSelected(passenger.id, 'ticket') ? 'Click to deselect Ticket' : 'Click to select Ticket')}
+              title={passengerData.ticket.status === 'Paid' ? 'Ticket Already Paid' : (isItemSelected(passenger.id, 'ticket') ? 'Remove product' : 'Add product')}
               onClick={(e) => {
                 e.stopPropagation();
                 if (passengerData.ticket.status !== 'Paid') {
@@ -155,7 +155,7 @@ function PassengerCard({
                   transform: passengerData.ancillaries.seat.status === 'Paid' ? 'none' : 'scale(1.1)'
                 }
               }}
-              title={passengerData.ancillaries.seat.status === 'Paid' ? 'Seat Already Paid' : (isItemSelected(passenger.id, 'seat') ? 'Click to deselect Seat' : 'Click to select Seat')}
+              title={passengerData.ancillaries.seat.status === 'Paid' ? 'Seat Already Paid' : (isItemSelected(passenger.id, 'seat') ? 'Remove product' : 'Add product')}
               onClick={(e) => {
                 e.stopPropagation();
                 if (passengerData.ancillaries.seat.status !== 'Paid') {
@@ -191,7 +191,7 @@ function PassengerCard({
                   transform: passengerData.ancillaries.bag.status === 'Paid' ? 'none' : 'scale(1.1)'
                 }
               }}
-              title={passengerData.ancillaries.bag.status === 'Paid' ? 'Baggage Already Paid' : (isItemSelected(passenger.id, 'bag') ? 'Click to deselect Baggage' : 'Click to select Baggage')}
+              title={passengerData.ancillaries.bag.status === 'Paid' ? 'Baggage Already Paid' : (isItemSelected(passenger.id, 'bag') ? 'Remove product' : 'Add product')}
               onClick={(e) => {
                 e.stopPropagation();
                 if (passengerData.ancillaries.bag.status !== 'Paid') {
@@ -227,7 +227,7 @@ function PassengerCard({
                     transform: passengerData.ancillaries.secondBag.status === 'Paid' ? 'none' : 'scale(1.1)'
                   }
                 }}
-                title={passengerData.ancillaries.secondBag.status === 'Paid' ? 'Second Bag Already Paid' : (isItemSelected(passenger.id, 'secondBag') ? 'Click to deselect Second Bag' : 'Click to select Second Bag')}
+                title={passengerData.ancillaries.secondBag.status === 'Paid' ? 'Second Bag Already Paid' : (isItemSelected(passenger.id, 'secondBag') ? 'Remove product' : 'Add product')}
                 onClick={(e) => {
                   e.stopPropagation();
                   if (passengerData.ancillaries.secondBag && passengerData.ancillaries.secondBag.status !== 'Paid') {
@@ -263,7 +263,7 @@ function PassengerCard({
                     transform: passengerData.ancillaries.thirdBag.status === 'Paid' ? 'none' : 'scale(1.1)'
                   }
                 }}
-                title={passengerData.ancillaries.thirdBag.status === 'Paid' ? 'Third Bag Already Paid' : (isItemSelected(passenger.id, 'thirdBag') ? 'Click to deselect Third Bag' : 'Click to select Third Bag')}
+                title={passengerData.ancillaries.thirdBag.status === 'Paid' ? 'Third Bag Already Paid' : (isItemSelected(passenger.id, 'thirdBag') ? 'Remove product' : 'Add product')}
                 onClick={(e) => {
                   e.stopPropagation();
                   if (passengerData.ancillaries.thirdBag && passengerData.ancillaries.thirdBag.status !== 'Paid') {
@@ -299,7 +299,7 @@ function PassengerCard({
                     transform: passengerData.ancillaries.uatp.status === 'Paid' ? 'none' : 'scale(1.1)'
                   }
                 }}
-                title={passengerData.ancillaries.uatp.status === 'Paid' ? 'UATP Already Paid' : (isItemSelected(passenger.id, 'uatp') ? 'Click to deselect UATP' : 'Click to select UATP')}
+                title={passengerData.ancillaries.uatp.status === 'Paid' ? 'UATP Already Paid' : (isItemSelected(passenger.id, 'uatp') ? 'Remove product' : 'Add product')}
                 onClick={(e) => {
                   e.stopPropagation();
                   if (passengerData.ancillaries.uatp && passengerData.ancillaries.uatp.status !== 'Paid') {

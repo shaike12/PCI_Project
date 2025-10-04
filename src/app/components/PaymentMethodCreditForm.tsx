@@ -1,19 +1,43 @@
 "use client";
 
-import { Box, TextField, Typography, InputAdornment, FormControl, InputLabel, Select, MenuItem } from "@mui/material";
+import { Box, TextField, Typography, InputAdornment, FormControl, InputLabel, Select, MenuItem, Button } from "@mui/material";
 import { detectCardType, formatCardNumber } from "../utils/cardValidation";
+import { useState, useEffect } from "react";
 
 interface PaymentMethodCreditFormProps {
   itemKey: string;
   paymentData?: any;
   updateMethodField: (itemKey: string, method: 'credit' | 'voucher' | 'points', field: string, value: string, voucherIndex?: number) => void;
   getRemainingAmount: (itemKey: string) => { total: number; paid: number; remaining: number };
+  getOriginalItemPrice: (itemKey: string) => number;
+  getTotalPaidAmountWrapper: (itemKey: string) => number;
+  setItemExpandedMethod?: (updater: (prev: { [key: string]: number | null }) => { [key: string]: number | null }) => void;
 }
 
-export function PaymentMethodCreditForm({ itemKey, paymentData, updateMethodField, getRemainingAmount }: PaymentMethodCreditFormProps) {
+export function PaymentMethodCreditForm({ itemKey, paymentData, updateMethodField, getRemainingAmount, getOriginalItemPrice, getTotalPaidAmountWrapper, setItemExpandedMethod }: PaymentMethodCreditFormProps) {
   const amounts = getRemainingAmount(itemKey);
   const storedAmount = paymentData?.credit?.amount;
   const fallbackAmount = amounts.remaining;
+  const originalPrice = getOriginalItemPrice(itemKey);
+  
+  const [isSaved, setIsSaved] = useState(false);
+  const [localAmount, setLocalAmount] = useState(storedAmount || fallbackAmount.toString());
+
+  // Update local amount when stored amount changes (after save)
+  useEffect(() => {
+    console.log('=== CREDIT CARD useEffect TRIGGERED ===');
+    console.log('- storedAmount changed to:', storedAmount);
+    console.log('- current localAmount:', localAmount);
+    
+    if (storedAmount !== undefined && storedAmount !== null && storedAmount !== '') {
+      console.log('- Setting localAmount to storedAmount:', storedAmount.toString());
+      setLocalAmount(storedAmount.toString());
+    } else {
+      console.log('- storedAmount is empty/undefined, not updating localAmount');
+    }
+    
+    console.log('=== useEffect COMPLETED ===');
+  }, [storedAmount]);
 
   const renderBrandAdornment = (cardType: string) => {
     switch (cardType) {
@@ -110,9 +134,102 @@ export function PaymentMethodCreditForm({ itemKey, paymentData, updateMethodFiel
 
   return (
     <Box sx={{ mt: 2, p: 3, bgcolor: 'grey.50', borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
-      <Typography variant="subtitle2" sx={{ mb: 3, color: 'text.secondary', fontWeight: 600 }}>
-        Credit Card Details
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+          Credit Card Details
+        </Typography>
+        <Button
+          variant="contained"
+          size="small"
+          onClick={() => {
+            console.log('=== CREDIT CARD SAVE BUTTON CLICKED ===');
+            console.log('BEFORE SAVE:');
+            console.log('- localAmount:', localAmount);
+            console.log('- storedAmount:', storedAmount);
+            console.log('- fallbackAmount:', fallbackAmount);
+            console.log('- originalPrice:', originalPrice);
+            console.log('- isSaved:', isSaved);
+            
+            setIsSaved(true);
+            // Apply validation and capping immediately when saving
+            const inputValue = localAmount;
+            console.log('- inputValue from localAmount:', inputValue);
+            
+            // Handle empty input
+            if (inputValue === '' || inputValue === null || inputValue === undefined) {
+              console.log('- Empty input detected, setting to 1');
+              setLocalAmount('1');
+              updateMethodField(itemKey, 'credit', 'amount', '1');
+              return;
+            }
+            
+            const value = parseFloat(inputValue);
+            console.log('- parsed value:', value);
+            
+            // Handle invalid input (NaN)
+            if (isNaN(value)) {
+              console.log('- NaN input detected, setting to 1');
+              setLocalAmount('1');
+              updateMethodField(itemKey, 'credit', 'amount', '1');
+              return;
+            }
+            
+            // Don't allow negative values, and always cap at remaining amount
+            // If value is 0, set it to 1 dollar minimum
+            const minValue = value <= 0 ? 1 : Math.max(0.01, value);
+            console.log('- minValue (after negative/zero check):', minValue);
+            
+            // Calculate remaining amount WITHOUT the current payment method
+            // We need to exclude the current credit card amount from the calculation
+            const currentPaidAmount = getTotalPaidAmountWrapper(itemKey);
+            console.log('- currentPaidAmount from getTotalPaidAmountWrapper:', currentPaidAmount);
+            
+            // Subtract the current credit card amount to get the amount paid by OTHER methods
+            const currentCreditAmount = parseFloat(storedAmount || '0') || 0;
+            const otherMethodsPaid = currentPaidAmount - currentCreditAmount;
+            console.log('- currentCreditAmount (stored):', currentCreditAmount);
+            console.log('- otherMethodsPaid (excluding current credit):', otherMethodsPaid);
+            
+            const currentRemaining = Math.max(0, originalPrice - otherMethodsPaid);
+            console.log('- currentRemaining calculation (without current credit):', originalPrice, '-', otherMethodsPaid, '=', currentRemaining);
+            
+            // Always cap at current remaining amount, but ensure minimum is 1 if remaining is 0
+            const cappedValue = currentRemaining > 0 ? Math.min(minValue, currentRemaining) : (originalPrice > 0 ? Math.min(minValue, originalPrice) : 1);
+            console.log('- cappedValue calculation:');
+            console.log('  - currentRemaining > 0?', currentRemaining > 0);
+            console.log('  - if true: Math.min(minValue, currentRemaining) = Math.min(' + minValue + ', ' + currentRemaining + ') = ' + Math.min(minValue, currentRemaining));
+            console.log('  - if false: originalPrice > 0?', originalPrice > 0);
+            console.log('  - if true: Math.min(minValue, originalPrice) = Math.min(' + minValue + ', ' + originalPrice + ') = ' + Math.min(minValue, originalPrice));
+            console.log('  - final cappedValue:', cappedValue);
+            
+            console.log('AFTER SAVE CALCULATIONS:');
+            console.log('- About to set localAmount to:', cappedValue.toString());
+            console.log('- About to call updateMethodField with:', cappedValue.toString());
+            
+             setLocalAmount(cappedValue.toString());
+             updateMethodField(itemKey, 'credit', 'amount', cappedValue.toString());
+             
+             // Collapse the form after saving
+             if (setItemExpandedMethod) {
+               setItemExpandedMethod(prev => ({
+                 ...prev,
+                 [itemKey]: null
+               }));
+             }
+             
+             console.log('=== SAVE COMPLETED ===');
+          }}
+          sx={{
+            bgcolor: '#5E837C',
+            '&:hover': { bgcolor: '#4a6b65' },
+            fontSize: '0.75rem',
+            px: 2,
+            py: 0.5
+          }}
+        >
+          Save
+        </Button>
+      </Box>
       
       {/* Payment Amount and Number of Payments */}
       <Box sx={{ display: 'flex', gap: 2, mb: 2.5 }}>
@@ -129,13 +246,25 @@ export function PaymentMethodCreditForm({ itemKey, paymentData, updateMethodFiel
             placeholder="$0.00"
             InputLabelProps={{ shrink: true }}
             type="number" 
-            value={(storedAmount === '' || storedAmount == null) ? fallbackAmount : (typeof storedAmount === 'string' ? parseFloat(storedAmount) || 0 : storedAmount)} 
+            value={localAmount} 
             inputProps={{ suppressHydrationWarning: true }} 
             onChange={(e) => {
-              const value = parseFloat(e.target.value) || 0;
-              if (value <= amounts.remaining) {
-                updateMethodField(itemKey, 'credit', 'amount', e.target.value);
-              }
+              const inputValue = e.target.value;
+              console.log('=== CREDIT CARD onChange ===');
+              console.log('- inputValue:', inputValue);
+              console.log('- current localAmount:', localAmount);
+              console.log('- isSaved:', isSaved);
+              // Only update local state during typing, don't update the main state
+              setLocalAmount(inputValue);
+              console.log('- setLocalAmount called with:', inputValue);
+              console.log('=== onChange COMPLETED ===');
+            }}
+            onBlur={(e) => {
+              console.log('=== CREDIT CARD onBlur (NEW VERSION) ===');
+              console.log('- isSaved:', isSaved);
+              console.log('- onBlur does nothing - validation only happens on Save');
+              console.log('- This is the updated version without validation logic');
+              console.log('=== onBlur COMPLETED ===');
             }} 
           />
         </Box>

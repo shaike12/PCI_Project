@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, Paper, Tabs, Tab, Typography, IconButton, Slider, Tooltip } from "@mui/material";
+import { Box, Paper, Tabs, Tab, Typography, IconButton, Tooltip } from "@mui/material";
 import type { ReactNode } from "react";
 import FlightIcon from "@mui/icons-material/Flight";
 import EventSeatIcon from "@mui/icons-material/EventSeat";

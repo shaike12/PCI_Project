@@ -25,22 +25,9 @@ export function PaymentMethodPointsForm({ itemKey, paymentData, updateMethodFiel
 
   // Update local amount when stored amount changes (after save)
   useEffect(() => {
-    console.log('=== POINTS useEffect TRIGGERED ===');
-    console.log('- storedAmount changed to:', storedAmount);
-    console.log('- current localAmount:', localAmount);
-    console.log('- storedAmount type:', typeof storedAmount);
-    console.log('- storedAmount !== undefined:', storedAmount !== undefined);
-    console.log('- storedAmount !== null:', storedAmount !== null);
-    console.log('- storedAmount !== "":', storedAmount !== '');
-    
     if (storedAmount !== undefined && storedAmount !== null && storedAmount !== '') {
-      console.log('- Setting localAmount to storedAmount:', storedAmount.toString());
       setLocalAmount(storedAmount.toFixed(2));
-    } else {
-      console.log('- storedAmount is empty/undefined, not updating localAmount');
     }
-    
-    console.log('=== POINTS useEffect COMPLETED ===');
   }, [storedAmount]);
   
   const [isChecking, setIsChecking] = useState(false);
@@ -48,26 +35,16 @@ export function PaymentMethodPointsForm({ itemKey, paymentData, updateMethodFiel
   const pointsBalance = paymentData?.points?.pointsBalance || null;
   
   const checkMemberNumber = async () => {
-    console.log('=== CHECK MEMBER NUMBER START ===');
-    console.log('- paymentData:', paymentData);
-    console.log('- amounts:', amounts);
-    console.log('- itemKey:', itemKey);
     
     const memberNumber = paymentData?.points?.memberNumber;
-    console.log('- memberNumber:', memberNumber);
-    
     if (!memberNumber || memberNumber.length < 7 || memberNumber.length > 9) {
-      console.log('- Validation failed: invalid member number');
       alert('Please enter a valid member number (7-9 digits)');
       return;
     }
-    
-    console.log('- Validation passed, starting check...');
     setIsChecking(true);
     
     // Simulate API call to check member
     setTimeout(() => {
-      console.log('=== API CALL COMPLETED ===');
       
       // Generate points balance based on member number (for demo purposes)
       // In real app, this would be an API call that returns the actual balance
@@ -76,11 +53,9 @@ export function PaymentMethodPointsForm({ itemKey, paymentData, updateMethodFiel
       // Special case: member number 100000000 gets exactly 10,000 points
       if (memberNumber === '100000000') {
         pointsBalance = 10000;
-        console.log('- Special member 100000000 gets exactly 10,000 points');
       } else {
         const memberNumberInt = parseInt(memberNumber);
         pointsBalance = 30000 + (memberNumberInt % 40000); // Range: 30,000 - 70,000 points
-        console.log('- Generated points balance for member', memberNumber, ':', pointsBalance);
       }
       
       // Save to paymentData instead of local state
@@ -96,15 +71,9 @@ export function PaymentMethodPointsForm({ itemKey, paymentData, updateMethodFiel
       const otherMethodsPaid = currentPaidAmount - currentPointsAmount;
       const currentRemaining = originalPrice - otherMethodsPaid;
       
-      console.log('- currentPaidAmount:', currentPaidAmount);
-      console.log('- currentPointsAmount:', currentPointsAmount);
-      console.log('- otherMethodsPaid:', otherMethodsPaid);
-      console.log('- originalPrice:', originalPrice);
-      console.log('- currentRemaining:', currentRemaining);
       
       // If item is already fully paid by other methods, don't populate points
       if (currentRemaining <= 0) {
-        console.log('- Item is already fully paid by other methods, not populating points');
         updateMethodField(itemKey, 'points', 'pointsToUse', '0');
         updateMethodField(itemKey, 'points', 'amount', '0');
         updateMethodField(itemKey, 'points', 'balance', pointsBalance.toString());
@@ -115,17 +84,11 @@ export function PaymentMethodPointsForm({ itemKey, paymentData, updateMethodFiel
       const pointsToUse = Math.min(pointsBalance, maxPointsForRemaining);
       const dollarAmount = (pointsToUse / 50).toFixed(2);
       
-      console.log('- maxPointsForRemaining:', maxPointsForRemaining);
-      console.log('- pointsToUse:', pointsToUse);
-      console.log('- dollarAmount:', dollarAmount);
       
-      console.log('- Calling updateMethodField for pointsToUse:', pointsToUse.toString());
       updateMethodField(itemKey, 'points', 'pointsToUse', pointsToUse.toString());
       
-      console.log('- Calling updateMethodField for amount:', dollarAmount);
       updateMethodField(itemKey, 'points', 'amount', dollarAmount);
       
-      console.log('- Calling updateMethodField for balance:', pointsBalance.toString());
       updateMethodField(itemKey, 'points', 'balance', pointsBalance.toString());
       
       console.log('=== CHECK MEMBER NUMBER END ===');
@@ -180,7 +143,6 @@ export function PaymentMethodPointsForm({ itemKey, paymentData, updateMethodFiel
             const cappedAmount = currentRemaining > 0 ? Math.min(minValue, currentRemaining) : (originalPrice > 0 ? Math.min(minValue, originalPrice) : 1);
             const pointsToUse = Math.round(cappedAmount * 50); // 50 points = $1
             
-            console.log(`[Points] Save - Input: ${value}, Original Price: ${originalPrice}, Current Paid: ${currentPaidAmount}, Current Remaining: ${currentRemaining}, Capped: ${cappedAmount}`);
             setLocalAmount(cappedAmount.toFixed(2));
             updateMethodField(itemKey, 'points', 'amount', cappedAmount.toString());
             updateMethodField(itemKey, 'points', 'pointsToUse', pointsToUse.toString());
@@ -253,9 +215,6 @@ export function PaymentMethodPointsForm({ itemKey, paymentData, updateMethodFiel
             }
           }}
           onBlur={(e) => {
-            console.log('=== POINTS onBlur ===');
-            console.log('- onBlur does nothing - validation only happens on Save');
-            console.log('=== onBlur COMPLETED ===');
           }} 
         />
       </Box>

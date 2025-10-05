@@ -77,7 +77,6 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
             // Always cap at current remaining amount, but ensure minimum is 1 if remaining is 0
             const cappedValue = currentRemaining > 0 ? Math.min(minValue, currentRemaining) : (originalPrice > 0 ? Math.min(minValue, originalPrice) : 1);
             
-            console.log(`[Voucher] Save - Input: ${value}, Original Price: ${originalPrice}, Current Paid: ${currentPaidAmount}, Current Remaining: ${currentRemaining}, Capped: ${cappedValue}`);
             setLocalAmount(cappedValue.toFixed(2));
             updateMethodField(itemKey, 'voucher', 'amount', cappedValue.toString(), voucherIndex);
             
@@ -123,9 +122,6 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
             setLocalAmount(inputValue);
           }}
             onBlur={(e) => {
-              console.log('=== VOUCHER onBlur ===');
-              console.log('- onBlur does nothing - validation only happens on Save');
-              console.log('=== onBlur COMPLETED ===');
             }}
         />
       </Box>

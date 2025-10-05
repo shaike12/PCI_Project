@@ -564,7 +564,6 @@ export default function PaymentPortal() {
       // Use the existing listReservations function to get all reservations
       const response = await listReservations({ limit: 100 }); // Get up to 100 reservations
       setAllReservations(response.reservations);
-      console.log('Loaded reservations:', response.reservations.length);
     } catch (error) {
       console.error('Error loading reservations:', error);
       setAllReservations([]);
@@ -580,8 +579,6 @@ export default function PaymentPortal() {
       return;
     }
     
-    console.log('Loading reservation with code:', selectedReservationCode);
-    console.log('Available reservations:', allReservations.map(r => r.reservationCode));
     
     const reservationToCopy = allReservations.find(r => r.reservationCode === selectedReservationCode);
     if (!reservationToCopy) {
@@ -589,7 +586,6 @@ export default function PaymentPortal() {
       return;
     }
     
-    console.log('Found reservation to copy:', reservationToCopy);
     
     try {
       // Load the selected reservation to the current screen
@@ -605,7 +601,6 @@ export default function PaymentPortal() {
       setItemExpandedMethod({});
       setActivePaymentPassenger('');
       
-      console.log('Reservation loaded successfully:', reservationToCopy);
     } catch (error) {
       console.error('Error loading reservation:', error);
       alert('Failed to load reservation');
@@ -722,7 +717,6 @@ export default function PaymentPortal() {
       setItemPaymentMethods({});
       setItemMethodForms({});
       setItemExpandedMethod({});
-      console.log('🗑️ All payment methods cleared');
     }
   };
 
@@ -1273,10 +1267,6 @@ export default function PaymentPortal() {
     if (passengerData.ancillaries.thirdBag && passengerData.ancillaries.thirdBag.status !== 'Paid') itemsToSelect.push('thirdBag');
     if (passengerData.ancillaries.uatp && passengerData.ancillaries.uatp.status !== 'Paid') itemsToSelect.push('uatp');
 
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('[DEBUG] togglePassenger -> passengerId:', passengerId);
-      console.log('[DEBUG] togglePassenger -> itemsToSelect:', itemsToSelect);
-    }
 
     setSelectedItems(prev => ({
       ...prev,
@@ -1286,9 +1276,6 @@ export default function PaymentPortal() {
     // Ensure the Payment Methods section shows this passenger's items
     setActivePaymentPassenger(passengerId);
 
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('[DEBUG] setActivePaymentPassenger:', passengerId);
-    }
   };
 
   // toggleExpanded is now imported from utils/passengerLogic
@@ -1299,9 +1286,6 @@ export default function PaymentPortal() {
   // toggleItem is now imported from utils/passengerLogic
   const toggleItem = (passengerId: string, itemType: string) => {
     toggleItemUtil(passengerId, itemType, selectedItems, selectedPassengers, setSelectedItems, setSelectedPassengers);
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('[DEBUG] toggleItem ->', { passengerId, itemType });
-    }
     
     // Additional logic for payment methods cleanup
     const passengerItems = selectedItems[passengerId] || [];
@@ -2033,7 +2017,6 @@ export default function PaymentPortal() {
                     // Debug logging removed for production
                     
                     if (selectedItemsList.length === 0) {
-                      console.log('❌ No items selected');
                       return true;
                     }
                     

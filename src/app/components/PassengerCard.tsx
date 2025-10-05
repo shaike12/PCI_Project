@@ -100,9 +100,6 @@ function PassengerCard({
           }
         }}
         onClick={() => {
-          if (process.env.NODE_ENV !== 'production') {
-            console.log('[DEBUG] Passenger card clicked:', passenger.id);
-          }
           toggleAllItemsForPassenger(passenger.id);
         }}
       >
@@ -363,9 +360,6 @@ function PassengerCard({
                 size="small"
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (process.env.NODE_ENV !== 'production') {
-                    console.log('[DEBUG] Expand button clicked for passenger:', passenger.id);
-                  }
                   toggleExpanded(passenger.id);
                 }}
               >

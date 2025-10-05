@@ -149,6 +149,12 @@ export function PaymentTabs(props: PaymentTabsProps) {
               e.stopPropagation();
               if (!isPaid && isActiveTab) {
                 toggleItem(pid, itemType);
+                // Also expand the first existing payment method form for this item, if any
+                const itemKey = `${pid}-${itemType}`;
+                const methods = itemMethodForms[itemKey] || [];
+                if (methods.length > 0) {
+                  setItemExpandedMethod(() => ({ [itemKey]: 0 }));
+                }
               }
             };
             

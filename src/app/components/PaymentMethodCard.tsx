@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, Paper, Typography, IconButton, Slider, Tooltip } from "@mui/material";
+import { Box, Paper, Typography, IconButton, Slider, Tooltip, Collapse } from "@mui/material";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -235,7 +235,7 @@ export function PaymentMethodCard({
       </Box>
 
 
-      {expanded && method === 'credit' && (
+      <Collapse in={expanded && method === 'credit'} timeout={300} unmountOnExit>
         <PaymentMethodCreditForm 
           itemKey={itemKey} 
           paymentData={paymentData}
@@ -245,9 +245,9 @@ export function PaymentMethodCard({
           getTotalPaidAmountWrapper={getTotalPaidAmountWrapper}
           setItemExpandedMethod={setItemExpandedMethod}
         />
-      )}
+      </Collapse>
 
-      {expanded && method === 'voucher' && (
+      <Collapse in={expanded && method === 'voucher'} timeout={300} unmountOnExit>
         <PaymentMethodVoucherForm 
           itemKey={itemKey} 
           index={formMethods.slice(0, idx).filter(m => m === 'voucher').length}
@@ -258,9 +258,9 @@ export function PaymentMethodCard({
           getTotalPaidAmountWrapper={getTotalPaidAmountWrapper}
           setItemExpandedMethod={setItemExpandedMethod}
         />
-      )}
+      </Collapse>
 
-      {expanded && method === 'points' && (
+      <Collapse in={expanded && method === 'points'} timeout={300} unmountOnExit>
         <PaymentMethodPointsForm 
           itemKey={itemKey} 
           paymentData={paymentData}
@@ -270,7 +270,7 @@ export function PaymentMethodCard({
           getTotalPaidAmountWrapper={getTotalPaidAmountWrapper}
           setItemExpandedMethod={setItemExpandedMethod}
         />
-      )}
+      </Collapse>
     </Paper>
   );
 }

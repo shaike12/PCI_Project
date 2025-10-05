@@ -85,6 +85,15 @@ export function PaymentMethodCard({
   onCopyMethod
 }: PaymentMethodCardProps) {
   const expanded = itemExpandedMethod[itemKey] === idx;
+  if (process.env.NODE_ENV !== 'production') {
+    // Lightweight render-time trace
+    try {
+      // Avoid spamming too much: only log when expanded or when first method
+      if (expanded || idx === 0) {
+        console.log('[CARD] render', { itemKey, method, idx, expanded });
+      }
+    } catch {}
+  }
   
   const toggleExpanded = () => {
     setItemExpandedMethod(prev => {

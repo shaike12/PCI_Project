@@ -266,7 +266,12 @@ export function ItemDetails({
         if (showAlways || amounts.remaining > 0) {
           return (
             <Box>
-              {formMethods.map((method, idx) => (
+              {formMethods.map((method, idx) => {
+                const isExpanded = itemExpandedMethod[itemKey] === idx;
+                if (process.env.NODE_ENV !== 'production') {
+                  try { console.log('[LIST] method row', { itemKey, idx, method, isExpanded }); } catch {}
+                }
+                return (
                 <PaymentMethodCard
                   key={`${itemKey}-method-${idx}`}
                   itemKey={itemKey}
@@ -283,8 +288,8 @@ export function ItemDetails({
                   setItemExpandedMethod={setItemExpandedMethod}
                   removeMethod={removeMethod}
                   onCopyMethod={onCopyMethod}
-                />
-              ))}
+                />);
+              })}
 
             </Box>
           );

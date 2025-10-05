@@ -117,7 +117,7 @@ export function PaymentMethodCard({
   const isComplete = isPaymentMethodComplete(itemKey, method, method === 'voucher' ? formMethods.slice(0, idx).filter(m => m === 'voucher').length : 0);
 
   return (
-    <Paper sx={{ 
+    <Paper id={`payment-method-${itemKey}-${idx}`} sx={{ 
       p: 1.5, 
       mt: 1, 
       border: 1, 
@@ -265,7 +265,7 @@ export function PaymentMethodCard({
       </Box>
 
 
-      <Collapse in={expanded && method === 'credit'} timeout={300} unmountOnExit>
+      <Collapse in={expanded && method === 'credit'} timeout={400} unmountOnExit>
         <PaymentMethodCreditForm 
           itemKey={itemKey} 
           paymentData={paymentData}
@@ -277,7 +277,7 @@ export function PaymentMethodCard({
         />
       </Collapse>
 
-      <Collapse in={expanded && method === 'voucher'} timeout={300} unmountOnExit>
+      <Collapse in={expanded && method === 'voucher'} timeout={400} unmountOnExit>
         <PaymentMethodVoucherForm 
           itemKey={itemKey} 
           index={formMethods.slice(0, idx).filter(m => m === 'voucher').length}
@@ -290,7 +290,7 @@ export function PaymentMethodCard({
         />
       </Collapse>
 
-      <Collapse in={expanded && method === 'points'} timeout={300} unmountOnExit>
+      <Collapse in={expanded && method === 'points'} timeout={400} unmountOnExit>
         <PaymentMethodPointsForm 
           itemKey={itemKey} 
           paymentData={paymentData}

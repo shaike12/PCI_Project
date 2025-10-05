@@ -19,6 +19,7 @@ import {
   Button,
   Snackbar,
   Alert,
+  TextField,
   Select,
   MenuItem,
   FormControl,
@@ -237,6 +238,8 @@ export default function PaymentPortal() {
         });
 
         // Update reservation in Firebase using the document ID, not reservation code
+        // persist invoiceEmail if present
+        (updatedReservation as any).invoiceEmail = invoiceEmail;
         await updateReservation(updatedReservation.id, updatedReservation);
         
         setCurrentReservation(updatedReservation);
@@ -318,6 +321,10 @@ export default function PaymentPortal() {
         // Ensure all ancillaries exist in the loaded reservation
         const updatedReservation = ensureAncillariesExist(reservation);
         setCurrentReservation(updatedReservation);
+        // Pull invoice email if exists
+        if ((updatedReservation as any).invoiceEmail) {
+          setInvoiceEmail((updatedReservation as any).invoiceEmail as string);
+        }
         
         // Reload reservations list to make sure it's up to date
         await loadAllReservations();
@@ -470,6 +477,7 @@ export default function PaymentPortal() {
       const newReservation: Reservation = {
         id: `new-${Date.now()}`,
         reservationCode: newCode,
+        invoiceEmail,
         passengers: Array.from({ length: passengerCount }, (_, i) => 
           createPassenger(i + 1, passengerNames[i] || `Passenger ${i + 1}`)
         ),
@@ -591,6 +599,10 @@ export default function PaymentPortal() {
       // Load the selected reservation to the current screen
       setCurrentReservation(reservationToCopy);
       setReservationCode(selectedReservationCode);
+      // Pull invoice email if exists
+      if ((reservationToCopy as any).invoiceEmail !== undefined) {
+        setInvoiceEmail((reservationToCopy as any).invoiceEmail || '');
+      }
       setNewReservationCode(null); // Clear new reservation code
       
       // Clear selections
@@ -744,9 +756,17 @@ export default function PaymentPortal() {
     });
 
   const [selectedPassengers, setSelectedPassengers] = useState<string[]>([]);
+  const [invoiceEmail, setInvoiceEmail] = useState<string>("");
   const [expandedPassengers, setExpandedPassengers] = useState<string[]>([]);
   const [selectedItems, setSelectedItems] = useState<{[key: string]: string[]}>({});
   const [mounted, setMounted] = useState(false);
+
+  // Keep invoiceEmail in sync with the loaded reservation
+  useEffect(() => {
+    if (currentReservation && (currentReservation as any).invoiceEmail !== undefined) {
+      setInvoiceEmail(((currentReservation as any).invoiceEmail as string) || '');
+    }
+  }, [currentReservation]);
   
   // Reservations dropdown state
   const [allReservations, setAllReservations] = useState<Reservation[]>([]);
@@ -1742,6 +1762,7 @@ export default function PaymentPortal() {
           <Grid size={{ xs: 12, lg: 3 }} style={{ height: '100vh' }}>
             <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
               <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
+                
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                   <PersonIcon sx={{ color: '#1B358F', mr: 1, fontSize: 28 }} />
                   <Typography variant="h6" component="h2" sx={{ fontWeight: 'semibold' }}>
@@ -1822,6 +1843,17 @@ export default function PaymentPortal() {
                       return allAvailableItemsSelected;
                     })()}
                 />
+                {/* Invoice Email Field (between reservation code and passenger list) */}
+                <Box sx={{ mb: 2 }}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    placeholder="Email for invoice"
+                    value={invoiceEmail}
+                    onChange={(e) => setInvoiceEmail(e.target.value)}
+                    InputProps={{ sx: { fontSize: '0.9rem' } }}
+                  />
+                </Box>
                 
                 <Box sx={{ flex: 1, overflowY: 'auto', mb: 2 }}>
                   {availablePassengers.map((passenger) => {

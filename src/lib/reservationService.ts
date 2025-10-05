@@ -303,6 +303,7 @@ export class ReservationService {
     return {
       id: doc.id,
       reservationCode: data.reservationCode,
+      invoiceEmail: data.invoiceEmail,
       passengers: data.passengers || [],
       total: data.total || 0,
       status: data.status || 'Active',

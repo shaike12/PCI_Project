@@ -53,6 +53,7 @@ export interface Passenger {
 export interface Reservation {
   id: string;
   reservationCode: string;
+  invoiceEmail?: string;
   passengers: Passenger[];
   total: number;
   status: 'Active' | 'Completed' | 'Cancelled';

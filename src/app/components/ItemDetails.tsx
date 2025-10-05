@@ -128,8 +128,10 @@ export function ItemDetails({
                     size="small"
                     onClick={() => {
                       confirmAddMethod(itemKey, 'credit');
-                      // Expand the credit form (index 0)
-                      setItemExpandedMethod(() => ({ [itemKey]: 0 }));
+                      // Expand the credit form (index 0) after state updates
+                      setTimeout(() => {
+                        setItemExpandedMethod(() => ({ [itemKey]: 0 }));
+                      }, 0);
                     }}
                     sx={{ 
                       color: '#1B358F',
@@ -151,8 +153,10 @@ export function ItemDetails({
                     onClick={() => {
                       const currentVoucherCount = formMethods.slice(0).filter(m => m === 'voucher').length;
                       confirmAddMethod(itemKey, 'voucher');
-                      // New voucher will be appended, expand its index
-                      setItemExpandedMethod(() => ({ [itemKey]: currentVoucherCount }));
+                      // New voucher will be appended, expand its index after state updates
+                      setTimeout(() => {
+                        setItemExpandedMethod(() => ({ [itemKey]: currentVoucherCount }));
+                      }, 0);
                     }}
                     sx={{ 
                       color: '#D4B483',
@@ -173,8 +177,10 @@ export function ItemDetails({
                     size="small"
                     onClick={() => {
                       confirmAddMethod(itemKey, 'points');
-                      // Expand the points form (index 0)
-                      setItemExpandedMethod(() => ({ [itemKey]: 0 }));
+                      // Expand the points form (index 0) after state updates
+                      setTimeout(() => {
+                        setItemExpandedMethod(() => ({ [itemKey]: 0 }));
+                      }, 0);
                     }}
                     sx={{ 
                       color: '#48A9A6',

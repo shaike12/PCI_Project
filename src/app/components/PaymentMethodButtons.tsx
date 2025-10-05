@@ -34,11 +34,7 @@ export function PaymentMethodButtons({
         <Tooltip title="Add Credit Card" arrow>
           <IconButton
             size="small"
-            onClick={() => {
-              confirmAddMethod(itemKey, 'credit');
-              // Expand first form
-              (setItemExpandedMethod as any)?.(() => ({ [itemKey]: 0 }));
-            }}
+            onClick={() => confirmAddMethod(itemKey, 'credit')}
             sx={{ 
               color: '#48A9A6',
               '&:hover': { bgcolor: '#E4DFDA', color: 'white' },
@@ -56,11 +52,7 @@ export function PaymentMethodButtons({
         <Tooltip title="Add UATP Voucher" arrow>
           <IconButton
             size="small"
-            onClick={() => {
-              const currentVoucherCount = formMethods.slice(0).filter(m => m === 'voucher').length;
-              confirmAddMethod(itemKey, 'voucher');
-              (setItemExpandedMethod as any)?.(() => ({ [itemKey]: currentVoucherCount }));
-            }}
+            onClick={() => confirmAddMethod(itemKey, 'voucher')}
             sx={{ 
               color: '#D4B483',
               '&:hover': { bgcolor: '#E4DFDA', color: 'white' },
@@ -78,10 +70,7 @@ export function PaymentMethodButtons({
         <Tooltip title="Add Points" arrow>
           <IconButton
             size="small"
-            onClick={() => {
-              confirmAddMethod(itemKey, 'points');
-              (setItemExpandedMethod as any)?.(() => ({ [itemKey]: 0 }));
-            }}
+            onClick={() => confirmAddMethod(itemKey, 'points')}
             sx={{ 
               color: '#48A9A6',
               '&:hover': { bgcolor: '#E4DFDA', color: 'white' },

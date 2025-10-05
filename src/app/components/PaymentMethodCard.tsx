@@ -152,7 +152,13 @@ export function PaymentMethodCard({
             </Tooltip>
           )}
           {!expanded && methodAmount > 0 && (
-            <Box sx={{ flex: 1, mx: 2 }}>
+            <Box 
+              sx={{ flex: 1, mx: 2 }}
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
+            >
               <Slider
                 value={methodAmount}
                 min={1}
@@ -265,7 +271,7 @@ export function PaymentMethodCard({
       </Box>
 
 
-      <Collapse in={expanded && method === 'credit'} timeout={400} unmountOnExit mountOnEnter>
+      <Collapse in={expanded && method === 'credit'} timeout={300} unmountOnExit mountOnEnter>
         <PaymentMethodCreditForm 
           itemKey={itemKey} 
           paymentData={paymentData}

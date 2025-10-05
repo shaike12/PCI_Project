@@ -86,6 +86,15 @@ export function PaymentMethodCard({
 }: PaymentMethodCardProps) {
   const expanded = itemExpandedMethod[itemKey] === idx;
   
+  const toggleExpanded = () => {
+    setItemExpandedMethod(prev => {
+      if (prev[itemKey] === idx) {
+        return { ...prev, [itemKey]: null };
+      }
+      return { [itemKey]: idx } as typeof prev;
+    });
+  };
+  
   let methodAmount = 0;
   if (method === 'credit') {
     methodAmount = Number(paymentData?.credit?.amount) || 0;
@@ -108,7 +117,19 @@ export function PaymentMethodCard({
       position: 'relative'
     }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: expanded ? 1 : 0 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
+        <Box 
+          sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, cursor: 'pointer' }}
+          role="button"
+          tabIndex={0}
+          aria-expanded={expanded}
+          onClick={toggleExpanded}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              toggleExpanded();
+            }
+          }}
+        >
           <Typography variant="subtitle2" sx={{ fontWeight: 'medium' }}>
             {method === 'credit' ? 'Credit Card' : method === 'voucher' ? 'UATP Voucher' : 'Points'}
           </Typography>

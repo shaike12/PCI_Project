@@ -127,7 +127,7 @@ export function PassengerItemRow({ itemType, passengerData, isSelected, onToggle
         </Box>
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
           <Typography variant="caption" sx={{ 
-            color: isPaid ? '#48A9A6' : '#D4B483',
+            color: isPaid ? '#9E9E9E' : '#D4B483',
             fontWeight: 'medium',
             fontSize: '0.75rem'
           }}>

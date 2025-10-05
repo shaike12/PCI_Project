@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, Paper, Typography, Chip, IconButton } from "@mui/material";
+import { Box, Paper, Typography, Chip, IconButton, Tooltip } from "@mui/material";
 import FlightIcon from "@mui/icons-material/Flight";
 import EventSeatIcon from "@mui/icons-material/EventSeat";
 import LuggageIcon from "@mui/icons-material/Luggage";
@@ -123,55 +123,58 @@ export function ItemDetails({
           return (
             <Box sx={{ display: 'flex', gap: 0.5 }}>
               {(!formMethods.includes('credit')) && (
-                <IconButton
-                  size="small"
-                  onClick={() => confirmAddMethod(itemKey, 'credit')}
-                  sx={{ 
-                    color: '#1B358F',
-                    '&:hover': { bgcolor: '#1B358F', color: 'white' },
-                    border: 1,
-                    borderColor: '#1B358F',
-                    width: 32,
-                    height: 32
-                  }}
-                  title="Add Credit Card"
-                >
-                  <CreditCardIcon sx={{ fontSize: 16 }} />
-                </IconButton>
+                <Tooltip title="Add Credit Card" arrow>
+                  <IconButton
+                    size="small"
+                    onClick={() => confirmAddMethod(itemKey, 'credit')}
+                    sx={{ 
+                      color: '#1B358F',
+                      '&:hover': { bgcolor: '#1B358F', color: 'white' },
+                      border: 1,
+                      borderColor: '#1B358F',
+                      width: 32,
+                      height: 32
+                    }}
+                  >
+                    <CreditCardIcon sx={{ fontSize: 16 }} />
+                  </IconButton>
+                </Tooltip>
               )}
               {formMethods.filter(m => m === 'voucher').length < 2 && (
-                <IconButton
-                  size="small"
-                  onClick={() => confirmAddMethod(itemKey, 'voucher')}
-                  sx={{ 
-                    color: '#D4B483',
-                    '&:hover': { bgcolor: '#D4B483', color: 'white' },
-                    border: 1,
-                    borderColor: '#D4B483',
-                    width: 32,
-                    height: 32
-                  }}
-                  title="Add UATP Voucher"
-                >
-                  <CardGiftcardIcon sx={{ fontSize: 16 }} />
-                </IconButton>
+                <Tooltip title="Add UATP Voucher" arrow>
+                  <IconButton
+                    size="small"
+                    onClick={() => confirmAddMethod(itemKey, 'voucher')}
+                    sx={{ 
+                      color: '#D4B483',
+                      '&:hover': { bgcolor: '#D4B483', color: 'white' },
+                      border: 1,
+                      borderColor: '#D4B483',
+                      width: 32,
+                      height: 32
+                    }}
+                  >
+                    <CardGiftcardIcon sx={{ fontSize: 16 }} />
+                  </IconButton>
+                </Tooltip>
               )}
               {(!formMethods.includes('points')) && (
-                <IconButton
-                  size="small"
-                  onClick={() => confirmAddMethod(itemKey, 'points')}
-                  sx={{ 
-                    color: '#48A9A6',
-                    '&:hover': { bgcolor: '#48A9A6', color: 'white' },
-                    border: 1,
-                    borderColor: '#48A9A6',
-                    width: 32,
-                    height: 32
-                  }}
-                  title="Add Points"
-                >
-                  <StarIcon sx={{ fontSize: 16 }} />
-                </IconButton>
+                <Tooltip title="Add Points" arrow>
+                  <IconButton
+                    size="small"
+                    onClick={() => confirmAddMethod(itemKey, 'points')}
+                    sx={{ 
+                      color: '#48A9A6',
+                      '&:hover': { bgcolor: '#48A9A6', color: 'white' },
+                      border: 1,
+                      borderColor: '#48A9A6',
+                      width: 32,
+                      height: 32
+                    }}
+                  >
+                    <StarIcon sx={{ fontSize: 16 }} />
+                  </IconButton>
+                </Tooltip>
               )}
             </Box>
           );

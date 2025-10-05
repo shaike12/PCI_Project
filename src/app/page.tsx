@@ -1866,7 +1866,7 @@ export default function PaymentPortal() {
               
               <Paper sx={{ p: 2, bgcolor: '#E4DFDA', m: 2, mt: 0 }}>
                 <Typography variant="body2" sx={{ color: '#1B358F' }}>
-                  {selectedPassengers.length} passengers selected
+                  {Object.values(selectedItems).filter((items) => items && items.length > 0).length} passengers selected
                 </Typography>
               </Paper>
             </Card>

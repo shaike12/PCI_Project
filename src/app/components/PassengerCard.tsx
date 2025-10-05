@@ -5,7 +5,8 @@ import {
   Box,
   Paper,
   Typography,
-  IconButton
+  IconButton,
+  Tooltip
 } from '@mui/material';
 import {
   Check as CheckIcon,
@@ -73,7 +74,7 @@ function PassengerCard({
                            (!passengerData.ancillaries.thirdBag || passengerData.ancillaries.thirdBag.status === 'Paid') &&
                            (!passengerData.ancillaries.uatp || passengerData.ancillaries.uatp.status === 'Paid');
             if (allPaid) {
-              return '#48A9A6'; // Teal background for fully paid passengers
+              return '#E0E0E0'; // Light gray background for fully paid passengers
             }
             return 'white'; // White background for passengers with no selected items
           })(),
@@ -136,233 +137,241 @@ function PassengerCard({
             justifyItems: 'center'
           }}>
             {/* Flight Ticket Icon */}
-            <Box
-              sx={{
-                position: 'relative',
-                width: '20px',
-                height: '20px',
-                cursor: passengerData.ticket.status === 'Paid' ? 'not-allowed' : 'pointer',
-                transition: 'all 0.2s',
-                '&:hover': {
-                  transform: passengerData.ticket.status === 'Paid' ? 'none' : 'scale(1.1)'
-                }
-              }}
-              title={passengerData.ticket.status === 'Paid' ? 'Ticket Already Completed' : (isItemSelected(passenger.id, 'ticket') ? 'Remove flight ticket' : 'Add flight ticket')}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (passengerData.ticket.status !== 'Paid') {
-                  toggleItem(passenger.id, 'ticket');
-                }
-              }}
-            >
-              <FlightIcon
+            <Tooltip title={passengerData.ticket.status === 'Paid' ? 'Ticket Already Completed' : (isItemSelected(passenger.id, 'ticket') ? 'Remove flight ticket' : 'Add flight ticket')} arrow>
+              <Box
                 sx={{
-                  fontSize: 20,
-                  color: (() => {
-                    if (passengerData.ticket.status === 'Paid') return '#C1666B';
-                    return isItemSelected(passenger.id, 'ticket') ? '#48A9A6' : '#48A9A6';
-                  })(),
-                  opacity: passengerData.ticket.status === 'Paid' ? 0.3 : 1,
-                  zIndex: 2,
-                  position: 'relative'
+                  position: 'relative',
+                  width: '20px',
+                  height: '20px',
+                  cursor: passengerData.ticket.status === 'Paid' ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s',
+                  '&:hover': {
+                    transform: passengerData.ticket.status === 'Paid' ? 'none' : 'scale(1.1)'
+                  }
                 }}
-              />
-            </Box>
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (passengerData.ticket.status !== 'Paid') {
+                    toggleItem(passenger.id, 'ticket');
+                  }
+                }}
+              >
+                <FlightIcon
+                  sx={{
+                    fontSize: 20,
+                    color: (() => {
+                      if (passengerData.ticket.status === 'Paid') return '#C1666B';
+                      return isItemSelected(passenger.id, 'ticket') ? '#48A9A6' : '#48A9A6';
+                    })(),
+                    opacity: passengerData.ticket.status === 'Paid' ? 0.3 : 1,
+                    zIndex: 2,
+                    position: 'relative'
+                  }}
+                />
+              </Box>
+            </Tooltip>
             
             {/* Seat Icon */}
             {passengerData.ancillaries.seat && (
-            <Box
-              sx={{
-                position: 'relative',
-                width: '20px',
-                height: '20px',
-                cursor: passengerData.ancillaries.seat.status === 'Paid' ? 'not-allowed' : 'pointer',
-                transition: 'all 0.2s',
-                '&:hover': {
-                  transform: passengerData.ancillaries.seat.status === 'Paid' ? 'none' : 'scale(1.1)'
-                }
-              }}
-              title={passengerData.ancillaries.seat.status === 'Paid' ? 'Seat Already Completed' : (isItemSelected(passenger.id, 'seat') ? 'Remove seat' : 'Add seat')}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (passengerData.ancillaries.seat.status !== 'Paid') {
-                  toggleItem(passenger.id, 'seat');
-                }
-              }}
-            >
-              <EventSeatIcon
+            <Tooltip title={passengerData.ancillaries.seat.status === 'Paid' ? 'Seat Already Completed' : (isItemSelected(passenger.id, 'seat') ? 'Remove seat' : 'Add seat')} arrow>
+              <Box
                 sx={{
-                  fontSize: 20,
-                  color: (() => {
-                    if (passengerData.ancillaries.seat.status === 'Paid') return '#C1666B';
-                    return isItemSelected(passenger.id, 'seat') ? '#48A9A6' : '#48A9A6';
-                  })(),
-                  opacity: passengerData.ancillaries.seat.status === 'Paid' ? 0.3 : 1,
-                  zIndex: 2,
-                  position: 'relative'
+                  position: 'relative',
+                  width: '20px',
+                  height: '20px',
+                  cursor: passengerData.ancillaries.seat.status === 'Paid' ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s',
+                  '&:hover': {
+                    transform: passengerData.ancillaries.seat.status === 'Paid' ? 'none' : 'scale(1.1)'
+                  }
                 }}
-              />
-            </Box>
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (passengerData.ancillaries.seat.status !== 'Paid') {
+                    toggleItem(passenger.id, 'seat');
+                  }
+                }}
+              >
+                <EventSeatIcon
+                  sx={{
+                    fontSize: 20,
+                    color: (() => {
+                      if (passengerData.ancillaries.seat.status === 'Paid') return '#C1666B';
+                      return isItemSelected(passenger.id, 'seat') ? '#48A9A6' : '#48A9A6';
+                    })(),
+                    opacity: passengerData.ancillaries.seat.status === 'Paid' ? 0.3 : 1,
+                    zIndex: 2,
+                    position: 'relative'
+                  }}
+                />
+              </Box>
+            </Tooltip>
             )}
             
             {/* Baggage Icon */}
             {passengerData.ancillaries.bag && (
-            <Box
-              sx={{
-                position: 'relative',
-                width: '20px',
-                height: '20px',
-                cursor: passengerData.ancillaries.bag.status === 'Paid' ? 'not-allowed' : 'pointer',
-                transition: 'all 0.2s',
-                '&:hover': {
-                  transform: passengerData.ancillaries.bag.status === 'Paid' ? 'none' : 'scale(1.1)'
-                }
-              }}
-              title={passengerData.ancillaries.bag.status === 'Paid' ? 'Baggage Already Completed' : (isItemSelected(passenger.id, 'bag') ? 'Remove baggage' : 'Add baggage')}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (passengerData.ancillaries.bag.status !== 'Paid') {
-                  toggleItem(passenger.id, 'bag');
-                }
-              }}
-            >
-              <LuggageIcon
+            <Tooltip title={passengerData.ancillaries.bag.status === 'Paid' ? 'Baggage Already Completed' : (isItemSelected(passenger.id, 'bag') ? 'Remove baggage' : 'Add baggage')} arrow>
+              <Box
                 sx={{
-                  fontSize: 20,
-                  color: (() => {
-                    if (passengerData.ancillaries.bag.status === 'Paid') return '#C1666B';
-                    return isItemSelected(passenger.id, 'bag') ? '#48A9A6' : '#48A9A6';
-                  })(),
-                  opacity: passengerData.ancillaries.bag.status === 'Paid' ? 0.3 : 1,
-                  zIndex: 2,
-                  position: 'relative'
+                  position: 'relative',
+                  width: '20px',
+                  height: '20px',
+                  cursor: passengerData.ancillaries.bag.status === 'Paid' ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s',
+                  '&:hover': {
+                    transform: passengerData.ancillaries.bag.status === 'Paid' ? 'none' : 'scale(1.1)'
+                  }
                 }}
-              />
-            </Box>
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (passengerData.ancillaries.bag.status !== 'Paid') {
+                    toggleItem(passenger.id, 'bag');
+                  }
+                }}
+              >
+                <LuggageIcon
+                  sx={{
+                    fontSize: 20,
+                    color: (() => {
+                      if (passengerData.ancillaries.bag.status === 'Paid') return '#C1666B';
+                      return isItemSelected(passenger.id, 'bag') ? '#48A9A6' : '#48A9A6';
+                    })(),
+                    opacity: passengerData.ancillaries.bag.status === 'Paid' ? 0.3 : 1,
+                    zIndex: 2,
+                    position: 'relative'
+                  }}
+                />
+              </Box>
+            </Tooltip>
             )}
             
             {/* Second Bag Icon */}
             {passengerData.ancillaries.secondBag && (
-              <Box
-                sx={{
-                  position: 'relative',
-                  width: '20px',
-                  height: '20px',
-                  cursor: (passengerData.ancillaries.secondBag && passengerData.ancillaries.secondBag.status === 'Paid') ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s',
-                  '&:hover': {
-                    transform: (passengerData.ancillaries.secondBag && passengerData.ancillaries.secondBag.status === 'Paid') ? 'none' : 'scale(1.1)'
-                  }
-                }}
-                title={(passengerData.ancillaries.secondBag && passengerData.ancillaries.secondBag.status === 'Paid') ? 'Second Bag Already Completed' : (isItemSelected(passenger.id, 'secondBag') ? 'Remove second baggage' : 'Add second baggage')}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (passengerData.ancillaries.secondBag && passengerData.ancillaries.secondBag.status !== 'Paid') {
-                    toggleItem(passenger.id, 'secondBag');
-                  }
-                }}
-              >
-                <LuggageIcon
+              <Tooltip title={(passengerData.ancillaries.secondBag && passengerData.ancillaries.secondBag.status === 'Paid') ? 'Second Bag Already Completed' : (isItemSelected(passenger.id, 'secondBag') ? 'Remove second baggage' : 'Add second baggage')} arrow>
+                <Box
                   sx={{
-                    fontSize: 20,
-                    color: (() => {
-                      if (passengerData.ancillaries.secondBag && passengerData.ancillaries.secondBag.status === 'Paid') return '#C1666B';
-                      return isItemSelected(passenger.id, 'secondBag') ? '#48A9A6' : '#48A9A6';
-                    })(),
-                    opacity: (passengerData.ancillaries.secondBag && passengerData.ancillaries.secondBag.status === 'Paid') ? 0.3 : 1,
-                    zIndex: 2,
-                    position: 'relative'
+                    position: 'relative',
+                    width: '20px',
+                    height: '20px',
+                    cursor: (passengerData.ancillaries.secondBag && passengerData.ancillaries.secondBag.status === 'Paid') ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.2s',
+                    '&:hover': {
+                      transform: (passengerData.ancillaries.secondBag && passengerData.ancillaries.secondBag.status === 'Paid') ? 'none' : 'scale(1.1)'
+                    }
                   }}
-                />
-              </Box>
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (passengerData.ancillaries.secondBag && passengerData.ancillaries.secondBag.status !== 'Paid') {
+                      toggleItem(passenger.id, 'secondBag');
+                    }
+                  }}
+                >
+                  <LuggageIcon
+                    sx={{
+                      fontSize: 20,
+                      color: (() => {
+                        if (passengerData.ancillaries.secondBag && passengerData.ancillaries.secondBag.status === 'Paid') return '#C1666B';
+                        return isItemSelected(passenger.id, 'secondBag') ? '#48A9A6' : '#48A9A6';
+                      })(),
+                      opacity: (passengerData.ancillaries.secondBag && passengerData.ancillaries.secondBag.status === 'Paid') ? 0.3 : 1,
+                      zIndex: 2,
+                      position: 'relative'
+                    }}
+                  />
+                </Box>
+              </Tooltip>
             )}
             
             {/* Third Bag Icon */}
             {passengerData.ancillaries.thirdBag && (
-              <Box
-                sx={{
-                  position: 'relative',
-                  width: '20px',
-                  height: '20px',
-                  cursor: (passengerData.ancillaries.thirdBag && passengerData.ancillaries.thirdBag.status === 'Paid') ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s',
-                  '&:hover': {
-                    transform: (passengerData.ancillaries.thirdBag && passengerData.ancillaries.thirdBag.status === 'Paid') ? 'none' : 'scale(1.1)'
-                  }
-                }}
-                title={(passengerData.ancillaries.thirdBag && passengerData.ancillaries.thirdBag.status === 'Paid') ? 'Third Bag Already Completed' : (isItemSelected(passenger.id, 'thirdBag') ? 'Remove third baggage' : 'Add third baggage')}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (passengerData.ancillaries.thirdBag && passengerData.ancillaries.thirdBag.status !== 'Paid') {
-                    toggleItem(passenger.id, 'thirdBag');
-                  }
-                }}
-              >
-                <LuggageIcon
+              <Tooltip title={(passengerData.ancillaries.thirdBag && passengerData.ancillaries.thirdBag.status === 'Paid') ? 'Third Bag Already Completed' : (isItemSelected(passenger.id, 'thirdBag') ? 'Remove third baggage' : 'Add third baggage')} arrow>
+                <Box
                   sx={{
-                    fontSize: 20,
-                    color: (() => {
-                      if (passengerData.ancillaries.thirdBag && passengerData.ancillaries.thirdBag.status === 'Paid') return '#C1666B';
-                      return isItemSelected(passenger.id, 'thirdBag') ? '#48A9A6' : '#48A9A6';
-                    })(),
-                    opacity: (passengerData.ancillaries.thirdBag && passengerData.ancillaries.thirdBag.status === 'Paid') ? 0.3 : 1,
-                    zIndex: 2,
-                    position: 'relative'
+                    position: 'relative',
+                    width: '20px',
+                    height: '20px',
+                    cursor: (passengerData.ancillaries.thirdBag && passengerData.ancillaries.thirdBag.status === 'Paid') ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.2s',
+                    '&:hover': {
+                      transform: (passengerData.ancillaries.thirdBag && passengerData.ancillaries.thirdBag.status === 'Paid') ? 'none' : 'scale(1.1)'
+                    }
                   }}
-                />
-              </Box>
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (passengerData.ancillaries.thirdBag && passengerData.ancillaries.thirdBag.status !== 'Paid') {
+                      toggleItem(passenger.id, 'thirdBag');
+                    }
+                  }}
+                >
+                  <LuggageIcon
+                    sx={{
+                      fontSize: 20,
+                      color: (() => {
+                        if (passengerData.ancillaries.thirdBag && passengerData.ancillaries.thirdBag.status === 'Paid') return '#C1666B';
+                        return isItemSelected(passenger.id, 'thirdBag') ? '#48A9A6' : '#48A9A6';
+                      })(),
+                      opacity: (passengerData.ancillaries.thirdBag && passengerData.ancillaries.thirdBag.status === 'Paid') ? 0.3 : 1,
+                      zIndex: 2,
+                      position: 'relative'
+                    }}
+                  />
+                </Box>
+              </Tooltip>
             )}
             
             {/* UATP Icon */}
             {passengerData.ancillaries.uatp && (
-              <Box
-                sx={{
-                  position: 'relative',
-                  width: '20px',
-                  height: '20px',
-                  cursor: (passengerData.ancillaries.uatp && passengerData.ancillaries.uatp.status === 'Paid') ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s',
-                  '&:hover': {
-                    transform: (passengerData.ancillaries.uatp && passengerData.ancillaries.uatp.status === 'Paid') ? 'none' : 'scale(1.1)'
-                  }
-                }}
-                title={(passengerData.ancillaries.uatp && passengerData.ancillaries.uatp.status === 'Paid') ? 'UATP Already Completed' : (isItemSelected(passenger.id, 'uatp') ? 'Remove UATP voucher' : 'Add UATP voucher')}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (passengerData.ancillaries.uatp && passengerData.ancillaries.uatp.status !== 'Paid') {
-                    toggleItem(passenger.id, 'uatp');
-                  }
-                }}
-              >
-                <CreditCardIcon
+              <Tooltip title={(passengerData.ancillaries.uatp && passengerData.ancillaries.uatp.status === 'Paid') ? 'UATP Already Completed' : (isItemSelected(passenger.id, 'uatp') ? 'Remove UATP voucher' : 'Add UATP voucher')} arrow>
+                <Box
                   sx={{
-                    fontSize: 20,
-                    color: (() => {
-                      if (passengerData.ancillaries.uatp && passengerData.ancillaries.uatp.status === 'Paid') return '#C1666B';
-                      return isItemSelected(passenger.id, 'uatp') ? '#48A9A6' : '#48A9A6';
-                    })(),
-                    opacity: (passengerData.ancillaries.uatp && passengerData.ancillaries.uatp.status === 'Paid') ? 0.3 : 1,
-                    zIndex: 2,
-                    position: 'relative'
+                    position: 'relative',
+                    width: '20px',
+                    height: '20px',
+                    cursor: (passengerData.ancillaries.uatp && passengerData.ancillaries.uatp.status === 'Paid') ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.2s',
+                    '&:hover': {
+                      transform: (passengerData.ancillaries.uatp && passengerData.ancillaries.uatp.status === 'Paid') ? 'none' : 'scale(1.1)'
+                    }
                   }}
-                />
-              </Box>
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (passengerData.ancillaries.uatp && passengerData.ancillaries.uatp.status !== 'Paid') {
+                      toggleItem(passenger.id, 'uatp');
+                    }
+                  }}
+                >
+                  <CreditCardIcon
+                    sx={{
+                      fontSize: 20,
+                      color: (() => {
+                        if (passengerData.ancillaries.uatp && passengerData.ancillaries.uatp.status === 'Paid') return '#C1666B';
+                        return isItemSelected(passenger.id, 'uatp') ? '#48A9A6' : '#48A9A6';
+                      })(),
+                      opacity: (passengerData.ancillaries.uatp && passengerData.ancillaries.uatp.status === 'Paid') ? 0.3 : 1,
+                      zIndex: 2,
+                      position: 'relative'
+                    }}
+                  />
+                </Box>
+              </Tooltip>
             )}
           </Box>
           
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <IconButton
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (process.env.NODE_ENV !== 'production') {
-                  console.log('[DEBUG] Expand button clicked for passenger:', passenger.id);
-                }
-                toggleExpanded(passenger.id);
-              }}
-            >
-              {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            </IconButton>
+            <Tooltip title={isExpanded ? 'Hide Products' : 'Show Products'} arrow>
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (process.env.NODE_ENV !== 'production') {
+                    console.log('[DEBUG] Expand button clicked for passenger:', passenger.id);
+                  }
+                  toggleExpanded(passenger.id);
+                }}
+              >
+                {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+              </IconButton>
+            </Tooltip>
           </Box>
         </Box>
       </Box>
@@ -400,7 +409,7 @@ function PassengerCard({
           >
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-                <FlightIcon sx={{ mr: 1, color: passengerData.ticket.status === 'Paid' ? '#C1666B' : '#48A9A6', fontSize: 18 }} />
+                <FlightIcon sx={{ mr: 1, color: passengerData.ticket.status === 'Paid' ? '#9E9E9E' : '#48A9A6', fontSize: 18 }} />
                 <Box sx={{ flex: 1 }}>
                   <Typography variant="body2" sx={{ fontWeight: 'medium', fontSize: '0.875rem' }}>
                     Flight Ticket
@@ -437,7 +446,7 @@ function PassengerCard({
               </Box>
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
                 <Typography variant="caption" sx={{ 
-                  color: passengerData.ticket.status === 'Paid' ? '#48A9A6' : '#D4B483',
+                  color: passengerData.ticket.status === 'Paid' ? '#9E9E9E' : '#D4B483',
                   fontWeight: 'medium',
                   fontSize: '0.75rem'
                 }}>
@@ -526,7 +535,7 @@ function PassengerCard({
               </Box>
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
                 <Typography variant="caption" sx={{ 
-                  color: passengerData.ancillaries.seat.status === 'Paid' ? '#48A9A6' : '#D4B483',
+                  color: passengerData.ancillaries.seat.status === 'Paid' ? '#9E9E9E' : '#D4B483',
                   fontWeight: 'medium',
                   fontSize: '0.75rem'
                 }}>
@@ -614,7 +623,7 @@ function PassengerCard({
               </Box>
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
                 <Typography variant="caption" sx={{ 
-                  color: passengerData.ancillaries.bag.status === 'Paid' ? '#48A9A6' : '#D4B483',
+                  color: passengerData.ancillaries.bag.status === 'Paid' ? '#9E9E9E' : '#D4B483',
                   fontWeight: 'medium',
                   fontSize: '0.75rem'
                 }}>
@@ -701,7 +710,7 @@ function PassengerCard({
                 </Box>
                 <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
                   <Typography variant="caption" sx={{ 
-                    color: passengerData.ancillaries.secondBag?.status === 'Paid' ? '#48A9A6' : '#D4B483',
+                    color: passengerData.ancillaries.secondBag?.status === 'Paid' ? '#9E9E9E' : '#D4B483',
                     fontWeight: 'medium',
                     fontSize: '0.75rem'
                   }}>
@@ -788,7 +797,7 @@ function PassengerCard({
                 </Box>
                 <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
                   <Typography variant="caption" sx={{ 
-                    color: passengerData.ancillaries.thirdBag?.status === 'Paid' ? '#48A9A6' : '#D4B483',
+                    color: passengerData.ancillaries.thirdBag?.status === 'Paid' ? '#9E9E9E' : '#D4B483',
                     fontWeight: 'medium',
                     fontSize: '0.75rem'
                   }}>
@@ -874,7 +883,7 @@ function PassengerCard({
                 </Box>
                 <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
                   <Typography variant="caption" sx={{ 
-                    color: passengerData.ancillaries.uatp?.status === 'Paid' ? '#48A9A6' : '#D4B483',
+                    color: passengerData.ancillaries.uatp?.status === 'Paid' ? '#9E9E9E' : '#D4B483',
                     fontWeight: 'medium',
                     fontSize: '0.75rem'
                   }}>

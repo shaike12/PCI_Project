@@ -220,6 +220,10 @@ export const confirmAddMethod = (
 ): void => {
   if (!itemKey) return;
 
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('[ADD_METHOD] start', { itemKey, method });
+  }
+
   const remainingAmount = getRemainingAmount(itemKey).remaining;
 
   // First, add the payment method data structure
@@ -262,7 +266,11 @@ export const confirmAddMethod = (
       }
     }
     
-    return { ...current };
+    const updated = { ...current };
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[ADD_METHOD] setItemPaymentMethods complete', { methods: updated[itemKey] });
+    }
+    return updated;
   });
 
   // Then, add the form entry and set expanded index based on the new length
@@ -274,15 +282,24 @@ export const confirmAddMethod = (
     if (method === 'points' && current.includes('points')) return prev;
     current.push(method);
     const nextForms = { ...prev, [itemKey]: current };
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[ADD_METHOD] setItemMethodForms pushed', { forms: current });
+    }
     
     // Set the expanded method to the newly added one
-    setItemExpandedMethod((prevExpanded: any) => ({
-      ...prevExpanded,
-      [itemKey]: current.length - 1
-    }));
+    setItemExpandedMethod((prevExpanded: any) => {
+      const nextExpanded = { ...prevExpanded, [itemKey]: current.length - 1 };
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[ADD_METHOD] setItemExpandedMethod', { expandedIndex: current.length - 1 });
+      }
+      return nextExpanded;
+    });
     
     return nextForms;
   });
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('[ADD_METHOD] end');
+  }
 };
 
 // Update method field

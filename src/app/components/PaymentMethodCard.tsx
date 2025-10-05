@@ -153,7 +153,7 @@ export function PaymentMethodCard({
           )}
           {!expanded && methodAmount > 0 && (
             <Box 
-              sx={{ width: 200, mx: 2, flex: '0 0 auto' }}
+              sx={{ width: 200, mx: 2, ml: 'auto', flex: '0 0 auto' }}
               onMouseDown={(e) => e.stopPropagation()}
               onClick={(e) => e.stopPropagation()}
               onTouchStart={(e) => e.stopPropagation()}

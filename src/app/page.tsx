@@ -1829,6 +1829,11 @@ export default function PaymentPortal() {
                     const passengerData = reservation.passengers[passengerIndex];
                     const isExpanded = expandedPassengers.includes(passenger.id);
                     
+                    // Skip if passengerData is undefined
+                    if (!passengerData) {
+                      return null;
+                    }
+                    
                     return (
                       <PassengerCard
                         key={passenger.id}

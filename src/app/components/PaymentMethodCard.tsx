@@ -265,7 +265,7 @@ export function PaymentMethodCard({
       </Box>
 
 
-      <Collapse in={expanded && method === 'credit'} timeout={400} unmountOnExit>
+      <Collapse in={expanded && method === 'credit'} timeout={400} unmountOnExit mountOnEnter>
         <PaymentMethodCreditForm 
           itemKey={itemKey} 
           paymentData={paymentData}
@@ -277,7 +277,7 @@ export function PaymentMethodCard({
         />
       </Collapse>
 
-      <Collapse in={expanded && method === 'voucher'} timeout={400} unmountOnExit>
+      <Collapse in={expanded && method === 'voucher'} timeout={400} unmountOnExit mountOnEnter>
         <PaymentMethodVoucherForm 
           itemKey={itemKey} 
           index={formMethods.slice(0, idx).filter(m => m === 'voucher').length}
@@ -290,7 +290,7 @@ export function PaymentMethodCard({
         />
       </Collapse>
 
-      <Collapse in={expanded && method === 'points'} timeout={400} unmountOnExit>
+      <Collapse in={expanded && method === 'points'} timeout={400} unmountOnExit mountOnEnter>
         <PaymentMethodPointsForm 
           itemKey={itemKey} 
           paymentData={paymentData}

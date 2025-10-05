@@ -131,12 +131,12 @@ export function ItemDetails({
                         console.log('[UI] add credit click', { itemKey });
                       }
                       confirmAddMethod(itemKey, 'credit');
-                      // Expand the credit form (index 0) after state updates
+                      // Defer expand to next tick to allow first mount to animate
                       setTimeout(() => {
                         if (process.env.NODE_ENV !== 'production') {
                           console.log('[UI] expand credit index 0', { itemKey });
                         }
-                        setItemExpandedMethod(() => ({ [itemKey]: 0 }));
+                        setItemExpandedMethod((prev) => ({ ...prev, [itemKey]: 0 }));
                       }, 0);
                     }}
                     sx={{ 
@@ -167,7 +167,7 @@ export function ItemDetails({
                         if (process.env.NODE_ENV !== 'production') {
                           console.log('[UI] expand voucher at index', { itemKey, index: currentVoucherCount });
                         }
-                        setItemExpandedMethod(() => ({ [itemKey]: currentVoucherCount }));
+                        setItemExpandedMethod((prev) => ({ ...prev, [itemKey]: currentVoucherCount }));
                       }, 0);
                     }}
                     sx={{ 
@@ -197,7 +197,7 @@ export function ItemDetails({
                         if (process.env.NODE_ENV !== 'production') {
                           console.log('[UI] expand points index 0', { itemKey });
                         }
-                        setItemExpandedMethod(() => ({ [itemKey]: 0 }));
+                        setItemExpandedMethod((prev) => ({ ...prev, [itemKey]: 0 }));
                       }, 0);
                     }}
                     sx={{ 

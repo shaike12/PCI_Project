@@ -273,7 +273,7 @@ export const confirmAddMethod = (
     return updated;
   });
 
-  // Then, add the form entry and set expanded index based on the new length
+  // Then, add the form entry. Caller is responsible to set expanded index
   setItemMethodForms((prev: any) => {
     const current = [...(prev[itemKey] || [])];
     // constraints: max 3 methods per item; only one credit; up to 3 vouchers; only one points
@@ -285,16 +285,7 @@ export const confirmAddMethod = (
     if (process.env.NODE_ENV !== 'production') {
       console.log('[ADD_METHOD] setItemMethodForms pushed', { forms: current });
     }
-    
-    // Set the expanded method to the newly added one
-    setItemExpandedMethod((prevExpanded: any) => {
-      const nextExpanded = { ...prevExpanded, [itemKey]: current.length - 1 };
-      if (process.env.NODE_ENV !== 'production') {
-        console.log('[ADD_METHOD] setItemExpandedMethod', { expandedIndex: current.length - 1 });
-      }
-      return nextExpanded;
-    });
-    
+    // Note: we no longer auto-set expanded here to ensure first mount animates.
     return nextForms;
   });
   if (process.env.NODE_ENV !== 'production') {

@@ -126,7 +126,11 @@ export function ItemDetails({
                 <Tooltip title="Add Credit Card" arrow>
                   <IconButton
                     size="small"
-                    onClick={() => confirmAddMethod(itemKey, 'credit')}
+                    onClick={() => {
+                      confirmAddMethod(itemKey, 'credit');
+                      // Expand the credit form (index 0)
+                      setItemExpandedMethod(() => ({ [itemKey]: 0 }));
+                    }}
                     sx={{ 
                       color: '#1B358F',
                       '&:hover': { bgcolor: '#1B358F', color: 'white' },
@@ -144,7 +148,12 @@ export function ItemDetails({
                 <Tooltip title="Add UATP Voucher" arrow>
                   <IconButton
                     size="small"
-                    onClick={() => confirmAddMethod(itemKey, 'voucher')}
+                    onClick={() => {
+                      const currentVoucherCount = formMethods.slice(0).filter(m => m === 'voucher').length;
+                      confirmAddMethod(itemKey, 'voucher');
+                      // New voucher will be appended, expand its index
+                      setItemExpandedMethod(() => ({ [itemKey]: currentVoucherCount }));
+                    }}
                     sx={{ 
                       color: '#D4B483',
                       '&:hover': { bgcolor: '#D4B483', color: 'white' },
@@ -162,7 +171,11 @@ export function ItemDetails({
                 <Tooltip title="Add Points" arrow>
                   <IconButton
                     size="small"
-                    onClick={() => confirmAddMethod(itemKey, 'points')}
+                    onClick={() => {
+                      confirmAddMethod(itemKey, 'points');
+                      // Expand the points form (index 0)
+                      setItemExpandedMethod(() => ({ [itemKey]: 0 }));
+                    }}
                     sx={{ 
                       color: '#48A9A6',
                       '&:hover': { bgcolor: '#48A9A6', color: 'white' },

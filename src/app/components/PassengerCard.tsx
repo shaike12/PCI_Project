@@ -64,8 +64,8 @@ function PassengerCard({
           bgcolor: (() => {
             // Check if all items are paid (no items to pay for)
             const allPaid = passengerData.ticket?.status === 'Paid' && 
-                           passengerData.ancillaries?.seat?.status === 'Paid' && 
-                           passengerData.ancillaries?.bag?.status === 'Paid' &&
+                           (!passengerData.ancillaries?.seat || passengerData.ancillaries.seat.status === 'Paid') && 
+                           (!passengerData.ancillaries?.bag || passengerData.ancillaries.bag.status === 'Paid') &&
                            (!passengerData.ancillaries?.secondBag || passengerData.ancillaries.secondBag.status === 'Paid') &&
                            (!passengerData.ancillaries?.thirdBag || passengerData.ancillaries.thirdBag.status === 'Paid') &&
                            (!passengerData.ancillaries?.uatp || passengerData.ancillaries.uatp.status === 'Paid');
@@ -101,8 +101,8 @@ function PassengerCard({
           '&:hover': {
             bgcolor: (() => {
               const allPaid = passengerData.ticket?.status === 'Paid' && 
-                             passengerData.ancillaries?.seat?.status === 'Paid' && 
-                             passengerData.ancillaries?.bag?.status === 'Paid' &&
+                             (!passengerData.ancillaries?.seat || passengerData.ancillaries.seat.status === 'Paid') && 
+                             (!passengerData.ancillaries?.bag || passengerData.ancillaries.bag.status === 'Paid') &&
                              (!passengerData.ancillaries?.secondBag || passengerData.ancillaries.secondBag.status === 'Paid') &&
                              (!passengerData.ancillaries?.thirdBag || passengerData.ancillaries.thirdBag.status === 'Paid') &&
                              (!passengerData.ancillaries?.uatp || passengerData.ancillaries.uatp.status === 'Paid');

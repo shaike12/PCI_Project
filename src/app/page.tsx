@@ -1891,6 +1891,7 @@ export default function PaymentPortal() {
                           const passengerItems = selectedItems[passengerId] || [];
                           console.log(`[HAS_SELECTED] ${passengerId}: passengerItems =`, passengerItems);
                           console.log(`[HAS_SELECTED] ${passengerId}: selectedItems =`, selectedItems);
+                          console.log(`[HAS_SELECTED] ${passengerId}: passengerData =`, passengerData);
                           
                           if (passengerItems.length === 0) {
                             console.log(`[HAS_SELECTED] ${passengerId}: No items selected, returning false`);

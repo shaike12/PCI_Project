@@ -1880,7 +1880,25 @@ export default function PaymentPortal() {
                         passengerData={passengerData}
                         isExpanded={isExpanded}
                         isItemSelected={isItemSelected}
-                        hasSelectedItems={(passengerId: string) => selectedItems[passengerId] && selectedItems[passengerId].length > 0}
+                        hasSelectedItems={(passengerId: string) => {
+                          const passengerIndex = resolvePassengerIndex(passengerId);
+                          const passengerData = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
+                          if (!passengerData) return false;
+                          
+                          const passengerItems = selectedItems[passengerId] || [];
+                          if (passengerItems.length === 0) return false;
+                          
+                          // Check if any of the selected items are actually unpaid
+                          return passengerItems.some(itemType => {
+                            if (itemType === 'ticket') return passengerData.ticket.status !== 'Paid';
+                            if (itemType === 'seat') return passengerData.ancillaries.seat?.status !== 'Paid';
+                            if (itemType === 'bag') return passengerData.ancillaries.bag?.status !== 'Paid';
+                            if (itemType === 'secondBag') return passengerData.ancillaries.secondBag?.status !== 'Paid';
+                            if (itemType === 'thirdBag') return passengerData.ancillaries.thirdBag?.status !== 'Paid';
+                            if (itemType === 'uatp') return passengerData.ancillaries.uatp?.status !== 'Paid';
+                            return false;
+                          });
+                        }}
                         togglePassenger={togglePassenger}
                         toggleAllItemsForPassenger={toggleAllItemsForPassenger}
                         toggleItem={toggleItem}

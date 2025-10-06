@@ -69,13 +69,30 @@ function PassengerCard({
                            (!passengerData.ancillaries?.secondBag || passengerData.ancillaries.secondBag.status === 'Paid') &&
                            (!passengerData.ancillaries?.thirdBag || passengerData.ancillaries.thirdBag.status === 'Paid') &&
                            (!passengerData.ancillaries?.uatp || passengerData.ancillaries.uatp.status === 'Paid');
+            
+            const hasSelected = hasSelectedItems(passenger.id);
+            
+            console.log(`[PASSENGER_BG] ${passenger.name} (${passenger.id}):`, {
+              allPaid,
+              hasSelected,
+              ticketStatus: passengerData.ticket?.status,
+              seatStatus: passengerData.ancillaries?.seat?.status,
+              bagStatus: passengerData.ancillaries?.bag?.status,
+              secondBagStatus: passengerData.ancillaries?.secondBag?.status,
+              thirdBagStatus: passengerData.ancillaries?.thirdBag?.status,
+              uatpStatus: passengerData.ancillaries?.uatp?.status
+            });
+            
             if (allPaid) {
+              console.log(`[PASSENGER_BG] ${passenger.name}: Using gray background (allPaid=true)`);
               return '#E0E0E0'; // Light gray background for fully paid passengers
             }
             // Check if passenger has selected items for payment
-            if (hasSelectedItems(passenger.id)) {
+            if (hasSelected) {
+              console.log(`[PASSENGER_BG] ${passenger.name}: Using beige background (hasSelected=true)`);
               return '#EFE3D1'; // Light beige background for selected passengers
             }
+            console.log(`[PASSENGER_BG] ${passenger.name}: Using white background (default)`);
             return 'white'; // White background for passengers with no selected items
           })(),
           color: 'inherit',

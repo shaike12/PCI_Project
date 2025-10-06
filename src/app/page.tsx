@@ -1883,21 +1883,36 @@ export default function PaymentPortal() {
                         hasSelectedItems={(passengerId: string) => {
                           const passengerIndex = resolvePassengerIndex(passengerId);
                           const passengerData = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
-                          if (!passengerData) return false;
+                          if (!passengerData) {
+                            console.log(`[HAS_SELECTED] ${passengerId}: No passenger data found`);
+                            return false;
+                          }
                           
                           const passengerItems = selectedItems[passengerId] || [];
-                          if (passengerItems.length === 0) return false;
+                          console.log(`[HAS_SELECTED] ${passengerId}: passengerItems =`, passengerItems);
+                          console.log(`[HAS_SELECTED] ${passengerId}: selectedItems =`, selectedItems);
+                          
+                          if (passengerItems.length === 0) {
+                            console.log(`[HAS_SELECTED] ${passengerId}: No items selected, returning false`);
+                            return false;
+                          }
                           
                           // Check if any of the selected items are actually unpaid
-                          return passengerItems.some(itemType => {
-                            if (itemType === 'ticket') return passengerData.ticket.status !== 'Paid';
-                            if (itemType === 'seat') return passengerData.ancillaries.seat?.status !== 'Paid';
-                            if (itemType === 'bag') return passengerData.ancillaries.bag?.status !== 'Paid';
-                            if (itemType === 'secondBag') return passengerData.ancillaries.secondBag?.status !== 'Paid';
-                            if (itemType === 'thirdBag') return passengerData.ancillaries.thirdBag?.status !== 'Paid';
-                            if (itemType === 'uatp') return passengerData.ancillaries.uatp?.status !== 'Paid';
-                            return false;
+                          const hasUnpaidItems = passengerItems.some(itemType => {
+                            let isUnpaid = false;
+                            if (itemType === 'ticket') isUnpaid = passengerData.ticket.status !== 'Paid';
+                            if (itemType === 'seat') isUnpaid = passengerData.ancillaries.seat?.status !== 'Paid';
+                            if (itemType === 'bag') isUnpaid = passengerData.ancillaries.bag?.status !== 'Paid';
+                            if (itemType === 'secondBag') isUnpaid = passengerData.ancillaries.secondBag?.status !== 'Paid';
+                            if (itemType === 'thirdBag') isUnpaid = passengerData.ancillaries.thirdBag?.status !== 'Paid';
+                            if (itemType === 'uatp') isUnpaid = passengerData.ancillaries.uatp?.status !== 'Paid';
+                            
+                            console.log(`[HAS_SELECTED] ${passengerId}: ${itemType} isUnpaid = ${isUnpaid}`);
+                            return isUnpaid;
                           });
+                          
+                          console.log(`[HAS_SELECTED] ${passengerId}: hasUnpaidItems = ${hasUnpaidItems}`);
+                          return hasUnpaidItems;
                         }}
                         togglePassenger={togglePassenger}
                         toggleAllItemsForPassenger={toggleAllItemsForPassenger}

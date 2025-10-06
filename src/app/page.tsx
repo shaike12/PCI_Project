@@ -326,6 +326,13 @@ export default function PaymentPortal() {
           setInvoiceEmail((updatedReservation as any).invoiceEmail as string);
         }
         
+        // Clear selections when loading a new reservation
+        setSelectedItems({});
+        setSelectedPassengers([]);
+        setItemPaymentMethods({});
+        setItemMethodForms({});
+        setItemExpandedMethod({});
+        
         // Reload reservations list to make sure it's up to date
         await loadAllReservations();
       } else {

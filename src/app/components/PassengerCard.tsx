@@ -62,10 +62,6 @@ function PassengerCard({
           p: 1.5,
           cursor: 'pointer',
           bgcolor: (() => {
-            // Check if passenger has selected items for payment
-            if (hasSelectedItems(passenger.id)) {
-              return '#EFE3D1'; // Light beige background for selected passengers
-            }
             // Check if all items are paid (no items to pay for)
             const allPaid = passengerData.ticket?.status === 'Paid' && 
                            passengerData.ancillaries?.seat?.status === 'Paid' && 
@@ -76,6 +72,10 @@ function PassengerCard({
             if (allPaid) {
               return '#E0E0E0'; // Light gray background for fully paid passengers
             }
+            // Check if passenger has selected items for payment
+            if (hasSelectedItems(passenger.id)) {
+              return '#EFE3D1'; // Light beige background for selected passengers
+            }
             return 'white'; // White background for passengers with no selected items
           })(),
           color: 'inherit',
@@ -83,9 +83,6 @@ function PassengerCard({
           transition: 'all 0.2s',
           '&:hover': {
             bgcolor: (() => {
-              if (hasSelectedItems(passenger.id)) {
-                return '#d4c4a8'; // Darker beige on hover for selected passengers
-              }
               const allPaid = passengerData.ticket?.status === 'Paid' && 
                              passengerData.ancillaries?.seat?.status === 'Paid' && 
                              passengerData.ancillaries?.bag?.status === 'Paid' &&
@@ -93,7 +90,10 @@ function PassengerCard({
                              (!passengerData.ancillaries?.thirdBag || passengerData.ancillaries.thirdBag.status === 'Paid') &&
                              (!passengerData.ancillaries?.uatp || passengerData.ancillaries.uatp.status === 'Paid');
               if (allPaid) {
-                return '#3a8a87'; // Darker teal on hover for fully paid passengers
+                return '#C0C0C0'; // Darker gray on hover for fully paid passengers
+              }
+              if (hasSelectedItems(passenger.id)) {
+                return '#d4c4a8'; // Darker beige on hover for selected passengers
               }
               return '#E4DFDA'; // Light background on hover for unselected passengers
             })()

@@ -90,9 +90,16 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
     setIsCheckingBalance(true);
     
     try {
-      // Use the provided check function
+      // Use the provided check function to initialize, but display computed available now
       const balance = await checkVoucherBalance(voucherNumber);
-      setVoucherBalance(balance);
+      // Compute available as initial - sum(all current usages), if helpers are provided
+      let availableNow = balance;
+      if (getVoucherInitialBalance && getCurrentVoucherUsage) {
+        const initial = getVoucherInitialBalance(voucherNumber);
+        const used = getCurrentVoucherUsage(voucherNumber);
+        availableNow = Math.max(0, initial - used);
+      }
+      setVoucherBalance(availableNow);
       
       // Calculate remaining amount for this item
       const currentPaidAmount = getTotalPaidAmountWrapper(itemKey);
@@ -100,16 +107,16 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
       const otherMethodsPaid = currentPaidAmount - currentVoucherAmount;
       const currentRemaining = Math.max(0, originalPrice - otherMethodsPaid);
       
-      // Update amount based on voucher balance
-      if (balance >= currentRemaining) {
+      // Update amount based on voucher available balance (computed)
+      if (availableNow >= currentRemaining) {
         // Voucher has enough balance, use the full remaining amount
         const newAmount = currentRemaining > 0 ? currentRemaining : originalPrice;
         setLocalAmount(newAmount.toFixed(2));
         updateMethodField(itemKey, 'voucher', 'amount', newAmount.toString(), voucherIndex);
       } else {
         // Voucher doesn't have enough balance, use the voucher balance
-        setLocalAmount(balance.toFixed(2));
-        updateMethodField(itemKey, 'voucher', 'amount', balance.toString(), voucherIndex);
+        setLocalAmount(availableNow.toFixed(2));
+        updateMethodField(itemKey, 'voucher', 'amount', availableNow.toString(), voucherIndex);
       }
       
       // Update the voucher balance in the global state to reflect current usage
@@ -228,17 +235,25 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
           onChange={(e) => {
             const inputValue = e.target.value;
             // Only update local state during typing, don't update the main state
-            // Prevent increasing above available voucher headroom when no headroom
-            const numeric = parseFloat(inputValue);
-            if (!isNaN(numeric) && effectiveBalance !== null) {
-              // Remaining after use relative to entered amount
-              const headroom = Math.max(0, effectiveBalance);
-              if (numeric > headroom) {
-                setLocalAmount(headroom.toFixed(2));
-                return;
-              }
+            let numeric = parseFloat(inputValue);
+            if (isNaN(numeric)) {
+              setLocalAmount(inputValue);
+              return;
             }
-            setLocalAmount(inputValue);
+            // Calculate product remaining without current voucher amount
+            const currentPaidAmount = getTotalPaidAmountWrapper(itemKey);
+            const currentVoucherAmount = parseFloat(storedAmount || '0') || 0;
+            const otherMethodsPaid = currentPaidAmount - currentVoucherAmount;
+            const currentRemaining = Math.max(0, originalPrice - otherMethodsPaid);
+            // Voucher headroom (available) now
+            const headroom = effectiveBalance !== null ? Math.max(0, effectiveBalance) : Number.POSITIVE_INFINITY;
+            const maxAllowed = Math.min(currentRemaining > 0 ? currentRemaining : originalPrice, headroom);
+            if (numeric > maxAllowed) numeric = maxAllowed;
+            if (numeric < 0) numeric = 0;
+            const nextValue = numeric.toFixed(2);
+            setLocalAmount(nextValue);
+            // Also reflect in global state so other items see the usage immediately
+            updateMethodField(itemKey, 'voucher', 'amount', numeric.toString(), voucherIndex);
           }}
             onBlur={(e) => {
             }}

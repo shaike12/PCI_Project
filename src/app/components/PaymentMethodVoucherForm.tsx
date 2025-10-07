@@ -34,18 +34,24 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
   const [voucherBalance, setVoucherBalance] = useState<number | null>(null);
   const [hasApplied, setHasApplied] = useState(false);
 
-  // Compute effective known balance (prefer locally checked balance, else global state)
+  // Compute effective known balance (live): prefer locally applied value; otherwise compute
+  // initial - current usage EXCLUDING this row so UI doesn't require Apply to reflect changes
   const effectiveBalance: number | null = (() => {
     if (voucherBalance !== null) return voucherBalance;
     if (currentVoucherNumber.length >= 8) {
-      // Prefer computed: initial balance - sum of all usages so far
+      const cleaned = currentVoucherNumber.replace(/\D/g, '');
+      if (getVoucherInitialBalance && getVoucherUsageExcluding) {
+        const initial = getVoucherInitialBalance(cleaned);
+        const usedExcl = getVoucherUsageExcluding(cleaned, itemKey, voucherIndex);
+        return Math.max(0, initial - usedExcl);
+      }
       if (getVoucherInitialBalance && getCurrentVoucherUsage) {
-        const initial = getVoucherInitialBalance(currentVoucherNumber);
-        const used = getCurrentVoucherUsage(currentVoucherNumber);
+        const initial = getVoucherInitialBalance(cleaned);
+        const used = getCurrentVoucherUsage(cleaned);
         return Math.max(0, initial - used);
       }
       if (getVoucherBalance) {
-        const bal = getVoucherBalance(currentVoucherNumber);
+        const bal = getVoucherBalance(cleaned);
         return Number.isFinite(bal) ? bal : null;
       }
     }
@@ -320,7 +326,7 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
         </Box>
         
         {/* Voucher Balance Display */}
-        {(currentVoucherNumber.length >= 8 && hasApplied) && (
+        {(currentVoucherNumber.length >= 8) && (
           <Box sx={{ mt: 1, p: 1.5, bgcolor: '#F5F5F5', borderRadius: 1, border: '1px solid #E0E0E0' }}>
             {effectiveBalance !== null ? (
               <>

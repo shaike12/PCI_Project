@@ -25,6 +25,9 @@ interface PaymentMethodCardProps {
   setItemExpandedMethod: (updater: (prev: { [key: string]: number | null }) => { [key: string]: number | null }) => void;
   removeMethod: (itemKey: string, formIndex: number) => void;
   onCopyMethod?: (itemKey: string, method: 'credit' | 'voucher' | 'points') => void;
+  checkVoucherBalance?: (voucherNumber: string) => Promise<number>;
+  getVoucherBalance?: (voucherNumber: string) => number;
+  updateVoucherBalance?: (voucherNumber: string, usedAmount: number) => void;
 }
 
 // Function to get detailed validation message for incomplete forms
@@ -82,7 +85,10 @@ export function PaymentMethodCard({
   getTotalPaidAmountWrapper,
   setItemExpandedMethod,
   removeMethod,
-  onCopyMethod
+  onCopyMethod,
+  checkVoucherBalance,
+  getVoucherBalance,
+  updateVoucherBalance
 }: PaymentMethodCardProps) {
   const expanded = itemExpandedMethod[itemKey] === idx;
   if (process.env.NODE_ENV !== 'production') {
@@ -283,7 +289,7 @@ export function PaymentMethodCard({
         />
       </Collapse>
 
-      <Collapse in={expanded && method === 'voucher'} timeout={400} unmountOnExit mountOnEnter>
+      <Collapse in={expanded && method === 'voucher'} timeout={400} mountOnEnter>
         <PaymentMethodVoucherForm 
           itemKey={itemKey} 
           index={formMethods.slice(0, idx).filter(m => m === 'voucher').length}
@@ -293,6 +299,9 @@ export function PaymentMethodCard({
           getOriginalItemPrice={getOriginalItemPrice}
           getTotalPaidAmountWrapper={getTotalPaidAmountWrapper}
           setItemExpandedMethod={setItemExpandedMethod}
+          checkVoucherBalance={checkVoucherBalance}
+          getVoucherBalance={getVoucherBalance}
+          updateVoucherBalance={updateVoucherBalance}
         />
       </Collapse>
 

@@ -13,9 +13,12 @@ interface PaymentMethodVoucherFormProps {
   getOriginalItemPrice: (itemKey: string) => number;
   getTotalPaidAmountWrapper: (itemKey: string) => number;
   setItemExpandedMethod?: (updater: (prev: { [key: string]: number | null }) => { [key: string]: number | null }) => void;
+  checkVoucherBalance?: (voucherNumber: string) => Promise<number>;
+  getVoucherBalance?: (voucherNumber: string) => number;
+  updateVoucherBalance?: (voucherNumber: string, usedAmount: number) => void;
 }
 
-export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMethodField, getRemainingAmount, getOriginalItemPrice, getTotalPaidAmountWrapper, setItemExpandedMethod }: PaymentMethodVoucherFormProps) {
+export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMethodField, getRemainingAmount, getOriginalItemPrice, getTotalPaidAmountWrapper, setItemExpandedMethod, checkVoucherBalance, getVoucherBalance, updateVoucherBalance }: PaymentMethodVoucherFormProps) {
   const amounts = getRemainingAmount(itemKey);
   const voucherIndex = index;
   const storedAmount = paymentData?.vouchers?.[voucherIndex]?.amount;
@@ -35,8 +38,8 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
     }
   }, [storedAmount]);
 
-  // Function to check voucher balance (simulated API call)
-  const checkVoucherBalance = async () => {
+  // Function to check voucher balance using global functions
+  const handleCheckVoucherBalance = async () => {
     const voucherNumber = currentVoucherNumber.replace(/\D/g, ''); // Remove non-digits
     
     if (voucherNumber.length < 8) {
@@ -44,35 +47,41 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
       return;
     }
 
+    if (!checkVoucherBalance) {
+      alert('Voucher balance check not available');
+      return;
+    }
+
     setIsCheckingBalance(true);
     
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Simulate voucher balance check - in real implementation, this would be an API call
-    // For demo purposes, we'll generate a random balance between $50 and $500
-    const simulatedBalance = Math.floor(Math.random() * 450) + 50;
-    setVoucherBalance(simulatedBalance);
-    
-    // Calculate remaining amount for this item
-    const currentPaidAmount = getTotalPaidAmountWrapper(itemKey);
-    const currentVoucherAmount = parseFloat(storedAmount || '0') || 0;
-    const otherMethodsPaid = currentPaidAmount - currentVoucherAmount;
-    const currentRemaining = Math.max(0, originalPrice - otherMethodsPaid);
-    
-    // Update amount based on voucher balance
-    if (simulatedBalance >= currentRemaining) {
-      // Voucher has enough balance, use the full remaining amount
-      const newAmount = currentRemaining > 0 ? currentRemaining : originalPrice;
-      setLocalAmount(newAmount.toFixed(2));
-      updateMethodField(itemKey, 'voucher', 'amount', newAmount.toString(), voucherIndex);
-    } else {
-      // Voucher doesn't have enough balance, use the voucher balance
-      setLocalAmount(simulatedBalance.toFixed(2));
-      updateMethodField(itemKey, 'voucher', 'amount', simulatedBalance.toString(), voucherIndex);
+    try {
+      // Use the global checkVoucherBalance function
+      const balance = await checkVoucherBalance(voucherNumber);
+      setVoucherBalance(balance);
+      
+      // Calculate remaining amount for this item
+      const currentPaidAmount = getTotalPaidAmountWrapper(itemKey);
+      const currentVoucherAmount = parseFloat(storedAmount || '0') || 0;
+      const otherMethodsPaid = currentPaidAmount - currentVoucherAmount;
+      const currentRemaining = Math.max(0, originalPrice - otherMethodsPaid);
+      
+      // Update amount based on voucher balance
+      if (balance >= currentRemaining) {
+        // Voucher has enough balance, use the full remaining amount
+        const newAmount = currentRemaining > 0 ? currentRemaining : originalPrice;
+        setLocalAmount(newAmount.toFixed(2));
+        updateMethodField(itemKey, 'voucher', 'amount', newAmount.toString(), voucherIndex);
+      } else {
+        // Voucher doesn't have enough balance, use the voucher balance
+        setLocalAmount(balance.toFixed(2));
+        updateMethodField(itemKey, 'voucher', 'amount', balance.toString(), voucherIndex);
+      }
+    } catch (error) {
+      console.error('Error checking voucher balance:', error);
+      alert('Error checking voucher balance');
+    } finally {
+      setIsCheckingBalance(false);
     }
-    
-    setIsCheckingBalance(false);
   };
 
   return (
@@ -122,6 +131,11 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
             
             setLocalAmount(cappedValue.toFixed(2));
             updateMethodField(itemKey, 'voucher', 'amount', cappedValue.toString(), voucherIndex);
+            
+            // Update voucher balance if we have the voucher number and balance functions
+            if (currentVoucherNumber && updateVoucherBalance && voucherBalance !== null) {
+              updateVoucherBalance(currentVoucherNumber, cappedValue);
+            }
             
             // Collapse the form after saving
             if (setItemExpandedMethod) {
@@ -209,7 +223,7 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
             }} 
           />
           <IconButton
-            onClick={checkVoucherBalance}
+            onClick={handleCheckVoucherBalance}
             disabled={isCheckingBalance || currentVoucherNumber.length < 8}
             sx={{
               bgcolor: '#D4B483',

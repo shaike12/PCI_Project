@@ -767,6 +767,7 @@ export default function PaymentPortal() {
   const [expandedPassengers, setExpandedPassengers] = useState<string[]>([]);
   const [selectedItems, setSelectedItems] = useState<{[key: string]: string[]}>({});
   const [mounted, setMounted] = useState(false);
+  const [voucherBalances, setVoucherBalances] = useState<{[voucherNumber: string]: number}>({});
 
   // Keep invoiceEmail in sync with the loaded reservation
   useEffect(() => {
@@ -774,6 +775,49 @@ export default function PaymentPortal() {
       setInvoiceEmail(((currentReservation as any).invoiceEmail as string) || '');
     }
   }, [currentReservation]);
+
+  // Voucher balance management functions
+  const checkVoucherBalance = async (voucherNumber: string): Promise<number> => {
+    const cleanVoucherNumber = voucherNumber.replace(/\D/g, '');
+    
+    // If we already have the balance for this voucher, return it
+    if (voucherBalances[cleanVoucherNumber]) {
+      return voucherBalances[cleanVoucherNumber];
+    }
+    
+    // Simulate API call to get voucher balance
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // For demo purposes, generate a random balance between $50 and $500
+    const simulatedBalance = Math.floor(Math.random() * 450) + 50;
+    
+    // Store the balance
+    setVoucherBalances(prev => ({
+      ...prev,
+      [cleanVoucherNumber]: simulatedBalance
+    }));
+    
+    return simulatedBalance;
+  };
+
+  const updateVoucherBalance = (voucherNumber: string, usedAmount: number) => {
+    const cleanVoucherNumber = voucherNumber.replace(/\D/g, '');
+    
+    setVoucherBalances(prev => {
+      const currentBalance = prev[cleanVoucherNumber] || 0;
+      const newBalance = Math.max(0, currentBalance - usedAmount);
+      
+      return {
+        ...prev,
+        [cleanVoucherNumber]: newBalance
+      };
+    });
+  };
+
+  const getVoucherBalance = (voucherNumber: string): number => {
+    const cleanVoucherNumber = voucherNumber.replace(/\D/g, '');
+    return voucherBalances[cleanVoucherNumber] || 0;
+  };
   
   // Reservations dropdown state
   const [allReservations, setAllReservations] = useState<Reservation[]>([]);
@@ -1968,6 +2012,9 @@ export default function PaymentPortal() {
                   clearAllItemsForPassenger={clearAllItemsForPassenger}
                   onCopyMethod={handleCopyMethod}
                   getGeneratedNumber={getGeneratedNumber}
+                  checkVoucherBalance={checkVoucherBalance}
+                  getVoucherBalance={getVoucherBalance}
+                  updateVoucherBalance={updateVoucherBalance}
                 />
 
                 {/* No items selected message */}

@@ -31,6 +31,9 @@ interface ItemDetailsProps {
   confirmAddMethod: (itemKey: string, method: 'credit' | 'voucher' | 'points') => void;
   onCopyMethod?: (itemKey: string, method: 'credit' | 'voucher' | 'points') => void;
   getGeneratedNumber?: (itemKey: string) => string | null;
+  checkVoucherBalance?: (voucherNumber: string) => Promise<number>;
+  getVoucherBalance?: (voucherNumber: string) => number;
+  updateVoucherBalance?: (voucherNumber: string, usedAmount: number) => void;
 }
 
 // Function to check if all payment methods are properly filled
@@ -89,7 +92,10 @@ export function ItemDetails({
   removeMethod,
   confirmAddMethod,
   onCopyMethod,
-  getGeneratedNumber
+  getGeneratedNumber,
+  checkVoucherBalance,
+  getVoucherBalance,
+  updateVoucherBalance
 }: ItemDetailsProps) {
   const amounts = getRemainingAmount(itemKey);
   const showAlways = true;
@@ -288,6 +294,9 @@ export function ItemDetails({
                   setItemExpandedMethod={setItemExpandedMethod}
                   removeMethod={removeMethod}
                   onCopyMethod={onCopyMethod}
+                  checkVoucherBalance={checkVoucherBalance}
+                  getVoucherBalance={getVoucherBalance}
+                  updateVoucherBalance={updateVoucherBalance}
                 />);
               })}
 

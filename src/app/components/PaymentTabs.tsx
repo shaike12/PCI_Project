@@ -38,6 +38,9 @@ interface PaymentTabsProps {
   clearAllItemsForPassenger: (passengerId: string) => void;
   onCopyMethod?: (itemKey: string, method: 'credit' | 'voucher' | 'points') => void;
   getGeneratedNumber?: (itemKey: string) => string | null;
+  checkVoucherBalance?: (voucherNumber: string) => Promise<number>;
+  getVoucherBalance?: (voucherNumber: string) => number;
+  updateVoucherBalance?: (voucherNumber: string, usedAmount: number) => void;
 }
 
 export function PaymentTabs(props: PaymentTabsProps) {
@@ -62,7 +65,10 @@ export function PaymentTabs(props: PaymentTabsProps) {
     toggleItem,
     clearAllItemsForPassenger,
     onCopyMethod,
-    getGeneratedNumber
+    getGeneratedNumber,
+    checkVoucherBalance,
+    getVoucherBalance,
+    updateVoucherBalance
   } = props;
 
   // Safely resolve a passenger index
@@ -502,6 +508,9 @@ export function PaymentTabs(props: PaymentTabsProps) {
                   confirmAddMethod={confirmAddMethod}
                   onCopyMethod={onCopyMethod}
                   getGeneratedNumber={getGeneratedNumber}
+                  checkVoucherBalance={checkVoucherBalance}
+                  getVoucherBalance={getVoucherBalance}
+                  updateVoucherBalance={updateVoucherBalance}
                 />
               );
 

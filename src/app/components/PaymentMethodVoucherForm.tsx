@@ -71,12 +71,7 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
   const handleCheckVoucherBalance = async () => {
     const voucherNumber = currentVoucherNumber.replace(/\D/g, ''); // Remove non-digits
     
-    console.log('handleCheckVoucherBalance called:', {
-      voucherNumber,
-      checkVoucherBalance: !!checkVoucherBalance,
-      getVoucherBalance: !!getVoucherBalance,
-      updateVoucherBalance: !!updateVoucherBalance
-    });
+    
     
     if (voucherNumber.length < 8) {
       alert('Please enter a valid voucher number');
@@ -124,12 +119,10 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
       // Update the voucher balance in the global state to reflect current usage
       if (getVoucherBalance) {
         const currentGlobalBalance = getVoucherBalance(voucherNumber);
-        console.log('After checking balance - Current global balance for voucher:', currentGlobalBalance);
-        console.log('Balance returned from checkVoucherBalance:', balance);
-        console.log('Are they the same?', currentGlobalBalance === balance);
+        
       }
     } catch (error) {
-      console.error('Error checking voucher balance:', error);
+      
       alert('Error checking voucher balance');
     } finally {
       setIsCheckingBalance(false);
@@ -191,10 +184,10 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
                 if (checkVoucherBalance) {
                   await checkVoucherBalance(currentVoucherNumber);
                 }
-                console.log('Calling updateVoucherBalance on save:', { currentVoucherNumber, used: cappedValue });
+                
                 updateVoucherBalance(currentVoucherNumber, cappedValue);
               } catch (e) {
-                console.warn('Failed to initialize/deduct voucher balance on save', e);
+                
               }
             }
             

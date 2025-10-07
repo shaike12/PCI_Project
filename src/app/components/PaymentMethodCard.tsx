@@ -102,7 +102,7 @@ export function PaymentMethodCard({
     try {
       // Avoid spamming too much: only log when expanded or when first method
       if (expanded || idx === 0) {
-        console.log('[CARD] render', { itemKey, method, idx, expanded });
+        
       }
     } catch {}
   }

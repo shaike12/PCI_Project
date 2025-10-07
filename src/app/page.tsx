@@ -783,12 +783,12 @@ export default function PaymentPortal() {
 
   // Voucher balance management functions
   const checkVoucherBalance = async (voucherNumber: string): Promise<number> => {
-    console.log('checkVoucherBalance called in page.tsx:', voucherNumber);
+    
     const cleanVoucherNumber = voucherNumber.replace(/\D/g, '');
     
     // If we already have the balance for this voucher, return the current (updated) balance
     if (voucherBalances[cleanVoucherNumber] !== undefined) {
-      console.log('Returning existing balance:', voucherBalances[cleanVoucherNumber]);
+      
       return voucherBalances[cleanVoucherNumber];
     }
     
@@ -806,7 +806,7 @@ export default function PaymentPortal() {
       [cleanVoucherNumber]: simulatedBalance
     }));
     
-    console.log('Generated new initial balance:', simulatedBalance);
+    
     return simulatedBalance;
   };
 
@@ -824,18 +824,13 @@ export default function PaymentPortal() {
   const updateVoucherBalance = (voucherNumber: string, usedAmount: number) => {
     const cleanVoucherNumber = voucherNumber.replace(/\D/g, '');
     
-    console.log('updateVoucherBalance called:', { voucherNumber, cleanVoucherNumber, usedAmount });
+    
     
     setVoucherBalances(prev => {
       const currentBalance = prev[cleanVoucherNumber] || 0;
       const newBalance = Math.max(0, currentBalance - usedAmount);
       
-      console.log('Updating voucher balance:', { 
-        voucherNumber: cleanVoucherNumber, 
-        currentBalance, 
-        usedAmount, 
-        newBalance 
-      });
+      
       
       return {
         ...prev,
@@ -849,7 +844,7 @@ export default function PaymentPortal() {
     const initial = getVoucherInitialBalance(cleanVoucherNumber);
     const used = getCurrentVoucherUsage(cleanVoucherNumber);
     const liveAvailable = Math.max(0, initial - used);
-    console.log('getVoucherBalance (live only):', { voucherNumber, cleanVoucherNumber, initial, used, liveAvailable });
+    
     return liveAvailable;
   };
   

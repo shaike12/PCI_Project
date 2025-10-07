@@ -57,7 +57,7 @@ export const useFirebase = (): UseFirebaseReturn => {
     try {
       await signInWithEmailAndPassword(auth, email, password);
     } catch (error) {
-      console.error('Sign in error:', error);
+      
       throw error;
     }
   }, []);
@@ -66,7 +66,7 @@ export const useFirebase = (): UseFirebaseReturn => {
     try {
       await createUserWithEmailAndPassword(auth, email, password);
     } catch (error) {
-      console.error('Sign up error:', error);
+      
       throw error;
     }
   }, []);
@@ -75,7 +75,7 @@ export const useFirebase = (): UseFirebaseReturn => {
     try {
       await signOut(auth);
     } catch (error) {
-      console.error('Logout error:', error);
+      
       throw error;
     }
   }, []);

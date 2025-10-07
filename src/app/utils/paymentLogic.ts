@@ -221,7 +221,7 @@ export const confirmAddMethod = (
   if (!itemKey) return;
 
   if (process.env.NODE_ENV !== 'production') {
-    console.log('[ADD_METHOD] start', { itemKey, method });
+  
   }
 
   const remainingAmount = getRemainingAmount(itemKey).remaining;
@@ -268,7 +268,7 @@ export const confirmAddMethod = (
     
     const updated = { ...current };
     if (process.env.NODE_ENV !== 'production') {
-      console.log('[ADD_METHOD] setItemPaymentMethods complete', { methods: updated[itemKey] });
+      
     }
     return updated;
   });
@@ -283,13 +283,13 @@ export const confirmAddMethod = (
     current.push(method);
     const nextForms = { ...prev, [itemKey]: current };
     if (process.env.NODE_ENV !== 'production') {
-      console.log('[ADD_METHOD] setItemMethodForms pushed', { forms: current });
+      
     }
     // Note: we no longer auto-set expanded here to ensure first mount animates.
     return nextForms;
   });
   if (process.env.NODE_ENV !== 'production') {
-    console.log('[ADD_METHOD] end');
+  
   }
 };
 
@@ -303,19 +303,13 @@ export const updateMethodField = (
   itemPaymentMethods: any,
   setItemPaymentMethods: (updater: (prev: any) => any) => void
 ): void => {
-  console.log('=== updateMethodField CALLED ===');
-  console.log('- itemKey:', itemKey);
-  console.log('- method:', method);
-  console.log('- field:', field);
-  console.log('- value:', value);
-  console.log('- voucherIndex:', voucherIndex);
-  console.log('- current itemPaymentMethods:', itemPaymentMethods);
+  
   
   setItemPaymentMethods((prev: any) => {
-    console.log('- prev state:', prev);
+    
     const updated = { ...prev };
     const methods = updated[itemKey] || {};
-    console.log('- methods for itemKey:', methods);
+    
     
     // Helper function to convert numeric fields to numbers
     const processValue = (field: string, value: string) => {
@@ -323,17 +317,17 @@ export const updateMethodField = (
       if (numericFields.includes(field)) {
         const numValue = parseFloat(value);
         const result = isNaN(numValue) ? 0 : numValue;
-        console.log('- processValue for field', field, ':', value, '->', result);
+        
         return result;
       }
-      console.log('- processValue for field', field, ':', value, '->', value);
+      
       return value;
     };
 
     if (method === 'credit') {
       if (!methods.credit) methods.credit = {};
       methods.credit[field] = processValue(field, value);
-      console.log('- updated credit methods:', methods.credit);
+      
     } else if (method === 'voucher') {
       if (!methods.vouchers) methods.vouchers = [];
       if (voucherIndex !== undefined) {
@@ -341,17 +335,16 @@ export const updateMethodField = (
           methods.vouchers[voucherIndex] = {};
         }
         methods.vouchers[voucherIndex][field] = processValue(field, value);
-        console.log('- updated voucher methods:', methods.vouchers);
+        
       }
     } else if (method === 'points') {
       if (!methods.points) methods.points = {};
       methods.points[field] = processValue(field, value);
-      console.log('- updated points methods:', methods.points);
+      
     }
     
     updated[itemKey] = methods;
-    console.log('- final updated state:', updated);
-    console.log('=== updateMethodField COMPLETED ===');
+    
     return updated;
   });
 };

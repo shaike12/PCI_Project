@@ -163,7 +163,7 @@ export function PaymentTabs(props: PaymentTabsProps) {
               e.stopPropagation();
               if (!isPaid && isActiveTab) {
                 if (process.env.NODE_ENV !== 'production') {
-                  console.log('[UI] item icon click', { pid, itemType });
+                  
                 }
                 toggleItem(pid, itemType);
                 // Also expand the first existing payment method form for this item, if any
@@ -171,7 +171,7 @@ export function PaymentTabs(props: PaymentTabsProps) {
                 const methods = itemMethodForms[itemKey] || [];
                 if (methods.length > 0) {
                   if (process.env.NODE_ENV !== 'production') {
-                    console.log('[UI] expand existing method index 0', { itemKey });
+                    
                   }
                   setItemExpandedMethod(() => ({ [itemKey]: 0 }));
                 }

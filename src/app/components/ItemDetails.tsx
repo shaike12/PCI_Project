@@ -140,13 +140,13 @@ export function ItemDetails({
                     size="small"
                     onClick={() => {
                       if (process.env.NODE_ENV !== 'production') {
-                        console.log('[UI] add credit click', { itemKey });
+                        
                       }
                       confirmAddMethod(itemKey, 'credit');
                       // Defer expand to next tick to allow first mount to animate
                       setTimeout(() => {
                         if (process.env.NODE_ENV !== 'production') {
-                          console.log('[UI] expand credit index 0', { itemKey });
+                          
                         }
                         setItemExpandedMethod((prev) => ({ ...prev, [itemKey]: 0 }));
                       }, 0);
@@ -171,13 +171,13 @@ export function ItemDetails({
                     onClick={() => {
                       const currentVoucherCount = formMethods.slice(0).filter(m => m === 'voucher').length;
                       if (process.env.NODE_ENV !== 'production') {
-                        console.log('[UI] add voucher click', { itemKey, currentVoucherCountBefore: currentVoucherCount });
+                        
                       }
                       confirmAddMethod(itemKey, 'voucher');
                       // New voucher will be appended, expand its index after state updates
                       setTimeout(() => {
                         if (process.env.NODE_ENV !== 'production') {
-                          console.log('[UI] expand voucher at index', { itemKey, index: currentVoucherCount });
+                          
                         }
                         setItemExpandedMethod((prev) => ({ ...prev, [itemKey]: currentVoucherCount }));
                       }, 0);
@@ -201,13 +201,13 @@ export function ItemDetails({
                     size="small"
                     onClick={() => {
                       if (process.env.NODE_ENV !== 'production') {
-                        console.log('[UI] add points click', { itemKey });
+                        
                       }
                       confirmAddMethod(itemKey, 'points');
                       // Expand the points form (index 0) after state updates
                       setTimeout(() => {
                         if (process.env.NODE_ENV !== 'production') {
-                          console.log('[UI] expand points index 0', { itemKey });
+                          
                         }
                         setItemExpandedMethod((prev) => ({ ...prev, [itemKey]: 0 }));
                       }, 0);
@@ -281,7 +281,7 @@ export function ItemDetails({
               {formMethods.map((method, idx) => {
                 const isExpanded = itemExpandedMethod[itemKey] === idx;
                 if (process.env.NODE_ENV !== 'production') {
-                  try { console.log('[LIST] method row', { itemKey, idx, method, isExpanded }); } catch {}
+                  
                 }
                 return (
                 <PaymentMethodCard

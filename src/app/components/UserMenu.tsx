@@ -45,7 +45,7 @@ export default function UserMenu({ onSyncToCloud, onSyncFromCloud, onShowAuthMod
       await logout();
       handleMenuClose();
     } catch (error) {
-      console.error('Logout error:', error);
+      
     }
   };
 

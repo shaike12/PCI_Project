@@ -45,7 +45,7 @@ export class ReservationService {
       });
       return docRef.id;
     } catch (error) {
-      console.error('Error creating reservation:', error);
+      
       throw error;
     }
   }
@@ -61,7 +61,7 @@ export class ReservationService {
       }
       return null;
     } catch (error) {
-      console.error('Error getting reservation:', error);
+      
       throw error;
     }
   }
@@ -82,7 +82,7 @@ export class ReservationService {
       }
       return null;
     } catch (error) {
-      console.error('Error getting reservation by code:', error);
+      
       throw error;
     }
   }
@@ -109,7 +109,7 @@ export class ReservationService {
       
       await updateDoc(docRef, updateData);
     } catch (error) {
-      console.error('Error updating reservation:', error);
+      
       throw error;
     }
   }
@@ -120,7 +120,7 @@ export class ReservationService {
       const docRef = doc(db, this.collection, id);
       await deleteDoc(docRef);
     } catch (error) {
-      console.error('Error deleting reservation:', error);
+      
       throw error;
     }
   }
@@ -167,7 +167,7 @@ export class ReservationService {
         nextCursor: querySnapshot.docs[querySnapshot.docs.length - 1]?.id
       };
     } catch (error) {
-      console.error('Error listing reservations:', error);
+      
       throw error;
     }
   }
@@ -193,7 +193,7 @@ export class ReservationService {
 
       return reservations;
     } catch (error) {
-      console.error('Error searching reservations:', error);
+      
       throw error;
     }
   }
@@ -259,7 +259,7 @@ export class ReservationService {
 
       await this.updateReservation(reservationId, { passengers: updatedPassengers }, userId);
     } catch (error) {
-      console.error('Error updating passenger status:', error);
+      
       throw error;
     }
   }
@@ -292,7 +292,7 @@ export class ReservationService {
 
       return stats;
     } catch (error) {
-      console.error('Error getting reservation stats:', error);
+      
       throw error;
     }
   }

@@ -11,9 +11,9 @@ export const saveProgressToLocalStorage = (progressData: {
 }): void => {
   try {
     localStorage.setItem('paymentPortalProgress', JSON.stringify(progressData));
-    console.log('💾 Progress saved to localStorage');
+    
   } catch (error) {
-    console.error('Error saving progress to localStorage:', error);
+    
   }
 };
 
@@ -35,7 +35,7 @@ export const loadProgressFromLocalStorage = (): {
       
       // Only load if saved within last 24 hours
       if (hoursDiff < 24) {
-        console.log('📦 Progress loaded from localStorage');
+        
         return {
           selectedPassengers: parsed.selectedPassengers || [],
           selectedItems: parsed.selectedItems || {},
@@ -44,12 +44,12 @@ export const loadProgressFromLocalStorage = (): {
           itemExpandedMethod: parsed.itemExpandedMethod || {}
         };
       } else {
-        console.log('⏰ Saved progress is too old, clearing...');
+        
         localStorage.removeItem('paymentPortalProgress');
       }
     }
   } catch (error) {
-    console.error('Error loading progress from localStorage:', error);
+    
   }
   return null;
 };
@@ -58,9 +58,9 @@ export const loadProgressFromLocalStorage = (): {
 export const clearProgressFromLocalStorage = (): void => {
   try {
     localStorage.removeItem('paymentPortalProgress');
-    console.log('🗑️ Progress cleared from localStorage');
+    
   } catch (error) {
-    console.error('Error clearing progress from localStorage:', error);
+    
   }
 };
 
@@ -68,8 +68,8 @@ export const clearProgressFromLocalStorage = (): void => {
 export const clearAllLocalStorage = (): void => {
   try {
     localStorage.clear();
-    console.log('🗑️ All localStorage data cleared');
+    
   } catch (error) {
-    console.error('Error clearing localStorage:', error);
+    
   }
 };

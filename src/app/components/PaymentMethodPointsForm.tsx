@@ -91,7 +91,7 @@ export function PaymentMethodPointsForm({ itemKey, paymentData, updateMethodFiel
       
       updateMethodField(itemKey, 'points', 'balance', pointsBalance.toString());
       
-      console.log('=== CHECK MEMBER NUMBER END ===');
+      
     }, 1000);
   };
 

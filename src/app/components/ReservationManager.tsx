@@ -95,7 +95,7 @@ export default function ReservationManager() {
         const statsData = await getStats();
         setStats(statsData);
       } catch (err) {
-        console.error('Failed to load stats:', err);
+        
       }
     };
     loadStats();
@@ -110,7 +110,7 @@ export default function ReservationManager() {
       try {
         await searchReservations(searchTerm);
       } catch (err) {
-        console.error('Search failed:', err);
+        
       }
     }
   };
@@ -127,7 +127,7 @@ export default function ReservationManager() {
         setDeleteDialogOpen(false);
         setSelectedReservation(null);
       } catch (err) {
-        console.error('Delete failed:', err);
+        
       }
     }
   };

@@ -1116,6 +1116,10 @@ export default function PaymentPortal() {
           const items = selectedItems[pid] || [];
           items.forEach(itemType => {
             const key = `${pid}-${itemType}`;
+            // Do not subtract the source item itself from usage; we want live headroom = initial - currentUsed (including source)
+            if (key === copySourceItemKey) {
+              return;
+            }
             const methods = (itemPaymentMethods as any)[key];
             const vouchersArr = methods?.vouchers as Array<any> | undefined;
             if (Array.isArray(vouchersArr)) {

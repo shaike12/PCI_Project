@@ -891,7 +891,7 @@ export default function PaymentPortal() {
       const vouchers = (methods as any)?.vouchers as Array<any> | undefined;
       if (Array.isArray(vouchers)) {
         vouchers.forEach(v => {
-          const vn = (v?.voucherNumber || '').replace(/\D/g, '');
+          const vn = ((v?.voucherNumber || v?.uatpNumber || '') as string).replace(/\D/g, '');
           if (vn === clean) {
             const amt = parseFloat(String(v?.amount)) || 0;
             sum += amt;
@@ -914,7 +914,7 @@ export default function PaymentPortal() {
       const vouchers = (methods as any)?.vouchers as Array<any> | undefined;
       if (!Array.isArray(vouchers)) continue;
       vouchers.forEach((v, idx) => {
-        const vn = (v?.voucherNumber || '').replace(/\D/g, '');
+        const vn = ((v?.voucherNumber || v?.uatpNumber || '') as string).replace(/\D/g, '');
         if (vn !== clean) return;
         // Exclude the current row
         if (itemKey === excludeItemKey && idx === excludeVoucherIndex) return;
@@ -1115,6 +1115,13 @@ export default function PaymentPortal() {
         copyVoucherNumber = raw.replace(/\D/g, '');
         // Use live available balance (initial - current usage) so it includes the source item's usage
         remainingVoucherHeadroom = getVoucherBalance(copyVoucherNumber as string);
+        console.log('[COPY] init voucher headroom', {
+          copyVoucherNumber,
+          initial: getVoucherInitialBalance(copyVoucherNumber as string),
+          currentUsage: getCurrentVoucherUsage(copyVoucherNumber as string),
+          liveHeadroom: remainingVoucherHeadroom,
+          sourceItemKey: copySourceItemKey
+        });
       }
     }
     
@@ -1172,7 +1179,7 @@ export default function PaymentPortal() {
         } else if (copySourceMethod === 'voucher' && sourcePaymentData.vouchers) {
           // Use the precomputed voucher number and remaining headroom
           if (!copyVoucherNumber) return;
-          console.log('Copying voucher:', {
+          console.log('[COPY] per-item voucher distribution', {
             voucherNumber: copyVoucherNumber,
             precomputedHeadroom: remainingVoucherHeadroom,
             remainingAmount: remainingAmount.remaining,
@@ -1188,7 +1195,7 @@ export default function PaymentPortal() {
           
           // Calculate how much to use for this item (minimum of remaining item amount and remaining headroom)
           const amountToUse = Math.min(remainingAmount.remaining, remainingVoucherHeadroom);
-          console.log('Using voucher amount:', amountToUse, 'for item:', targetItemKey);
+          console.log('[COPY] using amount', { amountToUse, targetItemKey });
           
           // Update voucher amounts to use the calculated amount
           const updatedVouchers = (sourcePaymentData.vouchers || []).map((voucher: any, index: number) => ({
@@ -1206,6 +1213,7 @@ export default function PaymentPortal() {
           
           // Decrement local headroom and update global balance to reflect the usage
           remainingVoucherHeadroom = Math.max(0, remainingVoucherHeadroom - amountToUse);
+          console.log('[COPY] headroom after item', { remainingVoucherHeadroom });
           updateVoucherBalance(copyVoucherNumber, amountToUse);
           
           // Add voucher methods to forms

@@ -9,7 +9,7 @@ import CardGiftcardIcon from "@mui/icons-material/CardGiftcard";
 import StarIcon from "@mui/icons-material/Star";
 
 type Credit = { amount: number };
-type Voucher = { amount: number };
+type Voucher = { amount: number; voucherNumber?: string };
 type Points = { amount: number; pointsToUse?: number };
 
 type MethodsForItem = {
@@ -33,6 +33,8 @@ export function PaymentMethodsSummary({ itemPaymentMethods, onClearAll, onClearA
   let totalPointsUsed = 0;
   let totalPaymentMethods = 0;
 
+  const voucherTotalsByNumber: Record<string, number> = {};
+
   Object.values(itemPaymentMethods).forEach((methods) => {
     if (methods.credit) {
       totalCreditAmount += methods.credit.amount;
@@ -41,6 +43,8 @@ export function PaymentMethodsSummary({ itemPaymentMethods, onClearAll, onClearA
     if (methods.vouchers) {
       methods.vouchers.forEach((voucher) => {
         totalVoucherAmount += voucher.amount;
+        const num = (voucher as any).voucherNumber || '—';
+        voucherTotalsByNumber[num] = (voucherTotalsByNumber[num] || 0) + voucher.amount;
         totalPaymentMethods++;
       });
     }
@@ -172,15 +176,25 @@ export function PaymentMethodsSummary({ itemPaymentMethods, onClearAll, onClearA
           )}
 
           {totalVoucherAmount > 0 && (
-            <ListItem sx={{ px: 0 }}>
-              <ListItemIcon sx={{ minWidth: 36 }}>
-                <CardGiftcardIcon sx={{ color: '#48A9A6' }} />
-              </ListItemIcon>
-              <ListItemText primary="UATP Voucher" secondary="UATP vouchers" />
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                ${totalVoucherAmount.toLocaleString()}
-              </Typography>
-            </ListItem>
+            <>
+              <ListItem sx={{ px: 0 }}>
+                <ListItemIcon sx={{ minWidth: 36 }}>
+                  <CardGiftcardIcon sx={{ color: '#48A9A6' }} />
+                </ListItemIcon>
+                <ListItemText primary="UATP Voucher" secondary="Voucher usage by number" />
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  ${totalVoucherAmount.toLocaleString()}
+                </Typography>
+              </ListItem>
+              {Object.entries(voucherTotalsByNumber).map(([num, amt]) => (
+                <ListItem key={num} sx={{ px: 0, pl: 6 }}>
+                  <ListItemText primary={`Voucher ${num}`} />
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    ${amt.toLocaleString()}
+                  </Typography>
+                </ListItem>
+              ))}
+            </>
           )}
 
           {totalPointsAmount > 0 && (

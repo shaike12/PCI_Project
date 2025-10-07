@@ -1,8 +1,7 @@
 "use client";
 
-import { Box, TextField, Typography, Button, IconButton } from "@mui/material";
+import { Box, TextField, Typography, Button } from "@mui/material";
 import { useState, useEffect } from "react";
-import { Search as SearchIcon } from "@mui/icons-material";
 
 interface PaymentMethodVoucherFormProps {
   itemKey: string;
@@ -33,6 +32,7 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
   const [localAmount, setLocalAmount] = useState((storedAmount || fallbackAmount).toFixed(2));
   const [isCheckingBalance, setIsCheckingBalance] = useState(false);
   const [voucherBalance, setVoucherBalance] = useState<number | null>(null);
+  const [hasApplied, setHasApplied] = useState(false);
 
   // Compute effective known balance (prefer locally checked balance, else global state)
   const effectiveBalance: number | null = (() => {
@@ -101,6 +101,7 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
         availableNow = Math.max(0, initial - used);
       }
       setVoucherBalance(availableNow);
+      setHasApplied(true);
       
       // Calculate remaining amount for this item
       const currentPaidAmount = getTotalPaidAmountWrapper(itemKey);
@@ -298,16 +299,20 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
               }
               
               updateMethodField(itemKey, 'voucher', 'voucherNumber', value, voucherIndex);
+              // Reset applied state when voucher number changes
+              setHasApplied(false);
+              setVoucherBalance(null);
             }} 
           />
-          <IconButton
+          <Button
+            variant="contained"
             onClick={handleCheckVoucherBalance}
             disabled={isCheckingBalance || currentVoucherNumber.length < 8}
             sx={{
               bgcolor: '#D4B483',
               color: 'white',
               height: 48,
-              width: 48,
+              px: 2.5,
               '&:hover': {
                 bgcolor: '#c19f5f'
               },
@@ -316,14 +321,13 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
                 color: '#9E9E9E'
               }
             }}
-            title="Check voucher balance"
           >
-            <SearchIcon />
-          </IconButton>
+            Apply
+          </Button>
         </Box>
         
         {/* Voucher Balance Display */}
-        {currentVoucherNumber.length >= 8 && (
+        {(currentVoucherNumber.length >= 8 && hasApplied) && (
           <Box sx={{ mt: 1, p: 1.5, bgcolor: '#F5F5F5', borderRadius: 1, border: '1px solid #E0E0E0' }}>
             {effectiveBalance !== null ? (
               <>
@@ -356,7 +360,7 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
                   Not checked yet
                 </Typography>
                 <Typography variant="caption" sx={{ color: '#666', display: 'block', mt: 0.5 }}>
-                  Click the search button to check voucher balance
+                  Click Apply to check voucher balance
                 </Typography>
               </>
             )}

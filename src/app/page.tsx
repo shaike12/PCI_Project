@@ -846,18 +846,14 @@ export default function PaymentPortal() {
 
   const getVoucherBalance = (voucherNumber: string): number => {
     const cleanVoucherNumber = voucherNumber.replace(/\D/g, '');
-    // If we have a stored balance (post-initialization/updates), return it
-    if (voucherBalances[cleanVoucherNumber] !== undefined) {
-      const balance = voucherBalances[cleanVoucherNumber];
-      console.log('getVoucherBalance (stored):', { voucherNumber, cleanVoucherNumber, balance, allBalances: voucherBalances });
-      return balance;
-    }
-    // Otherwise compute live available = initial - current usage across items
     const initial = getVoucherInitialBalance(cleanVoucherNumber);
     const used = getCurrentVoucherUsage(cleanVoucherNumber);
     const liveAvailable = Math.max(0, initial - used);
-    console.log('getVoucherBalance (computed):', { voucherNumber, cleanVoucherNumber, initial, used, liveAvailable });
-    return liveAvailable;
+    const stored = voucherBalances[cleanVoucherNumber];
+    // Respect current usage always; if a stored balance exists, cap by it to avoid showing more than stored
+    const effective = stored !== undefined ? Math.min(stored, liveAvailable) : liveAvailable;
+    console.log('getVoucherBalance (effective):', { voucherNumber, cleanVoucherNumber, initial, used, liveAvailable, stored, effective, allBalances: voucherBalances });
+    return effective;
   };
   
   // Reservations dropdown state

@@ -42,12 +42,20 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
   const handleCheckVoucherBalance = async () => {
     const voucherNumber = currentVoucherNumber.replace(/\D/g, ''); // Remove non-digits
     
+    console.log('handleCheckVoucherBalance called:', {
+      voucherNumber,
+      checkVoucherBalance: !!checkVoucherBalance,
+      getVoucherBalance: !!getVoucherBalance,
+      updateVoucherBalance: !!updateVoucherBalance
+    });
+    
     if (voucherNumber.length < 8) {
       alert('Please enter a valid voucher number');
       return;
     }
 
     if (!checkVoucherBalance) {
+      console.error('checkVoucherBalance function not available');
       alert('Voucher balance check not available');
       return;
     }

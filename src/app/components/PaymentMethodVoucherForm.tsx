@@ -168,9 +168,8 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
             // Ensure global voucher balance is initialized and then deduct used amount
             if (currentVoucherNumber && updateVoucherBalance) {
               try {
-                const existing = getVoucherBalance ? getVoucherBalance(currentVoucherNumber) : 0;
-                // If no existing global balance (treated as 0), initialize via check
-                if ((existing === 0) && checkVoucherBalance) {
+                // Always initialize/refresh the global balance before deduction
+                if (checkVoucherBalance) {
                   await checkVoucherBalance(currentVoucherNumber);
                 }
                 console.log('Calling updateVoucherBalance on save:', { currentVoucherNumber, used: cappedValue });

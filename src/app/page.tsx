@@ -790,8 +790,10 @@ export default function PaymentPortal() {
     // Simulate API call to get voucher balance
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // For demo purposes, generate a random balance between $50 and $500
-    const simulatedBalance = Math.floor(Math.random() * 450) + 50;
+    // For demo purposes, generate a consistent balance based on voucher number
+    // This ensures the same voucher always returns the same balance
+    const seed = cleanVoucherNumber.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const simulatedBalance = Math.floor((seed % 450) + 50);
     
     // Store the balance
     setVoucherBalances(prev => ({

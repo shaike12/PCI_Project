@@ -54,18 +54,16 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
       return;
     }
 
-    // Use provided checker, or a safe fallback that simulates a balance
-    const effectiveCheckVoucherBalance = checkVoucherBalance ?? (async (_vn: string) => {
-      // Simulated API delay and balance (fallback only)
-      await new Promise(resolve => setTimeout(resolve, 600));
-      return Math.floor(Math.random() * 450) + 50;
-    });
+    if (!checkVoucherBalance) {
+      alert('Voucher balance check not available');
+      return;
+    }
 
     setIsCheckingBalance(true);
     
     try {
-      // Use the effective check function
-      const balance = await effectiveCheckVoucherBalance(voucherNumber);
+      // Use the provided check function
+      const balance = await checkVoucherBalance(voucherNumber);
       setVoucherBalance(balance);
       
       // Calculate remaining amount for this item

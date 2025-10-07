@@ -781,8 +781,8 @@ export default function PaymentPortal() {
     console.log('checkVoucherBalance called in page.tsx:', voucherNumber);
     const cleanVoucherNumber = voucherNumber.replace(/\D/g, '');
     
-    // If we already have the balance for this voucher, return it
-    if (voucherBalances[cleanVoucherNumber]) {
+    // If we already have the balance for this voucher, return the current (updated) balance
+    if (voucherBalances[cleanVoucherNumber] !== undefined) {
       console.log('Returning existing balance:', voucherBalances[cleanVoucherNumber]);
       return voucherBalances[cleanVoucherNumber];
     }
@@ -791,26 +791,35 @@ export default function PaymentPortal() {
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     // For demo purposes, generate a consistent balance based on voucher number
-    // This ensures the same voucher always returns the same balance
+    // This ensures the same voucher always returns the same initial balance
     const seed = cleanVoucherNumber.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     const simulatedBalance = Math.floor((seed % 450) + 50);
     
-    // Store the balance
+    // Store the initial balance
     setVoucherBalances(prev => ({
       ...prev,
       [cleanVoucherNumber]: simulatedBalance
     }));
     
-    console.log('Generated new balance:', simulatedBalance);
+    console.log('Generated new initial balance:', simulatedBalance);
     return simulatedBalance;
   };
 
   const updateVoucherBalance = (voucherNumber: string, usedAmount: number) => {
     const cleanVoucherNumber = voucherNumber.replace(/\D/g, '');
     
+    console.log('updateVoucherBalance called:', { voucherNumber, cleanVoucherNumber, usedAmount });
+    
     setVoucherBalances(prev => {
       const currentBalance = prev[cleanVoucherNumber] || 0;
       const newBalance = Math.max(0, currentBalance - usedAmount);
+      
+      console.log('Updating voucher balance:', { 
+        voucherNumber: cleanVoucherNumber, 
+        currentBalance, 
+        usedAmount, 
+        newBalance 
+      });
       
       return {
         ...prev,

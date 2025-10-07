@@ -83,6 +83,13 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
         setLocalAmount(balance.toFixed(2));
         updateMethodField(itemKey, 'voucher', 'amount', balance.toString(), voucherIndex);
       }
+      
+      // Update the voucher balance in the global state to reflect current usage
+      if (getVoucherBalance) {
+        const currentGlobalBalance = getVoucherBalance(voucherNumber);
+        console.log('Current global balance for voucher:', currentGlobalBalance);
+        console.log('Setting voucher balance to:', balance);
+      }
     } catch (error) {
       console.error('Error checking voucher balance:', error);
       alert('Error checking voucher balance');

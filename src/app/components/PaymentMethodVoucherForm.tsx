@@ -34,26 +34,18 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
   const [voucherBalance, setVoucherBalance] = useState<number | null>(null);
   const [hasApplied, setHasApplied] = useState(false);
 
-  // Compute effective known balance (live): prefer locally applied value; otherwise compute
-  // initial - current usage EXCLUDING this row so UI doesn't require Apply to reflect changes
+  // Compute global live balance: initial - total current usage (same across all items)
   const effectiveBalance: number | null = (() => {
-    if (voucherBalance !== null) return voucherBalance;
-    if (currentVoucherNumber.length >= 8) {
-      const cleaned = currentVoucherNumber.replace(/\D/g, '');
-      if (getVoucherInitialBalance && getVoucherUsageExcluding) {
-        const initial = getVoucherInitialBalance(cleaned);
-        const usedExcl = getVoucherUsageExcluding(cleaned, itemKey, voucherIndex);
-        return Math.max(0, initial - usedExcl);
-      }
-      if (getVoucherInitialBalance && getCurrentVoucherUsage) {
-        const initial = getVoucherInitialBalance(cleaned);
-        const used = getCurrentVoucherUsage(cleaned);
-        return Math.max(0, initial - used);
-      }
-      if (getVoucherBalance) {
-        const bal = getVoucherBalance(cleaned);
-        return Number.isFinite(bal) ? bal : null;
-      }
+    if (currentVoucherNumber.length < 8) return null;
+    const cleaned = currentVoucherNumber.replace(/\D/g, '');
+    if (getVoucherInitialBalance && getCurrentVoucherUsage) {
+      const initial = getVoucherInitialBalance(cleaned);
+      const used = getCurrentVoucherUsage(cleaned);
+      return Math.max(0, initial - used);
+    }
+    if (getVoucherBalance) {
+      const bal = getVoucherBalance(cleaned);
+      return Number.isFinite(bal) ? bal : null;
     }
     return null;
   })();
@@ -92,16 +84,10 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
     setIsCheckingBalance(true);
     
     try {
-      // Use the provided check function to initialize, but display computed available now excluding this row
+      // Use the provided check function to initialize, but display relies on global live balance
       const balance = await checkVoucherBalance(voucherNumber);
-      // Compute available as initial - sum(all current usages excluding current row), if helpers are provided
-      let availableNow = balance;
-      if (getVoucherInitialBalance && getCurrentVoucherUsage && getVoucherUsageExcluding) {
-        const initial = getVoucherInitialBalance(voucherNumber);
-        const used = getVoucherUsageExcluding(voucherNumber, itemKey, voucherIndex);
-        availableNow = Math.max(0, initial - used);
-      }
-      setVoucherBalance(availableNow);
+      // Cache last fetched as hint, but UI shows global live value
+      setVoucherBalance(balance);
       setHasApplied(true);
       
       // Calculate remaining amount for this item
@@ -110,16 +96,25 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
       const otherMethodsPaid = currentPaidAmount - currentVoucherAmount;
       const currentRemaining = Math.max(0, originalPrice - otherMethodsPaid);
       
-      // Update amount based on voucher available balance (computed)
-      if (availableNow >= currentRemaining) {
+      // Update amount based on voucher available balance (global live)
+      const availableNowGlobal = (() => {
+        if (getVoucherInitialBalance && getCurrentVoucherUsage) {
+          const initial = getVoucherInitialBalance(voucherNumber);
+          const used = getCurrentVoucherUsage(voucherNumber);
+          return Math.max(0, initial - used);
+        }
+        return Number.isFinite(balance) ? balance : 0;
+      })();
+
+      if (availableNowGlobal >= currentRemaining) {
         // Voucher has enough balance, use the full remaining amount
         const newAmount = currentRemaining > 0 ? currentRemaining : originalPrice;
         setLocalAmount(newAmount.toFixed(2));
         updateMethodField(itemKey, 'voucher', 'amount', newAmount.toString(), voucherIndex);
       } else {
         // Voucher doesn't have enough balance, use the voucher balance
-        setLocalAmount(availableNow.toFixed(2));
-        updateMethodField(itemKey, 'voucher', 'amount', availableNow.toString(), voucherIndex);
+        setLocalAmount(availableNowGlobal.toFixed(2));
+        updateMethodField(itemKey, 'voucher', 'amount', availableNowGlobal.toString(), voucherIndex);
       }
       
       // Update the voucher balance in the global state to reflect current usage

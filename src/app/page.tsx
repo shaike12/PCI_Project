@@ -1103,6 +1103,7 @@ export default function PaymentPortal() {
     if (!sourcePaymentData) return;
 
     const targetPassengerIds = copyToAll ? selectedPassengers : selectedPassengerIds;
+    let voucherBalanceExhausted = false;
     
     targetPassengerIds.forEach(passengerId => {
       const isSourcePassenger = passengerId === copySourceItemKey.split('-')[0];
@@ -1156,10 +1157,42 @@ export default function PaymentPortal() {
             return prev;
           });
         } else if (copySourceMethod === 'voucher' && sourcePaymentData.vouchers) {
-          // Update voucher amounts to match remaining balance
+          // Get the source voucher data
+          const sourceVoucher = sourcePaymentData.vouchers[0];
+          // Support both field names: voucherNumber (form) or uatpNumber (ancillary)
+          const rawVoucherNum: string | undefined = (sourceVoucher as any).voucherNumber || (sourceVoucher as any).uatpNumber;
+          if (!sourceVoucher || !rawVoucherNum) return;
+          
+          // Get available voucher balance
+          const voucherNumber = rawVoucherNum.replace(/\D/g, '');
+          const initialBalance = getVoucherInitialBalance(voucherNumber);
+          const currentUsage = getCurrentVoucherUsage(voucherNumber);
+          const availableBalance = Math.max(0, initialBalance - currentUsage);
+          
+          console.log('Copying voucher:', {
+            voucherNumber,
+            initialBalance,
+            currentUsage,
+            availableBalance,
+            remainingAmount: remainingAmount.remaining,
+            targetItemKey
+          });
+          
+          // Only copy if there's available balance
+          if (availableBalance <= 0) {
+            console.log('Voucher balance exhausted, skipping item:', targetItemKey);
+            voucherBalanceExhausted = true;
+            return; // Skip if no voucher balance available
+          }
+          
+          // Calculate how much to use for this item (minimum of remaining amount and available balance)
+          const amountToUse = Math.min(remainingAmount.remaining, availableBalance);
+          console.log('Using voucher amount:', amountToUse, 'for item:', targetItemKey);
+          
+          // Update voucher amounts to use the calculated amount
           const updatedVouchers = (sourcePaymentData.vouchers || []).map((voucher: any, index: number) => ({
             ...voucher,
-            amount: index === 0 ? remainingAmount.remaining : 0 // Set first voucher to full amount, others to 0
+            amount: index === 0 ? amountToUse : 0 // Set first voucher to calculated amount, others to 0
           }));
           
           setItemPaymentMethods(prev => ({
@@ -1169,6 +1202,9 @@ export default function PaymentPortal() {
               vouchers: updatedVouchers
             }
           }));
+          
+          // Update global voucher balance to reflect the usage
+          updateVoucherBalance(voucherNumber, amountToUse);
           
           // Add voucher methods to forms
           setItemMethodForms(prev => {
@@ -1215,6 +1251,12 @@ export default function PaymentPortal() {
         }
       });
     });
+    
+    // Show message if voucher balance was exhausted
+    if (voucherBalanceExhausted && copySourceMethod === 'voucher') {
+      setToastMessage('Voucher balance exhausted - some items were not copied');
+      setToastOpen(true);
+    }
     
     setCopyModalOpen(false);
   };

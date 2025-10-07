@@ -8,7 +8,7 @@ import CreditCardIcon from "@mui/icons-material/CreditCard";
 import CardGiftcardIcon from "@mui/icons-material/CardGiftcard";
 import StarIcon from "@mui/icons-material/Star";
 
-type Credit = { amount: number };
+type Credit = { amount: number; cardNumber?: string };
 type Voucher = { amount: number; voucherNumber?: string };
 type Points = { amount: number; pointsToUse?: number };
 
@@ -34,10 +34,20 @@ export function PaymentMethodsSummary({ itemPaymentMethods, onClearAll, onClearA
   let totalPaymentMethods = 0;
 
   const voucherTotalsByNumber: Record<string, number> = {};
+  const creditTotalsByMasked: Record<string, number> = {};
+
+  const maskCard = (cardNumber?: string): string => {
+    if (!cardNumber) return '—';
+    const digits = String(cardNumber).replace(/\D/g, '');
+    const last4 = digits.slice(-4);
+    return last4 ? `**** **** **** ${last4}` : '—';
+  };
 
   Object.values(itemPaymentMethods).forEach((methods) => {
     if (methods.credit) {
       totalCreditAmount += methods.credit.amount;
+      const masked = maskCard((methods.credit as any).cardNumber);
+      creditTotalsByMasked[masked] = (creditTotalsByMasked[masked] || 0) + methods.credit.amount;
       totalPaymentMethods++;
     }
     if (methods.vouchers) {
@@ -164,15 +174,25 @@ export function PaymentMethodsSummary({ itemPaymentMethods, onClearAll, onClearA
       <AccordionDetails>
         <List dense>
           {totalCreditAmount > 0 && (
-            <ListItem sx={{ px: 0 }}>
-              <ListItemIcon sx={{ minWidth: 36 }}>
-                <CreditCardIcon sx={{ color: '#1B358F' }} />
-              </ListItemIcon>
-              <ListItemText primary="Credit Card" secondary="Visa, Mastercard, Amex" />
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                ${totalCreditAmount.toLocaleString()}
-              </Typography>
-            </ListItem>
+            <>
+              <ListItem sx={{ px: 0 }}>
+                <ListItemIcon sx={{ minWidth: 36 }}>
+                  <CreditCardIcon sx={{ color: '#1B358F' }} />
+                </ListItemIcon>
+                <ListItemText primary="Credit Card" secondary="Card usage by number" />
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  ${totalCreditAmount.toLocaleString()}
+                </Typography>
+              </ListItem>
+              {Object.entries(creditTotalsByMasked).map(([masked, amt]) => (
+                <ListItem key={masked} sx={{ px: 0, pl: 6 }}>
+                  <ListItemText primary={masked} />
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    ${amt.toLocaleString()}
+                  </Typography>
+                </ListItem>
+              ))}
+            </>
           )}
 
           {totalVoucherAmount > 0 && (

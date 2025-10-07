@@ -38,6 +38,37 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
     }
   }, [storedAmount]);
 
+  // Check if voucher was already used and update balance accordingly
+  useEffect(() => {
+    if (currentVoucherNumber && getVoucherBalance) {
+      const cleanVoucherNumber = currentVoucherNumber.replace(/\D/g, '');
+      const existingBalance = getVoucherBalance(cleanVoucherNumber);
+      
+      if (existingBalance > 0) {
+        // Voucher was already checked, set the balance
+        setVoucherBalance(existingBalance);
+        
+        // Calculate remaining amount for this item
+        const currentPaidAmount = getTotalPaidAmountWrapper(itemKey);
+        const currentVoucherAmount = parseFloat(storedAmount || '0') || 0;
+        const otherMethodsPaid = currentPaidAmount - currentVoucherAmount;
+        const currentRemaining = Math.max(0, originalPrice - otherMethodsPaid);
+        
+        // Update amount based on current voucher balance
+        if (existingBalance >= currentRemaining) {
+          // Voucher has enough balance, use the full remaining amount
+          const newAmount = currentRemaining > 0 ? currentRemaining : originalPrice;
+          setLocalAmount(newAmount.toFixed(2));
+          updateMethodField(itemKey, 'voucher', 'amount', newAmount.toString(), voucherIndex);
+        } else {
+          // Voucher doesn't have enough balance, use the voucher balance
+          setLocalAmount(existingBalance.toFixed(2));
+          updateMethodField(itemKey, 'voucher', 'amount', existingBalance.toString(), voucherIndex);
+        }
+      }
+    }
+  }, [currentVoucherNumber, getVoucherBalance, getTotalPaidAmountWrapper, originalPrice, storedAmount, updateMethodField, itemKey, voucherIndex]);
+
   // Function to check voucher balance using global functions
   const handleCheckVoucherBalance = async () => {
     const voucherNumber = currentVoucherNumber.replace(/\D/g, ''); // Remove non-digits

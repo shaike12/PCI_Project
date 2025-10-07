@@ -1,7 +1,8 @@
 "use client";
 
-import { Box, TextField, Typography, Button } from "@mui/material";
+import { Box, TextField, Typography, Button, IconButton } from "@mui/material";
 import { useState, useEffect } from "react";
+import { Search as SearchIcon } from "@mui/icons-material";
 
 interface PaymentMethodVoucherFormProps {
   itemKey: string;
@@ -24,6 +25,8 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
   
   const [isSaved, setIsSaved] = useState(false);
   const [localAmount, setLocalAmount] = useState((storedAmount || fallbackAmount).toFixed(2));
+  const [isCheckingBalance, setIsCheckingBalance] = useState(false);
+  const [voucherBalance, setVoucherBalance] = useState<number | null>(null);
 
   // Update local amount when stored amount changes (after save)
   useEffect(() => {
@@ -31,6 +34,46 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
       setLocalAmount(storedAmount.toFixed(2));
     }
   }, [storedAmount]);
+
+  // Function to check voucher balance (simulated API call)
+  const checkVoucherBalance = async () => {
+    const voucherNumber = currentVoucherNumber.replace(/\D/g, ''); // Remove non-digits
+    
+    if (voucherNumber.length < 8) {
+      alert('Please enter a valid voucher number');
+      return;
+    }
+
+    setIsCheckingBalance(true);
+    
+    // Simulate API call delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Simulate voucher balance check - in real implementation, this would be an API call
+    // For demo purposes, we'll generate a random balance between $50 and $500
+    const simulatedBalance = Math.floor(Math.random() * 450) + 50;
+    setVoucherBalance(simulatedBalance);
+    
+    // Calculate remaining amount for this item
+    const currentPaidAmount = getTotalPaidAmountWrapper(itemKey);
+    const currentVoucherAmount = parseFloat(storedAmount || '0') || 0;
+    const otherMethodsPaid = currentPaidAmount - currentVoucherAmount;
+    const currentRemaining = Math.max(0, originalPrice - otherMethodsPaid);
+    
+    // Update amount based on voucher balance
+    if (simulatedBalance >= currentRemaining) {
+      // Voucher has enough balance, use the full remaining amount
+      const newAmount = currentRemaining > 0 ? currentRemaining : originalPrice;
+      setLocalAmount(newAmount.toFixed(2));
+      updateMethodField(itemKey, 'voucher', 'amount', newAmount.toString(), voucherIndex);
+    } else {
+      // Voucher doesn't have enough balance, use the voucher balance
+      setLocalAmount(simulatedBalance.toFixed(2));
+      updateMethodField(itemKey, 'voucher', 'amount', simulatedBalance.toString(), voucherIndex);
+    }
+    
+    setIsCheckingBalance(false);
+  };
 
   return (
     <Box sx={{ mt: 2, p: 3, bgcolor: 'white', borderRadius: 2, border: '1px solid', borderColor: '#E4DFDA' }}>
@@ -128,42 +171,79 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
       
       {/* Voucher Number */}
       <Box sx={{ mb: 2.5 }}>
-        <TextField 
-          fullWidth
-          size="medium" 
-          sx={{ 
-            '& .MuiInputBase-root': { height: 48 }, 
-            '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
-            '& .MuiInputLabel-root': { fontSize: '0.9rem' }
-          }} 
-          label="Voucher Number" 
-          placeholder="1114-12345678901"
-          InputLabelProps={{ shrink: true }}
-          value={(paymentData?.vouchers?.[voucherIndex]?.voucherNumber ?? '')} 
-          inputProps={{ 
-            suppressHydrationWarning: true,
-            maxLength: 16
-          }} 
-          onChange={(e) => {
-            let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
-            const previousValue = currentVoucherNumber.replace(/\D/g, '');
-            
-            // Only add 1114 prefix if:
-            // 1. User is typing (value is longer than previous)
-            // 2. Value doesn't start with 1114
-            // 3. Value is short (1-3 digits)
-            if (value.length > previousValue.length && value.length > 0 && !value.startsWith('1114') && value.length <= 3) {
-              value = '1114' + value;
-            }
-            
-            // Add dash after 1114 if there are more digits
-            if (value.length > 4) {
-              value = value.substring(0, 4) + '-' + value.substring(4, 15); // Max 11 digits after dash
-            }
-            
-            updateMethodField(itemKey, 'voucher', 'voucherNumber', value, voucherIndex);
-          }} 
-        />
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+          <TextField 
+            fullWidth
+            size="medium" 
+            sx={{ 
+              '& .MuiInputBase-root': { height: 48 }, 
+              '& .MuiInputBase-input': { py: 1, fontSize: '0.95rem' },
+              '& .MuiInputLabel-root': { fontSize: '0.9rem' }
+            }} 
+            label="Voucher Number" 
+            placeholder="1114-12345678901"
+            InputLabelProps={{ shrink: true }}
+            value={(paymentData?.vouchers?.[voucherIndex]?.voucherNumber ?? '')} 
+            inputProps={{ 
+              suppressHydrationWarning: true,
+              maxLength: 16
+            }} 
+            onChange={(e) => {
+              let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+              const previousValue = currentVoucherNumber.replace(/\D/g, '');
+              
+              // Only add 1114 prefix if:
+              // 1. User is typing (value is longer than previous)
+              // 2. Value doesn't start with 1114
+              // 3. Value is short (1-3 digits)
+              if (value.length > previousValue.length && value.length > 0 && !value.startsWith('1114') && value.length <= 3) {
+                value = '1114' + value;
+              }
+              
+              // Add dash after 1114 if there are more digits
+              if (value.length > 4) {
+                value = value.substring(0, 4) + '-' + value.substring(4, 15); // Max 11 digits after dash
+              }
+              
+              updateMethodField(itemKey, 'voucher', 'voucherNumber', value, voucherIndex);
+            }} 
+          />
+          <IconButton
+            onClick={checkVoucherBalance}
+            disabled={isCheckingBalance || currentVoucherNumber.length < 8}
+            sx={{
+              bgcolor: '#D4B483',
+              color: 'white',
+              height: 48,
+              width: 48,
+              '&:hover': {
+                bgcolor: '#c19f5f'
+              },
+              '&:disabled': {
+                bgcolor: '#E0E0E0',
+                color: '#9E9E9E'
+              }
+            }}
+            title="Check voucher balance"
+          >
+            <SearchIcon />
+          </IconButton>
+        </Box>
+        
+        {/* Voucher Balance Display */}
+        {voucherBalance !== null && (
+          <Box sx={{ mt: 1, p: 1.5, bgcolor: '#F5F5F5', borderRadius: 1, border: '1px solid #E0E0E0' }}>
+            <Typography variant="caption" sx={{ color: '#666', display: 'block', mb: 0.5 }}>
+              Voucher Balance:
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#1B358F' }}>
+              ${voucherBalance.toFixed(2)}
+            </Typography>
+            <Typography variant="caption" sx={{ color: '#666', display: 'block', mt: 0.5 }}>
+              Amount automatically adjusted based on available balance
+            </Typography>
+          </Box>
+        )}
       </Box>
 
       {/* Expiry Date */}

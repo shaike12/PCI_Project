@@ -849,11 +849,8 @@ export default function PaymentPortal() {
     const initial = getVoucherInitialBalance(cleanVoucherNumber);
     const used = getCurrentVoucherUsage(cleanVoucherNumber);
     const liveAvailable = Math.max(0, initial - used);
-    const stored = voucherBalances[cleanVoucherNumber];
-    // Respect current usage always; if a stored balance exists, cap by it to avoid showing more than stored
-    const effective = stored !== undefined ? Math.min(stored, liveAvailable) : liveAvailable;
-    console.log('getVoucherBalance (effective):', { voucherNumber, cleanVoucherNumber, initial, used, liveAvailable, stored, effective, allBalances: voucherBalances });
-    return effective;
+    console.log('getVoucherBalance (live only):', { voucherNumber, cleanVoucherNumber, initial, used, liveAvailable });
+    return liveAvailable;
   };
   
   // Reservations dropdown state

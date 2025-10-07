@@ -18,9 +18,10 @@ interface PaymentMethodVoucherFormProps {
   updateVoucherBalance?: (voucherNumber: string, usedAmount: number) => void;
   getVoucherInitialBalance?: (voucherNumber: string) => number;
   getCurrentVoucherUsage?: (voucherNumber: string) => number;
+  getVoucherUsageExcluding?: (voucherNumber: string, excludeItemKey: string, excludeVoucherIndex: number) => number;
 }
 
-export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMethodField, getRemainingAmount, getOriginalItemPrice, getTotalPaidAmountWrapper, setItemExpandedMethod, checkVoucherBalance, getVoucherBalance, updateVoucherBalance, getVoucherInitialBalance, getCurrentVoucherUsage }: PaymentMethodVoucherFormProps) {
+export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMethodField, getRemainingAmount, getOriginalItemPrice, getTotalPaidAmountWrapper, setItemExpandedMethod, checkVoucherBalance, getVoucherBalance, updateVoucherBalance, getVoucherInitialBalance, getCurrentVoucherUsage, getVoucherUsageExcluding }: PaymentMethodVoucherFormProps) {
   const amounts = getRemainingAmount(itemKey);
   const voucherIndex = index;
   const storedAmount = paymentData?.vouchers?.[voucherIndex]?.amount;
@@ -90,13 +91,13 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
     setIsCheckingBalance(true);
     
     try {
-      // Use the provided check function to initialize, but display computed available now
+      // Use the provided check function to initialize, but display computed available now excluding this row
       const balance = await checkVoucherBalance(voucherNumber);
-      // Compute available as initial - sum(all current usages), if helpers are provided
+      // Compute available as initial - sum(all current usages excluding current row), if helpers are provided
       let availableNow = balance;
-      if (getVoucherInitialBalance && getCurrentVoucherUsage) {
+      if (getVoucherInitialBalance && getCurrentVoucherUsage && getVoucherUsageExcluding) {
         const initial = getVoucherInitialBalance(voucherNumber);
-        const used = getCurrentVoucherUsage(voucherNumber);
+        const used = getVoucherUsageExcluding(voucherNumber, itemKey, voucherIndex);
         availableNow = Math.max(0, initial - used);
       }
       setVoucherBalance(availableNow);

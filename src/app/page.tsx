@@ -896,6 +896,29 @@ export default function PaymentPortal() {
     }
     return sum;
   };
+
+  // Same as above, but exclude a specific itemKey+voucherIndex entry
+  const getVoucherUsageExcluding = (
+    voucherNumber: string,
+    excludeItemKey: string,
+    excludeVoucherIndex: number
+  ): number => {
+    const clean = voucherNumber.replace(/\D/g, '');
+    let sum = 0;
+    for (const [itemKey, methods] of Object.entries(itemPaymentMethods)) {
+      const vouchers = (methods as any)?.vouchers as Array<any> | undefined;
+      if (!Array.isArray(vouchers)) continue;
+      vouchers.forEach((v, idx) => {
+        const vn = (v?.voucherNumber || '').replace(/\D/g, '');
+        if (vn !== clean) return;
+        // Exclude the current row
+        if (itemKey === excludeItemKey && idx === excludeVoucherIndex) return;
+        const amt = parseFloat(String(v?.amount)) || 0;
+        sum += amt;
+      });
+    }
+    return sum;
+  };
   
   // UI: which method forms to show under each item (supports multiple)
   const [itemMethodForms, setItemMethodForms] = useState<{ [key: string]: Array<'credit' | 'voucher' | 'points'> }>({});
@@ -2072,6 +2095,7 @@ export default function PaymentPortal() {
                   updateVoucherBalance={updateVoucherBalance}
                   getVoucherInitialBalance={getVoucherInitialBalance}
                   getCurrentVoucherUsage={getCurrentVoucherUsage}
+                  getVoucherUsageExcluding={getVoucherUsageExcluding}
                 />
 
                 {/* No items selected message */}

@@ -30,6 +30,7 @@ interface PaymentMethodCardProps {
   updateVoucherBalance?: (voucherNumber: string, usedAmount: number) => void;
   getVoucherInitialBalance?: (voucherNumber: string) => number;
   getCurrentVoucherUsage?: (voucherNumber: string) => number;
+  getVoucherUsageExcluding?: (voucherNumber: string, excludeItemKey: string, excludeVoucherIndex: number) => number;
 }
 
 // Function to get detailed validation message for incomplete forms
@@ -92,7 +93,8 @@ export function PaymentMethodCard({
   getVoucherBalance,
   updateVoucherBalance,
   getVoucherInitialBalance,
-  getCurrentVoucherUsage
+  getCurrentVoucherUsage,
+  getVoucherUsageExcluding
 }: PaymentMethodCardProps) {
   const expanded = itemExpandedMethod[itemKey] === idx;
   if (process.env.NODE_ENV !== 'production') {
@@ -333,6 +335,7 @@ export function PaymentMethodCard({
           updateVoucherBalance={updateVoucherBalance}
           getVoucherInitialBalance={getVoucherInitialBalance}
           getCurrentVoucherUsage={getCurrentVoucherUsage}
+          getVoucherUsageExcluding={getVoucherUsageExcluding}
         />
       </Collapse>
 

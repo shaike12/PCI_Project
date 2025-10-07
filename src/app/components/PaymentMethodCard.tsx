@@ -133,8 +133,8 @@ export function PaymentMethodCard({
       if (voucherNumber && getVoucherInitialBalance && getCurrentVoucherUsage) {
         const initial = getVoucherInitialBalance(voucherNumber);
         const used = getCurrentVoucherUsage(voucherNumber);
-        const available = Math.max(0, initial - used);
-        voucherHeadroom = Math.max(0, available - methodAmount);
+        const available = Math.max(0, initial - used); // already excludes current method amount
+        voucherHeadroom = available; // do NOT subtract methodAmount again
       }
     } catch {}
   }
@@ -199,7 +199,7 @@ export function PaymentMethodCard({
                   }
                   // Default max is current amount + remaining price for the item
                   let baseMax = methodAmount + amounts.remaining;
-                  // For vouchers, also cap by voucher headroom (if known)
+                  // For vouchers, also cap by available voucher balance (global), already excludes current amount
                   if (method === 'voucher' && Number.isFinite(voucherHeadroom)) {
                     baseMax = Math.min(baseMax, methodAmount + Math.max(0, voucherHeadroom));
                   }

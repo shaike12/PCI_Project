@@ -1106,12 +1106,37 @@ export default function PaymentPortal() {
       const raw = (sv?.voucherNumber || sv?.uatpNumber || '').toString();
       if (raw) {
         copyVoucherNumber = raw.replace(/\D/g, '');
-        // Use live available balance (initial - current usage) so it includes the source item's usage
-        remainingVoucherHeadroom = getVoucherBalance(copyVoucherNumber as string);
+        // Live available balance = initial - current usage, but exclude amounts already on target items we're about to overwrite
+        const initial = getVoucherInitialBalance(copyVoucherNumber as string);
+        const currentUsed = getCurrentVoucherUsage(copyVoucherNumber as string);
+        // Build the full list of target item keys for this copy action
+        const allTargetPassengerIds = (copyToAll ? selectedPassengers : selectedPassengerIds) || [];
+        let usageOnTargets = 0;
+        allTargetPassengerIds.forEach(pid => {
+          const items = selectedItems[pid] || [];
+          items.forEach(itemType => {
+            const key = `${pid}-${itemType}`;
+            const methods = (itemPaymentMethods as any)[key];
+            const vouchersArr = methods?.vouchers as Array<any> | undefined;
+            if (Array.isArray(vouchersArr)) {
+              vouchersArr.forEach(v => {
+                const vn = ((v?.voucherNumber || v?.uatpNumber || '') as string).replace(/\D/g, '');
+                if (vn === copyVoucherNumber) {
+                  const amt = parseFloat(String(v?.amount)) || 0;
+                  usageOnTargets += amt;
+                }
+              });
+            }
+          });
+        });
+        const effectiveUsed = Math.max(0, currentUsed - usageOnTargets);
+        remainingVoucherHeadroom = Math.max(0, initial - effectiveUsed);
         console.log('[COPY] init voucher headroom', {
           copyVoucherNumber,
-          initial: getVoucherInitialBalance(copyVoucherNumber as string),
-          currentUsage: getCurrentVoucherUsage(copyVoucherNumber as string),
+          initial,
+          currentUsage: currentUsed,
+          usageOnTargets,
+          effectiveUsed,
           liveHeadroom: remainingVoucherHeadroom,
           sourceItemKey: copySourceItemKey
         });

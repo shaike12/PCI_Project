@@ -23,7 +23,12 @@ import {
   Select,
   MenuItem,
   FormControl,
-  InputLabel
+  InputLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions
 } from '@mui/material';
 import {
   Person as PersonIcon,
@@ -1468,66 +1473,38 @@ export default function PaymentPortal() {
 
   // Clear all selected items for a passenger
   const clearAllItemsForPassenger = (passengerId: string) => {
-    setSelectedItems(prev => {
-      const newSelectedItems = { ...prev };
-      delete newSelectedItems[passengerId];
-      return newSelectedItems;
-    });
-    
-    // Also remove from selected passengers if present
+    if (hasPaymentMethodsForPassenger(passengerId)) {
+      openConfirmForPassenger(passengerId);
+      return;
+    }
+    // No methods → clear immediately
+    setSelectedItems(prev => { const next = { ...prev } as any; delete next[passengerId]; return next; });
     setSelectedPassengers(prev => prev.filter(id => id !== passengerId));
-    
-    // Clean up payment methods for this passenger
-    const passengerIndex = resolvePassengerIndex(passengerId);
-    const passengerData = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
-    if (!passengerData) return;
-    
-    const unpaidItems: string[] = [];
-    if (passengerData.ticket.status !== 'Paid') unpaidItems.push('ticket');
-    if (passengerData.ancillaries.seat && passengerData.ancillaries.seat.status !== 'Paid') unpaidItems.push('seat');
-    if (passengerData.ancillaries.bag && passengerData.ancillaries.bag.status !== 'Paid') unpaidItems.push('bag');
-    if (passengerData.ancillaries.secondBag && passengerData.ancillaries.secondBag.status !== 'Paid') unpaidItems.push('secondBag');
-    if (passengerData.ancillaries.thirdBag && passengerData.ancillaries.thirdBag.status !== 'Paid') unpaidItems.push('thirdBag');
-    if (passengerData.ancillaries.uatp && passengerData.ancillaries.uatp.status !== 'Paid') unpaidItems.push('uatp');
-    
-    // Remove payment methods for all items of this passenger
-    unpaidItems.forEach(itemType => {
-      const itemKey = `${passengerId}-${itemType}`;
-          setItemMethodForms(prev => {
-            const newForms = { ...prev };
-        delete newForms[itemKey];
-            return newForms;
-          });
-          setItemPaymentMethods(prev => {
-        const newMethods = { ...prev };
-        delete newMethods[itemKey];
-        return newMethods;
-      });
-      setItemExpandedMethod(prev => {
-        const newExpanded = { ...prev };
-        delete newExpanded[itemKey];
-        return newExpanded;
-      });
+    const idx = resolvePassengerIndex(passengerId);
+    const p = idx >= 0 ? reservation.passengers[idx] : undefined;
+    if (!p) return;
+    const unpaid: string[] = [];
+    if (p.ticket.status !== 'Paid') unpaid.push('ticket');
+    if (p.ancillaries.seat && p.ancillaries.seat.status !== 'Paid') unpaid.push('seat');
+    if (p.ancillaries.bag && p.ancillaries.bag.status !== 'Paid') unpaid.push('bag');
+    if (p.ancillaries.secondBag && p.ancillaries.secondBag.status !== 'Paid') unpaid.push('secondBag');
+    if (p.ancillaries.thirdBag && p.ancillaries.thirdBag.status !== 'Paid') unpaid.push('thirdBag');
+    if (p.ancillaries.uatp && p.ancillaries.uatp.status !== 'Paid') unpaid.push('uatp');
+    unpaid.forEach(itemType => {
+      const key = `${passengerId}-${itemType}`;
+      setItemMethodForms(prev => { const nf = { ...prev } as any; delete nf[key]; return nf; });
+      setItemPaymentMethods(prev => { const nm = { ...prev } as any; delete nm[key]; return nm; });
+      setItemExpandedMethod(prev => { const ne = { ...prev } as any; delete ne[key]; return ne; });
     });
   };
 
   // toggleAllItemsForPassenger is now imported from utils/passengerLogic
   const toggleAllItemsForPassenger = (passengerId: string) => {
-    toggleAllItemsForPassengerUtil(
-      passengerId, 
-      reservation, 
-      selectedItems, 
-      selectedPassengers, 
-      setSelectedItems, 
-      setSelectedPassengers, 
-      resolvePassengerIndex
-    );
-    
-    // Additional logic for payment methods cleanup
+    // Determine unpaid items and current selection BEFORE toggling
     const passengerIndex = resolvePassengerIndex(passengerId);
     const passengerData = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
     if (!passengerData) return;
-    
+
     const unpaidItems: string[] = [];
     if (passengerData.ticket.status !== 'Paid') unpaidItems.push('ticket');
     if (passengerData.ancillaries.seat && passengerData.ancillaries.seat.status !== 'Paid') unpaidItems.push('seat');
@@ -1537,35 +1514,24 @@ export default function PaymentPortal() {
     if (passengerData.ancillaries.uatp && passengerData.ancillaries.uatp.status !== 'Paid') unpaidItems.push('uatp');
 
     const current = selectedItems[passengerId] || [];
-      const allSelected = unpaidItems.every(item => current.includes(item));
+    const allSelected = unpaidItems.length > 0 && unpaidItems.every(item => current.includes(item));
 
-      if (allSelected) {
-        // Remove payment data for this passenger's items
-        setItemPaymentMethods(prevMethods => {
-          const newMethods = { ...prevMethods } as any;
-          unpaidItems.forEach(itemType => {
-            const key = `${passengerId}-${itemType}`;
-            delete newMethods[key];
-          });
-            return newMethods;
-          });
-        setItemMethodForms(prevForms => {
-          const newForms = { ...prevForms } as any;
-          unpaidItems.forEach(itemType => {
-            const key = `${passengerId}-${itemType}`;
-            delete newForms[key];
-          });
-          return newForms;
-        });
-        setItemExpandedMethod(prevExpanded => {
-          const newExpanded = { ...prevExpanded } as any;
-          unpaidItems.forEach(itemType => {
-            const key = `${passengerId}-${itemType}`;
-            delete newExpanded[key];
-          });
-          return newExpanded;
-        });
+    // If already fully selected → this click is a deselect; intercept for confirmation if methods exist
+    if (allSelected) {
+      clearAllItemsForPassenger(passengerId);
+      return;
     }
+
+    // Otherwise proceed with the default toggle-all selection behavior
+    toggleAllItemsForPassengerUtil(
+      passengerId,
+      reservation,
+      selectedItems,
+      selectedPassengers,
+      setSelectedItems,
+      setSelectedPassengers,
+      resolvePassengerIndex
+    );
   };
 
   // Old toggleAllItemsForPassenger function (to be removed):
@@ -1602,6 +1568,53 @@ export default function PaymentPortal() {
   // isItemSelected is now imported from utils/passengerLogic
   const isItemSelected = (passengerId: string, itemType: string) => {
     return isItemSelectedUtil(passengerId, itemType, selectedItems);
+  };
+
+  // Confirmation dialog for clearing a passenger
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false);
+  const [pendingPassengerClear, setPendingPassengerClear] = useState<string | null>(null);
+
+  const hasPaymentMethodsForPassenger = (passengerId: string): boolean => {
+    const prefix = `${passengerId}-`;
+    return Object.keys(itemPaymentMethods).some((key) => key.startsWith(prefix));
+  };
+
+  const openConfirmForPassenger = (passengerId: string) => {
+    setPendingPassengerClear(passengerId);
+    setConfirmClearOpen(true);
+  };
+
+  const handleConfirmClear = () => {
+    if (pendingPassengerClear) {
+      // perform actual clearing
+      const pid = pendingPassengerClear;
+      setSelectedItems(prev => { const next = { ...prev } as any; delete next[pid]; return next; });
+      setSelectedPassengers(prev => prev.filter(id => id !== pid));
+      const idx = resolvePassengerIndex(pid);
+      const p = idx >= 0 ? reservation.passengers[idx] : undefined;
+      if (p) {
+        const unpaid: string[] = [];
+        if (p.ticket.status !== 'Paid') unpaid.push('ticket');
+        if (p.ancillaries.seat && p.ancillaries.seat.status !== 'Paid') unpaid.push('seat');
+        if (p.ancillaries.bag && p.ancillaries.bag.status !== 'Paid') unpaid.push('bag');
+        if (p.ancillaries.secondBag && p.ancillaries.secondBag.status !== 'Paid') unpaid.push('secondBag');
+        if (p.ancillaries.thirdBag && p.ancillaries.thirdBag.status !== 'Paid') unpaid.push('thirdBag');
+        if (p.ancillaries.uatp && p.ancillaries.uatp.status !== 'Paid') unpaid.push('uatp');
+        unpaid.forEach(itemType => {
+          const key = `${pid}-${itemType}`;
+          setItemMethodForms(prev => { const nf = { ...prev } as any; delete nf[key]; return nf; });
+          setItemPaymentMethods(prev => { const nm = { ...prev } as any; delete nm[key]; return nm; });
+          setItemExpandedMethod(prev => { const ne = { ...prev } as any; delete ne[key]; return ne; });
+        });
+      }
+    }
+    setConfirmClearOpen(false);
+    setPendingPassengerClear(null);
+  };
+
+  const handleCancelClear = () => {
+    setConfirmClearOpen(false);
+    setPendingPassengerClear(null);
   };
 
 
@@ -2280,6 +2293,22 @@ export default function PaymentPortal() {
         </Grid>
       </Container>
       
+      {/* Confirm clear passenger dialog */}
+      <Dialog open={confirmClearOpen} onClose={handleCancelClear}>
+        <DialogTitle>Remove passenger selection?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Removing this passenger will delete all assigned payment methods for their products. Are you sure you want to continue?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelClear} color="inherit">Cancel</Button>
+          <Button onClick={handleConfirmClear} variant="contained" color="error" autoFocus>
+            Remove
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {/* Auth Modal */}
       <AuthModal 
         open={showAuthModal}

@@ -1104,6 +1104,19 @@ export default function PaymentPortal() {
 
     const targetPassengerIds = copyToAll ? selectedPassengers : selectedPassengerIds;
     let voucherBalanceExhausted = false;
+
+    // If copying vouchers, compute a single remaining voucher headroom upfront
+    let copyVoucherNumber: string | null = null;
+    let remainingVoucherHeadroom = 0;
+    if (copySourceMethod === 'voucher' && sourcePaymentData.vouchers && sourcePaymentData.vouchers.length > 0) {
+      const sv = sourcePaymentData.vouchers[0] as any;
+      const raw = (sv?.voucherNumber || sv?.uatpNumber || '').toString();
+      if (raw) {
+        copyVoucherNumber = raw.replace(/\D/g, '');
+        // Use live available balance (initial - current usage) so it includes the source item's usage
+        remainingVoucherHeadroom = getVoucherBalance(copyVoucherNumber as string);
+      }
+    }
     
     targetPassengerIds.forEach(passengerId => {
       const isSourcePassenger = passengerId === copySourceItemKey.split('-')[0];
@@ -1157,36 +1170,24 @@ export default function PaymentPortal() {
             return prev;
           });
         } else if (copySourceMethod === 'voucher' && sourcePaymentData.vouchers) {
-          // Get the source voucher data
-          const sourceVoucher = sourcePaymentData.vouchers[0];
-          // Support both field names: voucherNumber (form) or uatpNumber (ancillary)
-          const rawVoucherNum: string | undefined = (sourceVoucher as any).voucherNumber || (sourceVoucher as any).uatpNumber;
-          if (!sourceVoucher || !rawVoucherNum) return;
-          
-          // Get available voucher balance
-          const voucherNumber = rawVoucherNum.replace(/\D/g, '');
-          const initialBalance = getVoucherInitialBalance(voucherNumber);
-          const currentUsage = getCurrentVoucherUsage(voucherNumber);
-          const availableBalance = Math.max(0, initialBalance - currentUsage);
-          
+          // Use the precomputed voucher number and remaining headroom
+          if (!copyVoucherNumber) return;
           console.log('Copying voucher:', {
-            voucherNumber,
-            initialBalance,
-            currentUsage,
-            availableBalance,
+            voucherNumber: copyVoucherNumber,
+            precomputedHeadroom: remainingVoucherHeadroom,
             remainingAmount: remainingAmount.remaining,
             targetItemKey
           });
           
-          // Only copy if there's available balance
-          if (availableBalance <= 0) {
+          // Only copy if there's remaining headroom
+          if (remainingVoucherHeadroom <= 0) {
             console.log('Voucher balance exhausted, skipping item:', targetItemKey);
             voucherBalanceExhausted = true;
             return; // Skip if no voucher balance available
           }
           
-          // Calculate how much to use for this item (minimum of remaining amount and available balance)
-          const amountToUse = Math.min(remainingAmount.remaining, availableBalance);
+          // Calculate how much to use for this item (minimum of remaining item amount and remaining headroom)
+          const amountToUse = Math.min(remainingAmount.remaining, remainingVoucherHeadroom);
           console.log('Using voucher amount:', amountToUse, 'for item:', targetItemKey);
           
           // Update voucher amounts to use the calculated amount
@@ -1203,8 +1204,9 @@ export default function PaymentPortal() {
             }
           }));
           
-          // Update global voucher balance to reflect the usage
-          updateVoucherBalance(voucherNumber, amountToUse);
+          // Decrement local headroom and update global balance to reflect the usage
+          remainingVoucherHeadroom = Math.max(0, remainingVoucherHeadroom - amountToUse);
+          updateVoucherBalance(copyVoucherNumber, amountToUse);
           
           // Add voucher methods to forms
           setItemMethodForms(prev => {

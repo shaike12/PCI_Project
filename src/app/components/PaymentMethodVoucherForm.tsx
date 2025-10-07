@@ -245,17 +245,33 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
         </Box>
         
         {/* Voucher Balance Display */}
-        {voucherBalance !== null && (
+        {currentVoucherNumber.length >= 8 && (
           <Box sx={{ mt: 1, p: 1.5, bgcolor: '#F5F5F5', borderRadius: 1, border: '1px solid #E0E0E0' }}>
-            <Typography variant="caption" sx={{ color: '#666', display: 'block', mb: 0.5 }}>
-              Voucher Balance:
-            </Typography>
-            <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#1B358F' }}>
-              ${voucherBalance.toFixed(2)}
-            </Typography>
-            <Typography variant="caption" sx={{ color: '#666', display: 'block', mt: 0.5 }}>
-              Amount automatically adjusted based on available balance
-            </Typography>
+            {voucherBalance !== null ? (
+              <>
+                <Typography variant="caption" sx={{ color: '#666', display: 'block', mb: 0.5 }}>
+                  Voucher Balance:
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#1B358F' }}>
+                  ${voucherBalance.toFixed(2)}
+                </Typography>
+                <Typography variant="caption" sx={{ color: '#666', display: 'block', mt: 0.5 }}>
+                  Amount automatically adjusted based on available balance
+                </Typography>
+              </>
+            ) : (
+              <>
+                <Typography variant="caption" sx={{ color: '#666', display: 'block', mb: 0.5 }}>
+                  Voucher Status:
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#FF9800' }}>
+                  Not checked yet
+                </Typography>
+                <Typography variant="caption" sx={{ color: '#666', display: 'block', mt: 0.5 }}>
+                  Click the search button to check voucher balance
+                </Typography>
+              </>
+            )}
           </Box>
         )}
       </Box>

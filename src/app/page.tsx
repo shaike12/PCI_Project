@@ -2086,17 +2086,12 @@ export default function PaymentPortal() {
                           const passengerIndex = resolvePassengerIndex(passengerId);
                           const passengerData = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
                           if (!passengerData) {
-                            console.log(`[HAS_SELECTED] ${passengerId}: No passenger data found`);
                             return false;
                           }
                           
                           const passengerItems = selectedItems[passengerId] || [];
-                          console.log(`[HAS_SELECTED] ${passengerId}: passengerItems =`, passengerItems);
-                          console.log(`[HAS_SELECTED] ${passengerId}: selectedItems =`, selectedItems);
-                          console.log(`[HAS_SELECTED] ${passengerId}: passengerData =`, passengerData);
                           
                           if (passengerItems.length === 0) {
-                            console.log(`[HAS_SELECTED] ${passengerId}: No items selected, returning false`);
                             return false;
                           }
                           
@@ -2109,12 +2104,9 @@ export default function PaymentPortal() {
                             if (itemType === 'secondBag') isUnpaid = passengerData.ancillaries.secondBag?.status !== 'Paid';
                             if (itemType === 'thirdBag') isUnpaid = passengerData.ancillaries.thirdBag?.status !== 'Paid';
                             if (itemType === 'uatp') isUnpaid = passengerData.ancillaries.uatp?.status !== 'Paid';
-                            
-                            console.log(`[HAS_SELECTED] ${passengerId}: ${itemType} isUnpaid = ${isUnpaid}`);
                             return isUnpaid;
                           });
                           
-                          console.log(`[HAS_SELECTED] ${passengerId}: hasUnpaidItems = ${hasUnpaidItems}`);
                           return hasUnpaidItems;
                         }}
                         togglePassenger={togglePassenger}

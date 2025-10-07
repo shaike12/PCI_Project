@@ -31,6 +31,24 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
   const [isCheckingBalance, setIsCheckingBalance] = useState(false);
   const [voucherBalance, setVoucherBalance] = useState<number | null>(null);
 
+  // Compute effective known balance (prefer locally checked balance, else global state)
+  const effectiveBalance: number | null = (() => {
+    if (voucherBalance !== null) return voucherBalance;
+    if (getVoucherBalance && currentVoucherNumber.length >= 8) {
+      const bal = getVoucherBalance(currentVoucherNumber);
+      return Number.isFinite(bal) ? bal : null;
+    }
+    return null;
+  })();
+
+  // Compute remaining balance after using the current local amount
+  const remainingAfterUse: number | null = (() => {
+    if (effectiveBalance === null) return null;
+    const amountNum = parseFloat(String(localAmount)) || 0;
+    const rem = Math.max(0, effectiveBalance - amountNum);
+    return rem;
+  })();
+
   // Update local amount when stored amount changes (after save)
   useEffect(() => {
     if (storedAmount !== undefined && storedAmount !== null && storedAmount !== '') {
@@ -269,14 +287,24 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
         {/* Voucher Balance Display */}
         {currentVoucherNumber.length >= 8 && (
           <Box sx={{ mt: 1, p: 1.5, bgcolor: '#F5F5F5', borderRadius: 1, border: '1px solid #E0E0E0' }}>
-            {voucherBalance !== null ? (
+            {effectiveBalance !== null ? (
               <>
                 <Typography variant="caption" sx={{ color: '#666', display: 'block', mb: 0.5 }}>
                   Voucher Balance:
                 </Typography>
                 <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#1B358F' }}>
-                  ${voucherBalance.toFixed(2)}
+                  ${effectiveBalance.toFixed(2)}
                 </Typography>
+                {remainingAfterUse !== null && (
+                  <Box sx={{ mt: 0.75 }}>
+                    <Typography variant="caption" sx={{ color: '#666', display: 'block', mb: 0.5 }}>
+                      Remaining after use (based on Amount field):
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: '#48A9A6' }}>
+                      ${remainingAfterUse.toFixed(2)}
+                    </Typography>
+                  </Box>
+                )}
                 <Typography variant="caption" sx={{ color: '#666', display: 'block', mt: 0.5 }}>
                   Amount automatically adjusted based on available balance
                 </Typography>

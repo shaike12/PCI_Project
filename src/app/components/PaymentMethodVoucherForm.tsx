@@ -87,8 +87,9 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
       // Update the voucher balance in the global state to reflect current usage
       if (getVoucherBalance) {
         const currentGlobalBalance = getVoucherBalance(voucherNumber);
-        console.log('Current global balance for voucher:', currentGlobalBalance);
-        console.log('Setting voucher balance to:', balance);
+        console.log('After checking balance - Current global balance for voucher:', currentGlobalBalance);
+        console.log('Balance returned from checkVoucherBalance:', balance);
+        console.log('Are they the same?', currentGlobalBalance === balance);
       }
     } catch (error) {
       console.error('Error checking voucher balance:', error);
@@ -148,7 +149,14 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
             
             // Update voucher balance if we have the voucher number and balance functions
             if (currentVoucherNumber && updateVoucherBalance && voucherBalance !== null) {
+              console.log('Calling updateVoucherBalance on save:', { currentVoucherNumber, cappedValue });
               updateVoucherBalance(currentVoucherNumber, cappedValue);
+            } else {
+              console.log('Not calling updateVoucherBalance:', { 
+                hasVoucherNumber: !!currentVoucherNumber, 
+                hasUpdateFunction: !!updateVoucherBalance, 
+                hasVoucherBalance: voucherBalance !== null 
+              });
             }
             
             // Collapse the form after saving

@@ -830,7 +830,9 @@ export default function PaymentPortal() {
 
   const getVoucherBalance = (voucherNumber: string): number => {
     const cleanVoucherNumber = voucherNumber.replace(/\D/g, '');
-    return voucherBalances[cleanVoucherNumber] || 0;
+    const balance = voucherBalances[cleanVoucherNumber] || 0;
+    console.log('getVoucherBalance called:', { voucherNumber, cleanVoucherNumber, balance, allBalances: voucherBalances });
+    return balance;
   };
   
   // Reservations dropdown state

@@ -778,10 +778,12 @@ export default function PaymentPortal() {
 
   // Voucher balance management functions
   const checkVoucherBalance = async (voucherNumber: string): Promise<number> => {
+    console.log('checkVoucherBalance called in page.tsx:', voucherNumber);
     const cleanVoucherNumber = voucherNumber.replace(/\D/g, '');
     
     // If we already have the balance for this voucher, return it
     if (voucherBalances[cleanVoucherNumber]) {
+      console.log('Returning existing balance:', voucherBalances[cleanVoucherNumber]);
       return voucherBalances[cleanVoucherNumber];
     }
     
@@ -797,6 +799,7 @@ export default function PaymentPortal() {
       [cleanVoucherNumber]: simulatedBalance
     }));
     
+    console.log('Generated new balance:', simulatedBalance);
     return simulatedBalance;
   };
 

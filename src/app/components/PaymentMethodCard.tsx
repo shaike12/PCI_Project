@@ -124,6 +124,21 @@ export function PaymentMethodCard({
     methodAmount = Number(paymentData?.points?.amount) || 0;
   }
   
+  // For voucher slider: compute available headroom from global usage
+  let voucherHeadroom = Infinity as number;
+  if (method === 'voucher') {
+    try {
+      const voucherIdx = formMethods.slice(0, idx).filter(m => m === 'voucher').length;
+      const voucherNumber: string = paymentData?.vouchers?.[voucherIdx]?.voucherNumber || '';
+      if (voucherNumber && getVoucherInitialBalance && getCurrentVoucherUsage) {
+        const initial = getVoucherInitialBalance(voucherNumber);
+        const used = getCurrentVoucherUsage(voucherNumber);
+        const available = Math.max(0, initial - used);
+        voucherHeadroom = Math.max(0, available - methodAmount);
+      }
+    } catch {}
+  }
+
   const isComplete = isPaymentMethodComplete(itemKey, method, method === 'voucher' ? formMethods.slice(0, idx).filter(m => m === 'voucher').length : 0);
 
   return (
@@ -182,7 +197,13 @@ export function PaymentMethodCard({
                       return Math.min(methodAmount + amounts.remaining, maxFromPoints);
                     }
                   }
-                  return methodAmount + amounts.remaining;
+                  // Default max is current amount + remaining price for the item
+                  let baseMax = methodAmount + amounts.remaining;
+                  // For vouchers, also cap by voucher headroom (if known)
+                  if (method === 'voucher' && Number.isFinite(voucherHeadroom)) {
+                    baseMax = Math.min(baseMax, methodAmount + Math.max(0, voucherHeadroom));
+                  }
+                  return baseMax;
                 })()}
                 step={1}
                 onChange={(_e: Event, newValue: number | number[]) => {
@@ -193,6 +214,10 @@ export function PaymentMethodCard({
                     updateMethodField(itemKey, 'credit', 'amount', minValue.toString());
                   } else if (method === 'voucher') {
                     const voucherIdx = formMethods.slice(0, idx).filter(m => m === 'voucher').length;
+                    // If no headroom, do not allow increasing
+                    if (Number.isFinite(voucherHeadroom) && voucherHeadroom <= 0 && minValue > methodAmount) {
+                      return;
+                    }
                     updateMethodField(itemKey, 'voucher', 'amount', minValue.toString(), voucherIdx);
                   } else if (method === 'points') {
                     updateMethodField(itemKey, 'points', 'amount', minValue.toString());

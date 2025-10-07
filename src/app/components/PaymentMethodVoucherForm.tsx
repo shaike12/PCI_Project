@@ -228,6 +228,16 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
           onChange={(e) => {
             const inputValue = e.target.value;
             // Only update local state during typing, don't update the main state
+            // Prevent increasing above available voucher headroom when no headroom
+            const numeric = parseFloat(inputValue);
+            if (!isNaN(numeric) && effectiveBalance !== null) {
+              // Remaining after use relative to entered amount
+              const headroom = Math.max(0, effectiveBalance);
+              if (numeric > headroom) {
+                setLocalAmount(headroom.toFixed(2));
+                return;
+              }
+            }
             setLocalAmount(inputValue);
           }}
             onBlur={(e) => {

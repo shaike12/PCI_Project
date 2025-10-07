@@ -126,7 +126,7 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
         <Button
           variant="contained"
           size="small"
-          onClick={() => {
+          onClick={async () => {
             setIsSaved(true);
             // Apply validation and capping immediately when saving
             const inputValue = localAmount;
@@ -165,16 +165,19 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
             setLocalAmount(cappedValue.toFixed(2));
             updateMethodField(itemKey, 'voucher', 'amount', cappedValue.toString(), voucherIndex);
             
-            // Update voucher balance if we have the voucher number and balance functions
-            if (currentVoucherNumber && updateVoucherBalance && voucherBalance !== null) {
-              console.log('Calling updateVoucherBalance on save:', { currentVoucherNumber, cappedValue });
-              updateVoucherBalance(currentVoucherNumber, cappedValue);
-            } else {
-              console.log('Not calling updateVoucherBalance:', { 
-                hasVoucherNumber: !!currentVoucherNumber, 
-                hasUpdateFunction: !!updateVoucherBalance, 
-                hasVoucherBalance: voucherBalance !== null 
-              });
+            // Ensure global voucher balance is initialized and then deduct used amount
+            if (currentVoucherNumber && updateVoucherBalance) {
+              try {
+                const existing = getVoucherBalance ? getVoucherBalance(currentVoucherNumber) : 0;
+                // If no existing global balance (treated as 0), initialize via check
+                if ((existing === 0) && checkVoucherBalance) {
+                  await checkVoucherBalance(currentVoucherNumber);
+                }
+                console.log('Calling updateVoucherBalance on save:', { currentVoucherNumber, used: cappedValue });
+                updateVoucherBalance(currentVoucherNumber, cappedValue);
+              } catch (e) {
+                console.warn('Failed to initialize/deduct voucher balance on save', e);
+              }
             }
             
             // Collapse the form after saving

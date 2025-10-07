@@ -23,7 +23,12 @@ import {
   Select,
   MenuItem,
   FormControl,
-  InputLabel
+  InputLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions
 } from '@mui/material';
 import {
   Person as PersonIcon,
@@ -927,6 +932,10 @@ export default function PaymentPortal() {
   
   // Active passenger tab for payment methods section
   const [activePaymentPassenger, setActivePaymentPassenger] = useState<string>('');
+
+  // Confirmation dialog state for clearing passenger data
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false);
+  const [pendingClearPassenger, setPendingClearPassenger] = useState<string | null>(null);
   
   
 
@@ -1400,14 +1409,24 @@ export default function PaymentPortal() {
     }
   }, [user, mounted, selectedItems, selectedPassengers, activePaymentPassenger, itemPaymentMethods, itemMethodForms, itemExpandedMethod, syncToFirebase]);
 
-  // togglePassenger is now imported from utils/passengerLogic
+  // togglePassenger: intercept deselection to confirm/cleanup if methods exist; auto-select unpaid on selection
   const togglePassenger = (passengerId: string) => {
+    const isSelected = selectedPassengers.includes(passengerId);
+    if (isSelected) {
+      const hasMethods = Object.keys(itemPaymentMethods).some(key => key.startsWith(`${passengerId}-`));
+      if (hasMethods) {
+        requestClearAllForPassenger(passengerId);
+        return;
+      }
+      clearAllItemsForPassenger(passengerId);
+      return;
+    }
+
+    // Selecting: toggle in list and auto-select unpaid items
     togglePassengerUtil(passengerId, selectedPassengers, setSelectedPassengers);
-    // Auto-select all unpaid items for this passenger
     const passengerIndex = resolvePassengerIndex(passengerId);
     const passengerData = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
     if (!passengerData) return;
-
     const itemsToSelect: string[] = [];
     if (passengerData.ticket.status !== 'Paid') itemsToSelect.push('ticket');
     if (passengerData.ancillaries.seat && passengerData.ancillaries.seat.status !== 'Paid') itemsToSelect.push('seat');
@@ -1415,16 +1434,8 @@ export default function PaymentPortal() {
     if (passengerData.ancillaries.secondBag && passengerData.ancillaries.secondBag.status !== 'Paid') itemsToSelect.push('secondBag');
     if (passengerData.ancillaries.thirdBag && passengerData.ancillaries.thirdBag.status !== 'Paid') itemsToSelect.push('thirdBag');
     if (passengerData.ancillaries.uatp && passengerData.ancillaries.uatp.status !== 'Paid') itemsToSelect.push('uatp');
-
-
-    setSelectedItems(prev => ({
-      ...prev,
-      [passengerId]: itemsToSelect
-    }));
-
-    // Ensure the Payment Methods section shows this passenger's items
+    setSelectedItems(prev => ({ ...prev, [passengerId]: itemsToSelect }));
     setActivePaymentPassenger(passengerId);
-
   };
 
   // toggleExpanded is now imported from utils/passengerLogic
@@ -1466,68 +1477,52 @@ export default function PaymentPortal() {
 
   // Old toggleItem function (to be removed):
 
-  // Clear all selected items for a passenger
+  // Clear all selected items for a passenger (no prompts here; prompts handled by requestClearAllForPassenger)
   const clearAllItemsForPassenger = (passengerId: string) => {
     setSelectedItems(prev => {
       const newSelectedItems = { ...prev };
       delete newSelectedItems[passengerId];
       return newSelectedItems;
     });
-    
-    // Also remove from selected passengers if present
     setSelectedPassengers(prev => prev.filter(id => id !== passengerId));
-    
-    // Clean up payment methods for this passenger
-    const passengerIndex = resolvePassengerIndex(passengerId);
-    const passengerData = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
-    if (!passengerData) return;
-    
-    const unpaidItems: string[] = [];
-    if (passengerData.ticket.status !== 'Paid') unpaidItems.push('ticket');
-    if (passengerData.ancillaries.seat && passengerData.ancillaries.seat.status !== 'Paid') unpaidItems.push('seat');
-    if (passengerData.ancillaries.bag && passengerData.ancillaries.bag.status !== 'Paid') unpaidItems.push('bag');
-    if (passengerData.ancillaries.secondBag && passengerData.ancillaries.secondBag.status !== 'Paid') unpaidItems.push('secondBag');
-    if (passengerData.ancillaries.thirdBag && passengerData.ancillaries.thirdBag.status !== 'Paid') unpaidItems.push('thirdBag');
-    if (passengerData.ancillaries.uatp && passengerData.ancillaries.uatp.status !== 'Paid') unpaidItems.push('uatp');
-    
-    // Remove payment methods for all items of this passenger
-    unpaidItems.forEach(itemType => {
-      const itemKey = `${passengerId}-${itemType}`;
-          setItemMethodForms(prev => {
-            const newForms = { ...prev };
-        delete newForms[itemKey];
-            return newForms;
-          });
-          setItemPaymentMethods(prev => {
-        const newMethods = { ...prev };
-        delete newMethods[itemKey];
-        return newMethods;
-      });
-      setItemExpandedMethod(prev => {
-        const newExpanded = { ...prev };
-        delete newExpanded[itemKey];
-        return newExpanded;
-      });
+
+    // Remove all payment data/forms/expansion for this passenger across all items
+    setItemPaymentMethods(prev => {
+      const next: typeof prev = {} as any;
+      for (const [key, val] of Object.entries(prev)) {
+        if (!key.startsWith(`${passengerId}-`)) next[key] = val as any;
+      }
+      return next;
     });
+    setItemMethodForms(prev => {
+      const next: typeof prev = {} as any;
+      for (const [key, val] of Object.entries(prev)) {
+        if (!key.startsWith(`${passengerId}-`)) next[key] = val as any;
+      }
+      return next;
+    });
+    setItemExpandedMethod(prev => {
+      const next: typeof prev = {} as any;
+      for (const [key, val] of Object.entries(prev)) {
+        if (!key.startsWith(`${passengerId}-`)) next[key] = val as any;
+      }
+      return next;
+    });
+  };
+
+  // Request flow: open dialog first, then call clear on confirm
+  const requestClearAllForPassenger = (passengerId: string) => {
+    setPendingClearPassenger(passengerId);
+    setConfirmClearOpen(true);
   };
 
   // toggleAllItemsForPassenger is now imported from utils/passengerLogic
   const toggleAllItemsForPassenger = (passengerId: string) => {
-    toggleAllItemsForPassengerUtil(
-      passengerId, 
-      reservation, 
-      selectedItems, 
-      selectedPassengers, 
-      setSelectedItems, 
-      setSelectedPassengers, 
-      resolvePassengerIndex
-    );
-    
-    // Additional logic for payment methods cleanup
+    // Pre-check: if currently all unpaid items are selected and there are payment methods, ask first
     const passengerIndex = resolvePassengerIndex(passengerId);
     const passengerData = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
     if (!passengerData) return;
-    
+
     const unpaidItems: string[] = [];
     if (passengerData.ticket.status !== 'Paid') unpaidItems.push('ticket');
     if (passengerData.ancillaries.seat && passengerData.ancillaries.seat.status !== 'Paid') unpaidItems.push('seat');
@@ -1537,34 +1532,50 @@ export default function PaymentPortal() {
     if (passengerData.ancillaries.uatp && passengerData.ancillaries.uatp.status !== 'Paid') unpaidItems.push('uatp');
 
     const current = selectedItems[passengerId] || [];
-      const allSelected = unpaidItems.every(item => current.includes(item));
+    const allSelected = unpaidItems.length > 0 && unpaidItems.every(item => current.includes(item));
+    const hasMethods = Object.keys(itemPaymentMethods).some(key => key.startsWith(`${passengerId}-`));
+    if (allSelected && hasMethods) {
+      requestClearAllForPassenger(passengerId);
+      return;
+    }
 
-      if (allSelected) {
-        // Remove payment data for this passenger's items
-        setItemPaymentMethods(prevMethods => {
-          const newMethods = { ...prevMethods } as any;
-          unpaidItems.forEach(itemType => {
-            const key = `${passengerId}-${itemType}`;
-            delete newMethods[key];
-          });
-            return newMethods;
-          });
-        setItemMethodForms(prevForms => {
-          const newForms = { ...prevForms } as any;
-          unpaidItems.forEach(itemType => {
-            const key = `${passengerId}-${itemType}`;
-            delete newForms[key];
-          });
-          return newForms;
+    // Proceed with normal toggle
+    toggleAllItemsForPassengerUtil(
+      passengerId,
+      reservation,
+      selectedItems,
+      selectedPassengers,
+      setSelectedItems,
+      setSelectedPassengers,
+      resolvePassengerIndex
+    );
+
+    // Cleanup when just toggled from selected->deselected (no dialog case)
+    if (allSelected) {
+      setItemPaymentMethods(prevMethods => {
+        const newMethods = { ...prevMethods } as any;
+        unpaidItems.forEach(itemType => {
+          const key = `${passengerId}-${itemType}`;
+          delete newMethods[key];
         });
-        setItemExpandedMethod(prevExpanded => {
-          const newExpanded = { ...prevExpanded } as any;
-          unpaidItems.forEach(itemType => {
-            const key = `${passengerId}-${itemType}`;
-            delete newExpanded[key];
-          });
-          return newExpanded;
+        return newMethods;
+      });
+      setItemMethodForms(prevForms => {
+        const newForms = { ...prevForms } as any;
+        unpaidItems.forEach(itemType => {
+          const key = `${passengerId}-${itemType}`;
+          delete newForms[key];
         });
+        return newForms;
+      });
+      setItemExpandedMethod(prevExpanded => {
+        const newExpanded = { ...prevExpanded } as any;
+        unpaidItems.forEach(itemType => {
+          const key = `${passengerId}-${itemType}`;
+          delete newExpanded[key];
+        });
+        return newExpanded;
+      });
     }
   };
 
@@ -2088,6 +2099,7 @@ export default function PaymentPortal() {
                   removeMethod={removeMethodWrapper}
                   toggleItem={toggleItem}
                   clearAllItemsForPassenger={clearAllItemsForPassenger}
+                  requestClearAllForPassenger={requestClearAllForPassenger}
                   onCopyMethod={handleCopyMethod}
                   getGeneratedNumber={getGeneratedNumber}
                   checkVoucherBalance={checkVoucherBalance}
@@ -2097,6 +2109,34 @@ export default function PaymentPortal() {
                   getCurrentVoucherUsage={getCurrentVoucherUsage}
                   getVoucherUsageExcluding={getVoucherUsageExcluding}
                 />
+
+                {/* Confirm Clear Passenger Dialog */}
+                <Dialog open={confirmClearOpen} onClose={() => { setConfirmClearOpen(false); setPendingClearPassenger(null); }}>
+                  <DialogTitle sx={{ fontWeight: 700, color: '#1B358F' }}>Remove passenger selection?</DialogTitle>
+                  <DialogContent>
+                    <DialogContentText>
+                      This action will remove selected products for the passenger and delete any entered payment methods for those products. Are you sure you want to proceed?
+                    </DialogContentText>
+                  </DialogContent>
+                  <DialogActions>
+                    <Button onClick={() => { setConfirmClearOpen(false); setPendingClearPassenger(null); }} sx={{ color: '#1B358F' }}>
+                      Cancel
+                    </Button>
+                    <Button
+                      variant="contained"
+                      sx={{ bgcolor: '#C1666B', '&:hover': { bgcolor: '#a04a4f' } }}
+                      onClick={() => {
+                        if (pendingClearPassenger) {
+                          clearAllItemsForPassenger(pendingClearPassenger);
+                        }
+                        setConfirmClearOpen(false);
+                        setPendingClearPassenger(null);
+                      }}
+                    >
+                      Delete data
+                    </Button>
+                  </DialogActions>
+                </Dialog>
 
                 {/* No items selected message */}
                 {getSelectedItemsDetails().length === 0 && (

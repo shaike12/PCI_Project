@@ -23,6 +23,16 @@ export function PaymentMethodCreditForm({ itemKey, paymentData, updateMethodFiel
   const [isSaved, setIsSaved] = useState(false);
   const [localAmount, setLocalAmount] = useState((storedAmount || fallbackAmount).toFixed(2));
 
+  const maskCardNumber = (cardNumber?: string): string => {
+    if (!cardNumber) return '';
+    const digits = String(cardNumber).replace(/\D/g, '');
+    const last4 = digits.slice(-4);
+    return last4 ? `**** **** **** ${last4}` : '';
+  };
+
+  const isPersistentlySaved = String(paymentData?.credit?.isSaved || '').toLowerCase() === 'true';
+  const shouldMask = isSaved || isPersistentlySaved;
+
   // Update local amount when stored amount changes (after save)
   useEffect(() => {
     if (storedAmount !== undefined && storedAmount !== null && storedAmount !== '') {
@@ -133,7 +143,6 @@ export function PaymentMethodCreditForm({ itemKey, paymentData, updateMethodFiel
           variant="contained"
           size="small"
           onClick={() => {
-            
             setIsSaved(true);
             // Apply validation and capping immediately when saving
             const inputValue = localAmount;
@@ -174,6 +183,8 @@ export function PaymentMethodCreditForm({ itemKey, paymentData, updateMethodFiel
             
              setLocalAmount(cappedValue.toFixed(2));
              updateMethodField(itemKey, 'credit', 'amount', cappedValue.toString());
+             // Mark credit as saved so UI remains masked when reopening
+             updateMethodField(itemKey, 'credit', 'isSaved', 'true');
              
              // Collapse the form after saving
              if (setItemExpandedMethod) {
@@ -253,13 +264,14 @@ export function PaymentMethodCreditForm({ itemKey, paymentData, updateMethodFiel
           label="Card Number" 
           placeholder="1234 5678 9012 3456"
           InputLabelProps={{ shrink: true }}
-          value={(paymentData?.credit?.cardNumber ?? '')} 
+          value={shouldMask ? maskCardNumber(paymentData?.credit?.cardNumber) : (paymentData?.credit?.cardNumber ?? '')} 
           inputProps={{ 
             suppressHydrationWarning: true,
             maxLength: 19,
             inputMode: 'numeric'
           }} 
           InputProps={{
+            readOnly: shouldMask,
             endAdornment: (
               <InputAdornment position="end">
                 {renderBrandAdornment(detectCardType(String(paymentData?.credit?.cardNumber ?? '')))}
@@ -267,6 +279,7 @@ export function PaymentMethodCreditForm({ itemKey, paymentData, updateMethodFiel
             )
           }}
           onChange={(e) => {
+            if (shouldMask) return; // prevent editing when masked/saved
             const raw = e.target.value;
             const formatted = formatCardNumber(raw);
             updateMethodField(itemKey, 'credit', 'cardNumber', formatted);

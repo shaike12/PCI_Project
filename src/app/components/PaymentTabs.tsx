@@ -36,6 +36,7 @@ interface PaymentTabsProps {
   removeMethod: (itemKey: string, formIndex: number) => void;
   toggleItem: (passengerId: string, itemType: string) => void;
   clearAllItemsForPassenger: (passengerId: string) => void;
+  requestClearAllForPassenger?: (passengerId: string) => void;
   onCopyMethod?: (itemKey: string, method: 'credit' | 'voucher' | 'points') => void;
   getGeneratedNumber?: (itemKey: string) => string | null;
   checkVoucherBalance?: (voucherNumber: string) => Promise<number>;
@@ -67,6 +68,7 @@ export function PaymentTabs(props: PaymentTabsProps) {
     removeMethod,
     toggleItem,
     clearAllItemsForPassenger,
+    requestClearAllForPassenger,
     onCopyMethod,
     getGeneratedNumber,
     checkVoucherBalance,
@@ -332,7 +334,7 @@ export function PaymentTabs(props: PaymentTabsProps) {
                         <Box
                           onClick={(e) => {
                             e.stopPropagation();
-                            clearAllItemsForPassenger(pid);
+                            (requestClearAllForPassenger || clearAllItemsForPassenger)(pid);
                           }}
                           sx={{
                             width: 16,

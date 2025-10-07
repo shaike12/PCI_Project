@@ -34,6 +34,8 @@ interface ItemDetailsProps {
   checkVoucherBalance?: (voucherNumber: string) => Promise<number>;
   getVoucherBalance?: (voucherNumber: string) => number;
   updateVoucherBalance?: (voucherNumber: string, usedAmount: number) => void;
+  getVoucherInitialBalance?: (voucherNumber: string) => number;
+  getCurrentVoucherUsage?: (voucherNumber: string) => number;
 }
 
 // Function to check if all payment methods are properly filled
@@ -96,6 +98,8 @@ export function ItemDetails({
   checkVoucherBalance,
   getVoucherBalance,
   updateVoucherBalance
+  ,getVoucherInitialBalance
+  ,getCurrentVoucherUsage
 }: ItemDetailsProps) {
   const amounts = getRemainingAmount(itemKey);
   const showAlways = true;
@@ -297,6 +301,8 @@ export function ItemDetails({
                   checkVoucherBalance={checkVoucherBalance}
                   getVoucherBalance={getVoucherBalance}
                   updateVoucherBalance={updateVoucherBalance}
+                  getVoucherInitialBalance={getVoucherInitialBalance}
+                  getCurrentVoucherUsage={getCurrentVoucherUsage}
                 />);
               })}
 

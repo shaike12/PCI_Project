@@ -805,6 +805,17 @@ export default function PaymentPortal() {
     return simulatedBalance;
   };
 
+  // Deterministic initial balance (seed-based) so all clients agree on base
+  const getVoucherInitialBalance = useCallback((voucherNumber: string): number => {
+    const cleanVoucherNumber = voucherNumber.replace(/\D/g, '');
+    const seed = cleanVoucherNumber.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return Math.floor((seed % 450) + 50);
+  }, []);
+
+  // Sum of all current voucher amounts across all items for a given voucher number
+  // Note: declared after itemPaymentMethods to avoid temporal dead zone
+  let getCurrentVoucherUsage = (voucherNumber: string): number => 0; // placeholder, will be reassigned
+
   const updateVoucherBalance = (voucherNumber: string, usedAmount: number) => {
     const cleanVoucherNumber = voucherNumber.replace(/\D/g, '');
     
@@ -857,6 +868,25 @@ export default function PaymentPortal() {
       awardReference: string;
     };
   }}>({});
+
+  // Now that itemPaymentMethods is declared, define the real implementation
+  getCurrentVoucherUsage = (voucherNumber: string): number => {
+    const clean = voucherNumber.replace(/\D/g, '');
+    let sum = 0;
+    for (const methods of Object.values(itemPaymentMethods)) {
+      const vouchers = (methods as any)?.vouchers as Array<any> | undefined;
+      if (Array.isArray(vouchers)) {
+        vouchers.forEach(v => {
+          const vn = (v?.voucherNumber || '').replace(/\D/g, '');
+          if (vn === clean) {
+            const amt = parseFloat(String(v?.amount)) || 0;
+            sum += amt;
+          }
+        });
+      }
+    }
+    return sum;
+  };
   
   // UI: which method forms to show under each item (supports multiple)
   const [itemMethodForms, setItemMethodForms] = useState<{ [key: string]: Array<'credit' | 'voucher' | 'points'> }>({});
@@ -2031,6 +2061,8 @@ export default function PaymentPortal() {
                   checkVoucherBalance={checkVoucherBalance}
                   getVoucherBalance={getVoucherBalance}
                   updateVoucherBalance={updateVoucherBalance}
+                  getVoucherInitialBalance={getVoucherInitialBalance}
+                  getCurrentVoucherUsage={getCurrentVoucherUsage}
                 />
 
                 {/* No items selected message */}

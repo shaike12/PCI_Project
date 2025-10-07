@@ -16,9 +16,11 @@ interface PaymentMethodVoucherFormProps {
   checkVoucherBalance?: (voucherNumber: string) => Promise<number>;
   getVoucherBalance?: (voucherNumber: string) => number;
   updateVoucherBalance?: (voucherNumber: string, usedAmount: number) => void;
+  getVoucherInitialBalance?: (voucherNumber: string) => number;
+  getCurrentVoucherUsage?: (voucherNumber: string) => number;
 }
 
-export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMethodField, getRemainingAmount, getOriginalItemPrice, getTotalPaidAmountWrapper, setItemExpandedMethod, checkVoucherBalance, getVoucherBalance, updateVoucherBalance }: PaymentMethodVoucherFormProps) {
+export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMethodField, getRemainingAmount, getOriginalItemPrice, getTotalPaidAmountWrapper, setItemExpandedMethod, checkVoucherBalance, getVoucherBalance, updateVoucherBalance, getVoucherInitialBalance, getCurrentVoucherUsage }: PaymentMethodVoucherFormProps) {
   const amounts = getRemainingAmount(itemKey);
   const voucherIndex = index;
   const storedAmount = paymentData?.vouchers?.[voucherIndex]?.amount;
@@ -34,9 +36,17 @@ export function PaymentMethodVoucherForm({ itemKey, index, paymentData, updateMe
   // Compute effective known balance (prefer locally checked balance, else global state)
   const effectiveBalance: number | null = (() => {
     if (voucherBalance !== null) return voucherBalance;
-    if (getVoucherBalance && currentVoucherNumber.length >= 8) {
-      const bal = getVoucherBalance(currentVoucherNumber);
-      return Number.isFinite(bal) ? bal : null;
+    if (currentVoucherNumber.length >= 8) {
+      // Prefer computed: initial balance - sum of all usages so far
+      if (getVoucherInitialBalance && getCurrentVoucherUsage) {
+        const initial = getVoucherInitialBalance(currentVoucherNumber);
+        const used = getCurrentVoucherUsage(currentVoucherNumber);
+        return Math.max(0, initial - used);
+      }
+      if (getVoucherBalance) {
+        const bal = getVoucherBalance(currentVoucherNumber);
+        return Number.isFinite(bal) ? bal : null;
+      }
     }
     return null;
   })();

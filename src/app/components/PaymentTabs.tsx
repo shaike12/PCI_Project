@@ -41,6 +41,8 @@ interface PaymentTabsProps {
   checkVoucherBalance?: (voucherNumber: string) => Promise<number>;
   getVoucherBalance?: (voucherNumber: string) => number;
   updateVoucherBalance?: (voucherNumber: string, usedAmount: number) => void;
+  getVoucherInitialBalance?: (voucherNumber: string) => number;
+  getCurrentVoucherUsage?: (voucherNumber: string) => number;
 }
 
 export function PaymentTabs(props: PaymentTabsProps) {
@@ -68,7 +70,9 @@ export function PaymentTabs(props: PaymentTabsProps) {
     getGeneratedNumber,
     checkVoucherBalance,
     getVoucherBalance,
-    updateVoucherBalance
+    updateVoucherBalance,
+    getVoucherInitialBalance,
+    getCurrentVoucherUsage
   } = props;
 
   // Safely resolve a passenger index
@@ -511,6 +515,8 @@ export function PaymentTabs(props: PaymentTabsProps) {
                   checkVoucherBalance={checkVoucherBalance}
                   getVoucherBalance={getVoucherBalance}
                   updateVoucherBalance={updateVoucherBalance}
+                  getVoucherInitialBalance={getVoucherInitialBalance}
+                  getCurrentVoucherUsage={getCurrentVoucherUsage}
                 />
               );
 

@@ -28,6 +28,8 @@ interface PaymentMethodCardProps {
   checkVoucherBalance?: (voucherNumber: string) => Promise<number>;
   getVoucherBalance?: (voucherNumber: string) => number;
   updateVoucherBalance?: (voucherNumber: string, usedAmount: number) => void;
+  getVoucherInitialBalance?: (voucherNumber: string) => number;
+  getCurrentVoucherUsage?: (voucherNumber: string) => number;
 }
 
 // Function to get detailed validation message for incomplete forms
@@ -88,7 +90,9 @@ export function PaymentMethodCard({
   onCopyMethod,
   checkVoucherBalance,
   getVoucherBalance,
-  updateVoucherBalance
+  updateVoucherBalance,
+  getVoucherInitialBalance,
+  getCurrentVoucherUsage
 }: PaymentMethodCardProps) {
   const expanded = itemExpandedMethod[itemKey] === idx;
   if (process.env.NODE_ENV !== 'production') {
@@ -302,6 +306,8 @@ export function PaymentMethodCard({
           checkVoucherBalance={checkVoucherBalance}
           getVoucherBalance={getVoucherBalance}
           updateVoucherBalance={updateVoucherBalance}
+          getVoucherInitialBalance={getVoucherInitialBalance}
+          getCurrentVoucherUsage={getCurrentVoucherUsage}
         />
       </Collapse>
 

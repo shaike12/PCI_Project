@@ -1,0 +1,75 @@
+// Local Storage Utilities
+
+// Save progress to localStorage
+export const saveProgressToLocalStorage = (progressData: {
+  selectedPassengers: string[];
+  selectedItems: { [key: string]: string[] };
+  itemPaymentMethods: any;
+  itemMethodForms: { [key: string]: Array<'credit' | 'voucher' | 'points'> };
+  itemExpandedMethod: { [key: string]: number | null };
+  timestamp: string;
+}): void => {
+  try {
+    localStorage.setItem('paymentPortalProgress', JSON.stringify(progressData));
+    
+  } catch (error) {
+    
+  }
+};
+
+// Load progress from localStorage
+export const loadProgressFromLocalStorage = (): {
+  selectedPassengers: string[];
+  selectedItems: { [key: string]: string[] };
+  itemPaymentMethods: any;
+  itemMethodForms: { [key: string]: Array<'credit' | 'voucher' | 'points'> };
+  itemExpandedMethod: { [key: string]: number | null };
+} | null => {
+  try {
+    const savedProgress = localStorage.getItem('paymentPortalProgress');
+    if (savedProgress) {
+      const parsed = JSON.parse(savedProgress);
+      const savedTime = new Date(parsed.timestamp);
+      const now = new Date();
+      const hoursDiff = (now.getTime() - savedTime.getTime()) / (1000 * 60 * 60);
+      
+      // Only load if saved within last 24 hours
+      if (hoursDiff < 24) {
+        
+        return {
+          selectedPassengers: parsed.selectedPassengers || [],
+          selectedItems: parsed.selectedItems || {},
+          itemPaymentMethods: parsed.itemPaymentMethods || {},
+          itemMethodForms: parsed.itemMethodForms || {},
+          itemExpandedMethod: parsed.itemExpandedMethod || {}
+        };
+      } else {
+        
+        localStorage.removeItem('paymentPortalProgress');
+      }
+    }
+  } catch (error) {
+    
+  }
+  return null;
+};
+
+// Clear progress from localStorage
+export const clearProgressFromLocalStorage = (): void => {
+  try {
+    localStorage.removeItem('paymentPortalProgress');
+    
+  } catch (error) {
+    
+  }
+};
+
+// Clear all localStorage data
+export const clearAllLocalStorage = (): void => {
+  try {
+    localStorage.clear();
+    
+  } catch (error) {
+    
+  }
+};

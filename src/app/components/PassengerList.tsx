@@ -1,0 +1,87 @@
+"use client";
+
+import { Box, Paper, Typography } from "@mui/material";
+import type { Reservation, Passenger } from "@/types/reservation";
+import PassengerCard from "./PassengerCard";
+import { PassengerItemRow } from "./PassengerItemRow";
+
+interface PassengerListProps {
+  availablePassengers: Passenger[];
+  reservation: Reservation;
+  expandedPassengers: string[];
+  selectedItems: { [key: string]: string[] };
+  togglePassenger: (passengerId: string) => void;
+  toggleAllItemsForPassenger: (passengerId: string) => void;
+  isItemSelected: (passengerId: string, itemType: string) => boolean;
+  hasSelectedItems: (passengerId: string) => boolean;
+  toggleItem: (passengerId: string, itemType: string) => void;
+  toggleExpanded: (passengerId: string) => void;
+  copyToClipboard: (text: string, label: string) => void;
+}
+
+export function PassengerList({
+  availablePassengers,
+  reservation,
+  expandedPassengers,
+  selectedItems,
+  togglePassenger,
+  toggleAllItemsForPassenger,
+  isItemSelected,
+  hasSelectedItems,
+  toggleItem,
+  toggleExpanded,
+  copyToClipboard,
+}: PassengerListProps) {
+  const countSelectedPassengers = Object.values(selectedItems).filter((items) => items && items.length > 0).length;
+
+  return (
+    <>
+      <Box sx={{ flex: 1, overflowY: 'auto', mb: 2 }}>
+        {availablePassengers.map((passenger) => {
+          const resolvePassengerIndex = (passengerId: string): number => {
+            if (!passengerId) return -1;
+            if (/^\d+$/.test(passengerId)) {
+              const idx = Number(passengerId) - 1;
+              return reservation.passengers[idx] ? idx : -1;
+            }
+            const match = passengerId.match(/\d+/);
+            if (match) {
+              const idx = Number(match[0]) - 1;
+              return reservation.passengers[idx] ? idx : -1;
+            }
+            return -1;
+          };
+
+          const passengerIndex = resolvePassengerIndex(passenger.id);
+          const passengerData = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
+          if (!passengerData) return null;
+          const isExpanded = expandedPassengers.includes(passenger.id);
+
+          return (
+            <PassengerCard
+              key={passenger.id}
+              passenger={passenger}
+              passengerData={passengerData}
+              isExpanded={isExpanded}
+              isItemSelected={isItemSelected}
+              hasSelectedItems={hasSelectedItems}
+              togglePassenger={togglePassenger}
+              toggleAllItemsForPassenger={toggleAllItemsForPassenger}
+              toggleItem={toggleItem}
+              toggleExpanded={toggleExpanded}
+              copyToClipboard={copyToClipboard}
+            />
+          );
+        })}
+      </Box>
+
+      <Paper sx={{ p: 2, bgcolor: '#E4DFDA', m: 2, mt: 0 }}>
+        <Typography variant="body2" sx={{ color: '#1B358F' }}>
+          {countSelectedPassengers} passengers selected
+        </Typography>
+      </Paper>
+    </>
+  );
+}
+
+

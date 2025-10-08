@@ -2210,6 +2210,7 @@ export default function PaymentPortal() {
                   <SelectedItemsBreakdown 
                     selectedItems={selectedItems}
                     reservation={reservation}
+                    itemPaymentMethods={itemPaymentMethods}
                   />
 
                   <PaymentMethodsSummary 

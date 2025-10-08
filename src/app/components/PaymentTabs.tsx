@@ -434,22 +434,34 @@ export function PaymentTabs(props: PaymentTabsProps) {
           transition: 'all 0.3s ease-in-out'
         }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, flex: 1, overflowY: 'auto', pr: 1 }}>
-            {( (selectedItems[tabsValue] && selectedItems[tabsValue]!.length > 0) ? selectedItems[tabsValue]! : (
-              (() => {
+            {(() => {
+              // Define the fixed order for items
+              const itemOrder = ['ticket', 'seat', 'bag', 'secondBag', 'thirdBag', 'uatp'];
+              
+              let itemsToShow: string[] = [];
+              if (selectedItems[tabsValue] && selectedItems[tabsValue]!.length > 0) {
+                // Sort selected items according to the fixed order
+                itemsToShow = selectedItems[tabsValue]!.sort((a, b) => {
+                  const aIndex = itemOrder.indexOf(a);
+                  const bIndex = itemOrder.indexOf(b);
+                  return aIndex - bIndex;
+                });
+              } else {
+                // Use default order for unpaid items
                 const idx = resolvePassengerIndex(tabsValue as string);
                 const p = idx >= 0 ? reservation.passengers[idx] : undefined;
-                const defaults: string[] = [];
                 if (p) {
-                  if (p.ticket.status !== 'Paid') defaults.push('ticket');
-                  if (p.ancillaries.seat && p.ancillaries.seat.status !== 'Paid') defaults.push('seat');
-                  if (p.ancillaries.bag && p.ancillaries.bag.status !== 'Paid') defaults.push('bag');
-                  if (p.ancillaries.secondBag && p.ancillaries.secondBag.status !== 'Paid') defaults.push('secondBag');
-                  if (p.ancillaries.thirdBag && p.ancillaries.thirdBag.status !== 'Paid') defaults.push('thirdBag');
-                  if (p.ancillaries.uatp && p.ancillaries.uatp.status !== 'Paid') defaults.push('uatp');
+                  if (p.ticket.status !== 'Paid') itemsToShow.push('ticket');
+                  if (p.ancillaries.seat && p.ancillaries.seat.status !== 'Paid') itemsToShow.push('seat');
+                  if (p.ancillaries.bag && p.ancillaries.bag.status !== 'Paid') itemsToShow.push('bag');
+                  if (p.ancillaries.secondBag && p.ancillaries.secondBag.status !== 'Paid') itemsToShow.push('secondBag');
+                  if (p.ancillaries.thirdBag && p.ancillaries.thirdBag.status !== 'Paid') itemsToShow.push('thirdBag');
+                  if (p.ancillaries.uatp && p.ancillaries.uatp.status !== 'Paid') itemsToShow.push('uatp');
                 }
-                return defaults;
-              })()
-            ) ).map((itemType) => {
+              }
+              
+              return itemsToShow;
+            })().map((itemType) => {
               const pIndex = resolvePassengerIndex(tabsValue);
               const p = pIndex >= 0 ? reservation.passengers[pIndex] : undefined;
               if (!p) return null;
@@ -476,12 +488,23 @@ export function PaymentTabs(props: PaymentTabsProps) {
                 title = 'Second Bag (XBAS)';
                 price = p.ancillaries.secondBag?.price || 0;
                 color = '#48A9A6';
-                icon = <LuggageIcon sx={{ fontSize: 18, mr: 1 }} />;
+                icon = (
+                  <Box sx={{ display: 'flex', alignItems: 'center', mr: 1 }}>
+                    <LuggageIcon sx={{ fontSize: 18 }} />
+                    <LuggageIcon sx={{ fontSize: 18, ml: -0.5 }} />
+                  </Box>
+                );
               } else if (itemType === 'thirdBag') {
                 title = 'Third Bag (XBAT)';
                 price = p.ancillaries.thirdBag?.price || 0;
                 color = '#48A9A6';
-                icon = <LuggageIcon sx={{ fontSize: 18, mr: 1 }} />;
+                icon = (
+                  <Box sx={{ display: 'flex', alignItems: 'center', mr: 1 }}>
+                    <LuggageIcon sx={{ fontSize: 18 }} />
+                    <LuggageIcon sx={{ fontSize: 18, ml: -0.5 }} />
+                    <LuggageIcon sx={{ fontSize: 18, ml: -0.5 }} />
+                  </Box>
+                );
               } else if (itemType === 'uatp') {
                 title = 'UATP';
                 price = p.ancillaries.uatp?.price || 0;

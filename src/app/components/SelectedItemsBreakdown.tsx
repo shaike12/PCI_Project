@@ -1,6 +1,6 @@
 "use client";
 
-import { Accordion, AccordionDetails, AccordionSummary, Badge, Box, List, ListItem, ListItemIcon, ListItemText, Typography } from "@mui/material";
+import { Accordion, AccordionDetails, AccordionSummary, Badge, Box, List, ListItem, ListItemIcon, ListItemText, Typography, Tooltip } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import FlightIcon from "@mui/icons-material/Flight";
@@ -8,14 +8,17 @@ import EventSeatIcon from "@mui/icons-material/EventSeat";
 import LuggageIcon from "@mui/icons-material/Luggage";
 import CreditCardIcon from "@mui/icons-material/CreditCard";
 import InfoIcon from "@mui/icons-material/Info";
+import CardGiftcardIcon from "@mui/icons-material/CardGiftcard";
+import StarIcon from "@mui/icons-material/Star";
 import type { Reservation } from "@/types/reservation";
 
 interface SelectedItemsBreakdownProps {
   selectedItems: { [passengerId: string]: string[] };
   reservation: Reservation;
+  itemPaymentMethods?: { [itemKey: string]: any };
 }
 
-export function SelectedItemsBreakdown({ selectedItems, reservation }: SelectedItemsBreakdownProps) {
+export function SelectedItemsBreakdown({ selectedItems, reservation, itemPaymentMethods = {} }: SelectedItemsBreakdownProps) {
   // Safely resolve a passenger index from an id like "1", "p1", "passenger-2" etc.
   const resolvePassengerIndex = (passengerId: string): number => {
     if (!passengerId) return -1;
@@ -102,6 +105,38 @@ export function SelectedItemsBreakdown({ selectedItems, reservation }: SelectedI
 
   totalRemaining = totalSelected;
 
+  // Helper function to get payment method icons for an item
+  const getPaymentMethodIcons = (passengerId: string, itemType: string) => {
+    const itemKey = `${passengerId}-${itemType}`;
+    const methods = itemPaymentMethods[itemKey];
+    if (!methods) return null;
+
+    const icons = [];
+    if (methods.credit) {
+      icons.push(
+        <Tooltip key="credit" title={`Credit Card: $${methods.credit.amount?.toLocaleString() || 0}`} arrow>
+          <CreditCardIcon sx={{ fontSize: 14, color: '#1B358F', mr: 0.5, cursor: 'help' }} />
+        </Tooltip>
+      );
+    }
+    if (methods.vouchers && methods.vouchers.length > 0) {
+      const totalVoucherAmount = methods.vouchers.reduce((sum: number, voucher: any) => sum + (voucher.amount || 0), 0);
+      icons.push(
+        <Tooltip key="voucher" title={`Voucher: $${totalVoucherAmount.toLocaleString()}`} arrow>
+          <CardGiftcardIcon sx={{ fontSize: 14, color: '#48A9A6', mr: 0.5, cursor: 'help' }} />
+        </Tooltip>
+      );
+    }
+    if (methods.points) {
+      icons.push(
+        <Tooltip key="points" title={`Points: $${methods.points.amount?.toLocaleString() || 0}`} arrow>
+          <StarIcon sx={{ fontSize: 14, color: '#D4B483', mr: 0.5, cursor: 'help' }} />
+        </Tooltip>
+      );
+    }
+    return icons.length > 0 ? <Box sx={{ display: 'flex', alignItems: 'center' }}>{icons}</Box> : null;
+  };
+
   return (
     <Accordion defaultExpanded sx={{ mb: 2, boxShadow: 'none', border: '1px solid', borderColor: 'divider' }}>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -143,11 +178,39 @@ export function SelectedItemsBreakdown({ selectedItems, reservation }: SelectedI
               </ListItemIcon>
               <ListItemText 
                 primary="Flight Tickets" 
-                secondary={`${Object.entries(selectedItems).filter(([_, items]) => items.includes('ticket')).length} selected`}
+                secondary={
+                  <Box>
+                    {Object.entries(selectedItems)
+                      .filter(([_, items]) => items.includes('ticket'))
+                      .map(([passengerId, _]) => {
+                        const passengerIndex = resolvePassengerIndex(passengerId);
+                        const passengerData = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
+                        const price = passengerData?.ticket?.price || 0;
+                        return (
+                          <Box key={passengerId} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.5 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+                              <Typography variant="caption" sx={{ color: '#666', mr: 1 }}>
+                                {passengerData?.name || `Passenger ${passengerId}`}
+                              </Typography>
+                              {getPaymentMethodIcons(passengerId, 'ticket')}
+                            </Box>
+                            <Typography variant="caption" sx={{ fontWeight: 600, color: '#1B358F' }}>
+                              ${price.toLocaleString()}
+                            </Typography>
+                          </Box>
+                        );
+                      })}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.5, borderTop: '1px solid #E0E0E0', mt: 0.5 }}>
+                      <Typography variant="caption" sx={{ fontWeight: 700, color: '#1B358F' }}>
+                        Total
+                      </Typography>
+                      <Typography variant="caption" sx={{ fontWeight: 700, color: '#1B358F' }}>
+                        ${selectedTickets.toLocaleString()}
+                      </Typography>
+                    </Box>
+                  </Box>
+                }
               />
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                ${selectedTickets.toLocaleString()}
-              </Typography>
             </ListItem>
           )}
           
@@ -158,11 +221,39 @@ export function SelectedItemsBreakdown({ selectedItems, reservation }: SelectedI
               </ListItemIcon>
               <ListItemText 
                 primary="Seat" 
-                secondary={`${Object.entries(selectedItems).filter(([_, items]) => items.includes('seat')).length} selected`}
+                secondary={
+                  <Box>
+                    {Object.entries(selectedItems)
+                      .filter(([_, items]) => items.includes('seat'))
+                      .map(([passengerId, _]) => {
+                        const passengerIndex = resolvePassengerIndex(passengerId);
+                        const passengerData = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
+                        const price = passengerData?.ancillaries?.seat?.price || 0;
+                        return (
+                          <Box key={passengerId} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.5 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+                              <Typography variant="caption" sx={{ color: '#666', mr: 1 }}>
+                                {passengerData?.name || `Passenger ${passengerId}`}
+                              </Typography>
+                              {getPaymentMethodIcons(passengerId, 'seat')}
+                            </Box>
+                            <Typography variant="caption" sx={{ fontWeight: 600, color: '#1B358F' }}>
+                              ${price.toLocaleString()}
+                            </Typography>
+                          </Box>
+                        );
+                      })}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.5, borderTop: '1px solid #E0E0E0', mt: 0.5 }}>
+                      <Typography variant="caption" sx={{ fontWeight: 700, color: '#1B358F' }}>
+                        Total
+                      </Typography>
+                      <Typography variant="caption" sx={{ fontWeight: 700, color: '#1B358F' }}>
+                        ${selectedSeats.toLocaleString()}
+                      </Typography>
+                    </Box>
+                  </Box>
+                }
               />
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                ${selectedSeats.toLocaleString()}
-              </Typography>
             </ListItem>
           )}
           
@@ -173,11 +264,39 @@ export function SelectedItemsBreakdown({ selectedItems, reservation }: SelectedI
               </ListItemIcon>
               <ListItemText 
                 primary="Baggage (XBAF)" 
-                secondary={`${Object.entries(selectedItems).filter(([_, items]) => items.includes('bag')).length} selected`}
+                secondary={
+                  <Box>
+                    {Object.entries(selectedItems)
+                      .filter(([_, items]) => items.includes('bag'))
+                      .map(([passengerId, _]) => {
+                        const passengerIndex = resolvePassengerIndex(passengerId);
+                        const passengerData = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
+                        const price = passengerData?.ancillaries?.bag?.price || 0;
+                        return (
+                          <Box key={passengerId} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.5 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+                              <Typography variant="caption" sx={{ color: '#666', mr: 1 }}>
+                                {passengerData?.name || `Passenger ${passengerId}`}
+                              </Typography>
+                              {getPaymentMethodIcons(passengerId, 'bag')}
+                            </Box>
+                            <Typography variant="caption" sx={{ fontWeight: 600, color: '#1B358F' }}>
+                              ${price.toLocaleString()}
+                            </Typography>
+                          </Box>
+                        );
+                      })}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.5, borderTop: '1px solid #E0E0E0', mt: 0.5 }}>
+                      <Typography variant="caption" sx={{ fontWeight: 700, color: '#1B358F' }}>
+                        Total
+                      </Typography>
+                      <Typography variant="caption" sx={{ fontWeight: 700, color: '#1B358F' }}>
+                        ${selectedBags.toLocaleString()}
+                      </Typography>
+                    </Box>
+                  </Box>
+                }
               />
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                ${selectedBags.toLocaleString()}
-              </Typography>
             </ListItem>
           )}
           
@@ -188,11 +307,39 @@ export function SelectedItemsBreakdown({ selectedItems, reservation }: SelectedI
               </ListItemIcon>
               <ListItemText 
                 primary="Second Bag (XBAS)" 
-                secondary={`${Object.entries(selectedItems).filter(([_, items]) => items.includes('secondBag')).length} selected`}
+                secondary={
+                  <Box>
+                    {Object.entries(selectedItems)
+                      .filter(([_, items]) => items.includes('secondBag'))
+                      .map(([passengerId, _]) => {
+                        const passengerIndex = resolvePassengerIndex(passengerId);
+                        const passengerData = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
+                        const price = passengerData?.ancillaries?.secondBag?.price || 0;
+                        return (
+                          <Box key={passengerId} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.5 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+                              <Typography variant="caption" sx={{ color: '#666', mr: 1 }}>
+                                {passengerData?.name || `Passenger ${passengerId}`}
+                              </Typography>
+                              {getPaymentMethodIcons(passengerId, 'secondBag')}
+                            </Box>
+                            <Typography variant="caption" sx={{ fontWeight: 600, color: '#1B358F' }}>
+                              ${price.toLocaleString()}
+                            </Typography>
+                          </Box>
+                        );
+                      })}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.5, borderTop: '1px solid #E0E0E0', mt: 0.5 }}>
+                      <Typography variant="caption" sx={{ fontWeight: 700, color: '#1B358F' }}>
+                        Total
+                      </Typography>
+                      <Typography variant="caption" sx={{ fontWeight: 700, color: '#1B358F' }}>
+                        ${selectedSecondBags.toLocaleString()}
+                      </Typography>
+                    </Box>
+                  </Box>
+                }
               />
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                ${selectedSecondBags.toLocaleString()}
-              </Typography>
             </ListItem>
           )}
           
@@ -203,11 +350,39 @@ export function SelectedItemsBreakdown({ selectedItems, reservation }: SelectedI
               </ListItemIcon>
               <ListItemText 
                 primary="Third Bag (XBAT)" 
-                secondary={`${Object.entries(selectedItems).filter(([_, items]) => items.includes('thirdBag')).length} selected`}
+                secondary={
+                  <Box>
+                    {Object.entries(selectedItems)
+                      .filter(([_, items]) => items.includes('thirdBag'))
+                      .map(([passengerId, _]) => {
+                        const passengerIndex = resolvePassengerIndex(passengerId);
+                        const passengerData = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
+                        const price = passengerData?.ancillaries?.thirdBag?.price || 0;
+                        return (
+                          <Box key={passengerId} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.5 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+                              <Typography variant="caption" sx={{ color: '#666', mr: 1 }}>
+                                {passengerData?.name || `Passenger ${passengerId}`}
+                              </Typography>
+                              {getPaymentMethodIcons(passengerId, 'thirdBag')}
+                            </Box>
+                            <Typography variant="caption" sx={{ fontWeight: 600, color: '#1B358F' }}>
+                              ${price.toLocaleString()}
+                            </Typography>
+                          </Box>
+                        );
+                      })}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.5, borderTop: '1px solid #E0E0E0', mt: 0.5 }}>
+                      <Typography variant="caption" sx={{ fontWeight: 700, color: '#1B358F' }}>
+                        Total
+                      </Typography>
+                      <Typography variant="caption" sx={{ fontWeight: 700, color: '#1B358F' }}>
+                        ${selectedThirdBags.toLocaleString()}
+                      </Typography>
+                    </Box>
+                  </Box>
+                }
               />
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                ${selectedThirdBags.toLocaleString()}
-              </Typography>
             </ListItem>
           )}
           
@@ -218,11 +393,39 @@ export function SelectedItemsBreakdown({ selectedItems, reservation }: SelectedI
               </ListItemIcon>
               <ListItemText 
                 primary="UATP" 
-                secondary={`${Object.entries(selectedItems).filter(([_, items]) => items.includes('uatp')).length} selected`}
+                secondary={
+                  <Box>
+                    {Object.entries(selectedItems)
+                      .filter(([_, items]) => items.includes('uatp'))
+                      .map(([passengerId, _]) => {
+                        const passengerIndex = resolvePassengerIndex(passengerId);
+                        const passengerData = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
+                        const price = passengerData?.ancillaries?.uatp?.price || 0;
+                        return (
+                          <Box key={passengerId} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.5 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+                              <Typography variant="caption" sx={{ color: '#666', mr: 1 }}>
+                                {passengerData?.name || `Passenger ${passengerId}`}
+                              </Typography>
+                              {getPaymentMethodIcons(passengerId, 'uatp')}
+                            </Box>
+                            <Typography variant="caption" sx={{ fontWeight: 600, color: '#1B358F' }}>
+                              ${price.toLocaleString()}
+                            </Typography>
+                          </Box>
+                        );
+                      })}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.5, borderTop: '1px solid #E0E0E0', mt: 0.5 }}>
+                      <Typography variant="caption" sx={{ fontWeight: 700, color: '#1B358F' }}>
+                        Total
+                      </Typography>
+                      <Typography variant="caption" sx={{ fontWeight: 700, color: '#1B358F' }}>
+                        ${selectedUatp.toLocaleString()}
+                      </Typography>
+                    </Box>
+                  </Box>
+                }
               />
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                ${selectedUatp.toLocaleString()}
-              </Typography>
             </ListItem>
           )}
           

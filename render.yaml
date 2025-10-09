@@ -2,7 +2,7 @@ services:
   - type: web
     name: pci-project
     env: node
-    rootDir: payment-portal
+    rootDir: .
     buildCommand: npm ci && npm run build
     startCommand: npm run start
     autoDeploy: true

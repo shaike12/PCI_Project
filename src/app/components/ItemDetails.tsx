@@ -1,12 +1,14 @@
 "use client";
 
-import { Box, Paper, Typography, Chip, IconButton, Tooltip } from "@mui/material";
+import { useState } from "react";
+import { Box, Paper, Typography, Chip, IconButton, Tooltip, Menu, MenuItem, ListItemIcon, ListItemText } from "@mui/material";
 import FlightIcon from "@mui/icons-material/Flight";
 import EventSeatIcon from "@mui/icons-material/EventSeat";
 import LuggageIcon from "@mui/icons-material/Luggage";
 import CreditCardIcon from "@mui/icons-material/CreditCard";
 import CardGiftcardIcon from "@mui/icons-material/CardGiftcard";
 import StarIcon from "@mui/icons-material/Star";
+import AddIcon from "@mui/icons-material/Add";
 import { PaymentMethodCard } from "./PaymentMethodCard";
 import { validateCreditCard } from "../utils/paymentLogic";
 
@@ -105,6 +107,50 @@ export function ItemDetails({
 }: ItemDetailsProps) {
   const amounts = getRemainingAmount(itemKey);
   const showAlways = true;
+  
+  // State for payment method selection menu
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const open = Boolean(anchorEl);
+
+  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleAddMethod = (method: 'credit' | 'voucher' | 'points') => {
+    confirmAddMethod(itemKey, method);
+    handleClose();
+    
+    // Expand the new method after state updates
+    setTimeout(() => {
+      // First, collapse all other forms for this item
+      setItemExpandedMethod((prev) => {
+        const newExpanded = { ...prev };
+        // Close all forms for this item
+        newExpanded[itemKey] = null;
+        return newExpanded;
+      });
+      
+      // Then expand the new method
+      setTimeout(() => {
+        if (method === 'credit') {
+          setItemExpandedMethod((prev) => ({ ...prev, [itemKey]: 0 }));
+        } else if (method === 'voucher') {
+          // Calculate the index of the new voucher (it will be the last voucher in the array)
+          const currentVoucherCount = formMethods.filter(m => m === 'voucher').length;
+          const newVoucherIndex = formMethods.length; // The new voucher will be at the end
+          setItemExpandedMethod((prev) => ({ ...prev, [itemKey]: newVoucherIndex }));
+        } else if (method === 'points') {
+          // Calculate the index of the new points (it will be at the end of the array)
+          const newPointsIndex = formMethods.length; // The new points will be at the end
+          setItemExpandedMethod((prev) => ({ ...prev, [itemKey]: newPointsIndex }));
+        }
+      }, 50); // Small delay to ensure the collapse happens first
+    }, 0);
+  };
 
   return (
     <Paper key={itemKey} sx={{ 
@@ -113,7 +159,8 @@ export function ItemDetails({
       border: 1, 
       borderColor: '#E4DFDA', 
       bgcolor: 'white',
-      animation: 'slideIn 0.3s ease-out'
+      animation: 'slideIn 0.3s ease-out',
+      position: 'relative' // Add relative positioning for absolute children
     }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -123,111 +170,68 @@ export function ItemDetails({
           </Typography>
         </Box>
         
-        {/* Payment Method Add Buttons - Between title and price */}
-        {(() => {
-          const showInitialButtons = formMethods.length === 0 && !isItemFullyPaid(itemKey);
-          const showAdditionalButtons = formMethods.length >= 1 && formMethods.length < 3 && !isItemFullyPaid(itemKey);
-          
-          if (!showInitialButtons && !showAdditionalButtons) {
+        {/* Payment Method Icons */}
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 0.5,
+          minWidth: '120px', // Fixed width to ensure consistent positioning
+          justifyContent: 'flex-end', // Align icons to the right side of this container
+          position: 'absolute',
+          top: 16, // align with card's padding top (p:2 => 16px)
+          right: '40%'
+        }}>
+          {/* Show active payment method icons */}
+          {formMethods.map((method, index) => {
+            if (method === 'credit') {
+              return (
+                <Tooltip key={`${method}-${index}`} title="Credit Card" arrow>
+                  <IconButton size="small" sx={{ width: 28, height: 28, p: 0 }}>
+                    <CreditCardIcon sx={{ fontSize: 20, color: '#1B358F' }} />
+                  </IconButton>
+                </Tooltip>
+              );
+            } else if (method === 'voucher') {
+              return (
+                <Tooltip key={`${method}-${index}`} title="UATP Voucher" arrow>
+                  <IconButton size="small" sx={{ width: 28, height: 28, p: 0 }}>
+                    <CardGiftcardIcon sx={{ fontSize: 20, color: '#48A9A6' }} />
+                  </IconButton>
+                </Tooltip>
+              );
+            } else if (method === 'points') {
+              return (
+                <Tooltip key={`${method}-${index}`} title="Points" arrow>
+                  <IconButton size="small" sx={{ width: 28, height: 28, p: 0 }}>
+                    <StarIcon sx={{ fontSize: 20, color: '#D4B483' }} />
+                  </IconButton>
+                </Tooltip>
+              );
+            }
             return null;
-          }
-
-          return (
-            <Box sx={{ display: 'flex', gap: 0.5 }}>
-              {(!formMethods.includes('credit')) && (
-                <Tooltip title="Add Credit Card" arrow>
-                  <IconButton
-                    size="small"
-                    onClick={() => {
-                      if (process.env.NODE_ENV !== 'production') {
-                        
-                      }
-                      confirmAddMethod(itemKey, 'credit');
-                      // Defer expand to next tick to allow first mount to animate
-                      setTimeout(() => {
-                        if (process.env.NODE_ENV !== 'production') {
-                          
-                        }
-                        setItemExpandedMethod((prev) => ({ ...prev, [itemKey]: 0 }));
-                      }, 0);
-                    }}
-                    sx={{ 
-                      color: '#1B358F',
-                      '&:hover': { bgcolor: '#1B358F', color: 'white' },
-                      border: 1,
-                      borderColor: '#1B358F',
-                      width: 32,
-                      height: 32
-                    }}
-                  >
-                    <CreditCardIcon sx={{ fontSize: 16 }} />
-                  </IconButton>
-                </Tooltip>
-              )}
-              {formMethods.filter(m => m === 'voucher').length < 2 && (
-                <Tooltip title="Add UATP Voucher" arrow>
-                  <IconButton
-                    size="small"
-                    onClick={() => {
-                      const currentVoucherCount = formMethods.slice(0).filter(m => m === 'voucher').length;
-                      if (process.env.NODE_ENV !== 'production') {
-                        
-                      }
-                      confirmAddMethod(itemKey, 'voucher');
-                      // New voucher will be appended, expand its index after state updates
-                      setTimeout(() => {
-                        if (process.env.NODE_ENV !== 'production') {
-                          
-                        }
-                        setItemExpandedMethod((prev) => ({ ...prev, [itemKey]: currentVoucherCount }));
-                      }, 0);
-                    }}
-                    sx={{ 
-                      color: '#D4B483',
-                      '&:hover': { bgcolor: '#D4B483', color: 'white' },
-                      border: 1,
-                      borderColor: '#D4B483',
-                      width: 32,
-                      height: 32
-                    }}
-                  >
-                    <CardGiftcardIcon sx={{ fontSize: 16 }} />
-                  </IconButton>
-                </Tooltip>
-              )}
-              {(!formMethods.includes('points')) && (
-                <Tooltip title="Add Points" arrow>
-                  <IconButton
-                    size="small"
-                    onClick={() => {
-                      if (process.env.NODE_ENV !== 'production') {
-                        
-                      }
-                      confirmAddMethod(itemKey, 'points');
-                      // Expand the points form (index 0) after state updates
-                      setTimeout(() => {
-                        if (process.env.NODE_ENV !== 'production') {
-                          
-                        }
-                        setItemExpandedMethod((prev) => ({ ...prev, [itemKey]: 0 }));
-                      }, 0);
-                    }}
-                    sx={{ 
-                      color: '#48A9A6',
-                      '&:hover': { bgcolor: '#48A9A6', color: 'white' },
-                      border: 1,
-                      borderColor: '#48A9A6',
-                      width: 32,
-                      height: 32
-                    }}
-                  >
-                    <StarIcon sx={{ fontSize: 16 }} />
-                  </IconButton>
-                </Tooltip>
-              )}
-            </Box>
-          );
-        })()}
+          })}
+          
+          {/* Add payment method button */}
+          {formMethods.length < 3 && !isItemFullyPaid(itemKey) && (
+            <Tooltip title="Add Payment Method" arrow>
+              <IconButton
+                size="small"
+                onClick={handleClick}
+                sx={{ 
+                  color: '#1B358F',
+                  '&:hover': { bgcolor: '#1B358F', color: 'white' },
+                  border: 1,
+                  borderColor: '#1B358F',
+                  width: 28,
+                  height: 28,
+                  p: 0
+                }}
+              >
+                <AddIcon sx={{ fontSize: 20 }} />
+              </IconButton>
+            </Tooltip>
+          )}
+        </Box>
         
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#1B358F' }}>
@@ -314,6 +318,46 @@ export function ItemDetails({
         }
         return null;
       })()}
+      
+      {/* Payment Method Selection Menu */}
+      <Menu
+        anchorEl={anchorEl}
+        open={open}
+        onClose={handleClose}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'right',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'right',
+        }}
+      >
+        {!formMethods.includes('credit') && (
+          <MenuItem onClick={() => handleAddMethod('credit')}>
+            <ListItemIcon>
+              <CreditCardIcon sx={{ color: '#1B358F' }} />
+            </ListItemIcon>
+            <ListItemText>Credit Card</ListItemText>
+          </MenuItem>
+        )}
+        {formMethods.filter(m => m === 'voucher').length < 2 && (
+          <MenuItem onClick={() => handleAddMethod('voucher')}>
+            <ListItemIcon>
+              <CardGiftcardIcon sx={{ color: '#48A9A6' }} />
+            </ListItemIcon>
+            <ListItemText>UATP Voucher</ListItemText>
+          </MenuItem>
+        )}
+        {!formMethods.includes('points') && (
+          <MenuItem onClick={() => handleAddMethod('points')}>
+            <ListItemIcon>
+              <StarIcon sx={{ color: '#D4B483' }} />
+            </ListItemIcon>
+            <ListItemText>Points</ListItemText>
+          </MenuItem>
+        )}
+      </Menu>
     </Paper>
   );
 }

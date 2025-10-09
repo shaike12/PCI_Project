@@ -1,6 +1,7 @@
 "use client";
 
-import { Box, Paper, Typography, IconButton, Slider, Tooltip, Collapse } from "@mui/material";
+import { Box, Paper, Typography, IconButton, Slider, Tooltip, Collapse, Snackbar, Alert } from "@mui/material";
+import { useEffect, useState } from "react";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -96,7 +97,20 @@ export function PaymentMethodCard({
   getCurrentVoucherUsage,
   getVoucherUsageExcluding
 }: PaymentMethodCardProps) {
+  const [showWarning, setShowWarning] = useState(false);
   const expanded = itemExpandedMethod[itemKey] === idx;
+  
+  
+  // Log expansion/collapse state changes
+  useEffect(() => {
+    console.log('[PAYMENT_CARD] Expansion state changed:', {
+      itemKey,
+      method,
+      idx,
+      expanded,
+      voucherNumber: method === 'voucher' ? paymentData?.vouchers?.[formMethods.slice(0, idx).filter(m => m === 'voucher').length]?.voucherNumber : 'N/A'
+    });
+  }, [expanded, itemKey, method, idx, paymentData]);
   if (process.env.NODE_ENV !== 'production') {
     // Lightweight render-time trace
     try {
@@ -108,6 +122,40 @@ export function PaymentMethodCard({
   }
   
   const toggleExpanded = () => {
+    // Check if there are any unsaved changes in the current form
+    const hasUnsavedChanges = () => {
+      if (method === 'credit') {
+        const credit = paymentData?.credit;
+        return credit && (credit.cardNumber || credit.holderName || credit.expiryDate || credit.cvv || credit.amount);
+      } else if (method === 'voucher') {
+        const vouchers = paymentData?.vouchers || [];
+        const voucher = vouchers[idx];
+        return voucher && (voucher.voucherNumber || voucher.expiryDate || voucher.amount);
+      } else if (method === 'points') {
+        const points = paymentData?.points;
+        return points && (points.memberNumber || points.awardReference || points.amount);
+      }
+      return false;
+    };
+    
+    // If trying to collapse and form is not complete, show warning
+    console.log('[PAYMENT_CARD] Toggle expanded check:', {
+      itemKey,
+      method,
+      idx,
+      expanded,
+      isComplete,
+      hasUnsavedChanges: hasUnsavedChanges(),
+      paymentData
+    });
+    
+    if (expanded && (!isComplete || hasUnsavedChanges())) {
+      const validationMessage = getValidationMessage(method, paymentData, idx);
+      console.log('[PAYMENT_CARD] Cannot collapse incomplete form:', validationMessage);
+      setShowWarning(true);
+      return;
+    }
+    
     setItemExpandedMethod(prev => {
       if (prev[itemKey] === idx) {
         return { ...prev, [itemKey]: null };
@@ -145,14 +193,15 @@ export function PaymentMethodCard({
 
   return (
     <Paper id={`payment-method-${itemKey}-${idx}`} sx={{ 
-      p: 1.5, 
-      mt: 1, 
+      p: 0.25, 
+      pl: 3.5,
+      mt: 0.25, 
       border: 1, 
       borderColor: expanded ? '#E4DFDA' : (isComplete ? '#E4DFDA' : '#E4DFDA'), 
       bgcolor: 'white',
       position: 'relative'
     }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: expanded ? 1 : 0 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: expanded ? 0.25 : 0 }}>
         <Box 
           sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, cursor: 'pointer' }}
           role="button"
@@ -186,94 +235,94 @@ export function PaymentMethodCard({
               onTouchStart={(e) => e.stopPropagation()}
               onPointerDown={(e) => e.stopPropagation()}
             >
-              <Slider
-                value={methodAmount}
-                min={1}
-                max={(() => {
-                  const amounts = getRemainingAmount(itemKey);
-                  if (method === 'points') {
-                    // For points, limit to available points balance
-                    const pointsBalance = paymentData?.points?.balance;
-                    if (pointsBalance && pointsBalance > 0) {
-                      const maxFromPoints = pointsBalance / 50; // 50 points = $1
-                      return Math.min(methodAmount + amounts.remaining, maxFromPoints);
+              <Box sx={{ position: 'relative' }}>
+                <Slider
+                  value={methodAmount}
+                  min={1}
+                  max={(() => {
+                    const amounts = getRemainingAmount(itemKey);
+                    if (method === 'points') {
+                      // For points, limit to available points balance
+                      const pointsBalance = paymentData?.points?.balance;
+                      if (pointsBalance && pointsBalance > 0) {
+                        const maxFromPoints = pointsBalance / 50; // 50 points = $1
+                        return Math.min(methodAmount + amounts.remaining, maxFromPoints);
+                      }
                     }
-                  }
-                  // Default max is current amount + remaining price for the item
-                  let baseMax = methodAmount + amounts.remaining;
-                  // For vouchers, also cap by available voucher balance (global), already excludes current amount
-                  if (method === 'voucher' && Number.isFinite(voucherHeadroom)) {
-                    baseMax = Math.min(baseMax, methodAmount + Math.max(0, voucherHeadroom));
-                  }
-                  return baseMax;
-                })()}
-                step={1}
-                onChange={(_e: Event, newValue: number | number[]) => {
-                  const value = typeof newValue === 'number' ? newValue : newValue[0];
-                  // Ensure minimum value is 1
-                  const minValue = Math.max(1, value);
-                  if (method === 'credit') {
-                    updateMethodField(itemKey, 'credit', 'amount', minValue.toString());
-                  } else if (method === 'voucher') {
-                    const voucherIdx = formMethods.slice(0, idx).filter(m => m === 'voucher').length;
-                    // If no headroom, do not allow increasing
-                    if (Number.isFinite(voucherHeadroom) && voucherHeadroom <= 0 && minValue > methodAmount) {
-                      return;
+                    // Default max is current amount + remaining price for the item
+                    let baseMax = methodAmount + amounts.remaining;
+                    // For vouchers, also cap by available voucher balance (global), already excludes current amount
+                    if (method === 'voucher' && Number.isFinite(voucherHeadroom)) {
+                      baseMax = Math.min(baseMax, methodAmount + Math.max(0, voucherHeadroom));
                     }
-                    updateMethodField(itemKey, 'voucher', 'amount', minValue.toString(), voucherIdx);
-                  } else if (method === 'points') {
-                    updateMethodField(itemKey, 'points', 'amount', minValue.toString());
-                    // Also update points to use based on the amount
-                    const pointsToUse = Math.round(minValue * 50); // 50 points = $1
-                    updateMethodField(itemKey, 'points', 'pointsToUse', pointsToUse.toString());
-                  }
-                }}
-                size="small"
-                sx={{ 
-                  color: '#1B358F',
-                  '& .MuiSlider-thumb': {
-                    width: 16,
+                    return baseMax;
+                  })()}
+                  step={1}
+                  onChange={(_e: Event, newValue: number | number[]) => {
+                    const value = typeof newValue === 'number' ? newValue : newValue[0];
+                    // Ensure minimum value is 1
+                    const minValue = Math.max(1, value);
+                    if (method === 'credit') {
+                      updateMethodField(itemKey, 'credit', 'amount', minValue.toString());
+                    } else if (method === 'voucher') {
+                      const voucherIdx = formMethods.slice(0, idx).filter(m => m === 'voucher').length;
+                      // If no headroom, do not allow increasing
+                      if (Number.isFinite(voucherHeadroom) && voucherHeadroom <= 0 && minValue > methodAmount) {
+                        return;
+                      }
+                      updateMethodField(itemKey, 'voucher', 'amount', minValue.toString(), voucherIdx);
+                    } else if (method === 'points') {
+                      updateMethodField(itemKey, 'points', 'amount', minValue.toString());
+                      // Also update points to use based on the amount
+                      const pointsToUse = Math.round(minValue * 50); // 50 points = $1
+                      updateMethodField(itemKey, 'points', 'pointsToUse', pointsToUse.toString());
+                    }
+                  }}
+                  size="small"
+                  sx={{ 
+                    color: '#1B358F',
                     height: 16,
-                  },
-                  '& .MuiSlider-track': {
-                    height: 4,
-                  },
-                  '& .MuiSlider-rail': {
-                    height: 4,
-                    opacity: 0.3,
-                  }
-                }}
-              />
+                    '& .MuiSlider-thumb': {
+                      width: 12,
+                      height: 12,
+                    },
+                    '& .MuiSlider-track': {
+                      height: 2,
+                    },
+                    '& .MuiSlider-rail': {
+                      height: 2,
+                      opacity: 0.3,
+                    }
+                  }}
+                />
+                {method === 'points' && paymentData?.points?.pointsToUse && (
+                  <Typography 
+                    variant="caption" 
+                    sx={{ 
+                      position: 'absolute',
+                      top: '55%',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      color: '#48A9A6', 
+                      fontSize: '0.7rem',
+                      lineHeight: 1,
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {paymentData.points.pointsToUse.toLocaleString()} pts
+                  </Typography>
+                )}
+              </Box>
             </Box>
           )}
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#1B358F' }}>
             ${methodAmount.toLocaleString()}
-            {method === 'points' && paymentData?.points?.pointsToUse && (
-              <span style={{ fontSize: '0.8em', color: '#48A9A6', marginLeft: '8px' }}>
-                ({paymentData.points.pointsToUse.toLocaleString()} pts)
-              </span>
-            )}
           </Typography>
           <IconButton 
             size="small" 
-            onClick={() => {
-              setItemExpandedMethod(prev => {
-                // If clicking on the same method, toggle it
-                if (prev[itemKey] === idx) {
-                  return {
-                    ...prev,
-                    [itemKey]: null
-                  };
-                } else {
-                  // If clicking on a different method, close all others and open this one
-                  return {
-                    [itemKey]: idx
-                  };
-                }
-              });
-            }}
+            onClick={toggleExpanded}
             sx={{ 
               color: expanded ? '#1B358F' : '#1B358F',
               '&:hover': { bgcolor: '#E4DFDA', color: 'white' }
@@ -320,7 +369,28 @@ export function PaymentMethodCard({
         />
       </Collapse>
 
-      <Collapse in={expanded && method === 'voucher'} timeout={400} mountOnEnter>
+      <Collapse 
+        in={expanded && method === 'voucher'} 
+        timeout={400} 
+        mountOnEnter 
+        unmountOnExit={false}
+        onEnter={() => {
+          console.log('[PAYMENT_CARD] ===== VOUCHER FORM EXPANDING =====', {
+            itemKey,
+            method,
+            idx,
+            voucherIndex: formMethods.slice(0, idx).filter(m => m === 'voucher').length
+          });
+        }}
+        onExit={() => {
+          console.log('[PAYMENT_CARD] ===== VOUCHER FORM COLLAPSING =====', {
+            itemKey,
+            method,
+            idx,
+            voucherIndex: formMethods.slice(0, idx).filter(m => m === 'voucher').length
+          });
+        }}
+      >
         <PaymentMethodVoucherForm 
           itemKey={itemKey} 
           index={formMethods.slice(0, idx).filter(m => m === 'voucher').length}
@@ -350,6 +420,22 @@ export function PaymentMethodCard({
           setItemExpandedMethod={setItemExpandedMethod}
         />
       </Collapse>
+      
+      {/* Warning Snackbar for incomplete forms */}
+      <Snackbar
+        open={showWarning}
+        autoHideDuration={4000}
+        onClose={() => setShowWarning(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={() => setShowWarning(false)} 
+          severity="warning" 
+          sx={{ width: '100%' }}
+        >
+          {getValidationMessage(method, paymentData, idx)}
+        </Alert>
+      </Snackbar>
     </Paper>
   );
 }

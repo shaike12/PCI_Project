@@ -29,7 +29,7 @@ export function PaymentMethodButtons({
   }
 
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1, gap: 0.5 }}>
+    <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mt: 1, gap: 0.5 }}>
       {(!formMethods.includes('credit')) && (
         <Tooltip title="Add Credit Card" arrow>
           <IconButton
@@ -40,11 +40,12 @@ export function PaymentMethodButtons({
               '&:hover': { bgcolor: '#E4DFDA', color: 'white' },
               border: 1,
               borderColor: '#48A9A6',
-              width: 32,
-              height: 32
+              width: 28,
+              height: 28,
+              p: 0
             }}
           >
-            <CreditCardIcon sx={{ fontSize: 16 }} />
+            <CreditCardIcon sx={{ fontSize: 20 }} />
           </IconButton>
         </Tooltip>
       )}
@@ -58,11 +59,12 @@ export function PaymentMethodButtons({
               '&:hover': { bgcolor: '#E4DFDA', color: 'white' },
               border: 1,
               borderColor: '#D4B483',
-              width: 32,
-              height: 32
+              width: 28,
+              height: 28,
+              p: 0
             }}
           >
-            <CardGiftcardIcon sx={{ fontSize: 16 }} />
+            <CardGiftcardIcon sx={{ fontSize: 20 }} />
           </IconButton>
         </Tooltip>
       )}
@@ -76,11 +78,12 @@ export function PaymentMethodButtons({
               '&:hover': { bgcolor: '#E4DFDA', color: 'white' },
               border: 1,
               borderColor: '#48A9A6',
-              width: 32,
-              height: 32
+              width: 28,
+              height: 28,
+              p: 0
             }}
           >
-            <StarIcon sx={{ fontSize: 16 }} />
+            <StarIcon sx={{ fontSize: 20 }} />
           </IconButton>
         </Tooltip>
       )}

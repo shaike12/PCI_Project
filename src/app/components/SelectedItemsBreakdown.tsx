@@ -10,6 +10,8 @@ import CreditCardIcon from "@mui/icons-material/CreditCard";
 import InfoIcon from "@mui/icons-material/Info";
 import CardGiftcardIcon from "@mui/icons-material/CardGiftcard";
 import StarIcon from "@mui/icons-material/Star";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import WarningIcon from "@mui/icons-material/Warning";
 import type { Reservation } from "@/types/reservation";
 
 interface SelectedItemsBreakdownProps {
@@ -105,6 +107,47 @@ export function SelectedItemsBreakdown({ selectedItems, reservation, itemPayment
 
   totalRemaining = totalSelected;
 
+  // Helper function to check if payment methods fully cover the item price
+  const getPaymentStatus = (passengerId: string, itemType: string, itemPrice: number) => {
+    const itemKey = `${passengerId}-${itemType}`;
+    const methods = itemPaymentMethods[itemKey];
+    
+    // Check if there are any payment methods at all
+    const hasAnyPaymentMethods = methods && (
+      methods.credit || 
+      (methods.vouchers && methods.vouchers.length > 0) || 
+      methods.points
+    );
+    
+    if (!hasAnyPaymentMethods) {
+      return { 
+        isFullyPaid: false, 
+        totalPaid: 0, 
+        remaining: itemPrice,
+        hasNoPaymentMethods: true 
+      };
+    }
+
+    let totalPaidAmount = 0;
+    if (methods.credit) {
+      totalPaidAmount += methods.credit.amount || 0;
+    }
+    if (methods.vouchers && methods.vouchers.length > 0) {
+      totalPaidAmount += methods.vouchers.reduce((sum: number, voucher: any) => sum + (voucher.amount || 0), 0);
+    }
+    if (methods.points) {
+      totalPaidAmount += methods.points.amount || 0;
+    }
+
+    const remaining = Math.max(0, itemPrice - totalPaidAmount);
+    return { 
+      isFullyPaid: totalPaidAmount >= itemPrice, 
+      totalPaid: totalPaidAmount, 
+      remaining: remaining,
+      hasNoPaymentMethods: false
+    };
+  };
+
   // Helper function to get payment method icons for an item
   const getPaymentMethodIcons = (passengerId: string, itemType: string) => {
     const itemKey = `${passengerId}-${itemType}`;
@@ -186,6 +229,7 @@ export function SelectedItemsBreakdown({ selectedItems, reservation, itemPayment
                         const passengerIndex = resolvePassengerIndex(passengerId);
                         const passengerData = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
                         const price = passengerData?.ticket?.price || 0;
+                        const paymentStatus = getPaymentStatus(passengerId, 'ticket', price);
                         return (
                           <Box key={passengerId} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.5 }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
@@ -194,9 +238,31 @@ export function SelectedItemsBreakdown({ selectedItems, reservation, itemPayment
                               </Typography>
                               {getPaymentMethodIcons(passengerId, 'ticket')}
                             </Box>
-                            <Typography variant="caption" sx={{ fontWeight: 600, color: '#1B358F' }}>
-                              ${price.toLocaleString()}
-                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                              {paymentStatus.isFullyPaid ? (
+                                <CheckCircleIcon sx={{ fontSize: 16, color: '#4CAF50', mr: 0.5 }} />
+                              ) : paymentStatus.hasNoPaymentMethods ? (
+                                <Tooltip 
+                                  title={`No payment method assigned: $${paymentStatus.remaining.toLocaleString()} remaining`} 
+                                  arrow
+                                >
+                                  <WarningIcon sx={{ fontSize: 16, color: '#FF9800', mr: 0.5, cursor: 'help' }} />
+                                </Tooltip>
+                              ) : paymentStatus.totalPaid > 0 ? (
+                                <Tooltip 
+                                  title={`Incomplete payment: $${paymentStatus.totalPaid.toLocaleString()} paid, $${paymentStatus.remaining.toLocaleString()} remaining`} 
+                                  arrow
+                                >
+                                  <WarningIcon sx={{ fontSize: 16, color: '#FF9800', mr: 0.5, cursor: 'help' }} />
+                                </Tooltip>
+                              ) : null}
+                              <Typography variant="caption" sx={{ 
+                                fontWeight: 600, 
+                                color: paymentStatus.isFullyPaid ? '#48A9A6' : '#1B358F' 
+                              }}>
+                                ${price.toLocaleString()}
+                              </Typography>
+                            </Box>
                           </Box>
                         );
                       })}
@@ -210,6 +276,7 @@ export function SelectedItemsBreakdown({ selectedItems, reservation, itemPayment
                     </Box>
                   </Box>
                 }
+                secondaryTypographyProps={{ component: 'div' }}
               />
             </ListItem>
           )}
@@ -229,6 +296,7 @@ export function SelectedItemsBreakdown({ selectedItems, reservation, itemPayment
                         const passengerIndex = resolvePassengerIndex(passengerId);
                         const passengerData = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
                         const price = passengerData?.ancillaries?.seat?.price || 0;
+                        const paymentStatus = getPaymentStatus(passengerId, 'seat', price);
                         return (
                           <Box key={passengerId} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.5 }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
@@ -237,9 +305,31 @@ export function SelectedItemsBreakdown({ selectedItems, reservation, itemPayment
                               </Typography>
                               {getPaymentMethodIcons(passengerId, 'seat')}
                             </Box>
-                            <Typography variant="caption" sx={{ fontWeight: 600, color: '#1B358F' }}>
-                              ${price.toLocaleString()}
-                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                              {paymentStatus.isFullyPaid ? (
+                                <CheckCircleIcon sx={{ fontSize: 16, color: '#4CAF50', mr: 0.5 }} />
+                              ) : paymentStatus.hasNoPaymentMethods ? (
+                                <Tooltip 
+                                  title={`No payment method assigned: $${paymentStatus.remaining.toLocaleString()} remaining`} 
+                                  arrow
+                                >
+                                  <WarningIcon sx={{ fontSize: 16, color: '#FF9800', mr: 0.5, cursor: 'help' }} />
+                                </Tooltip>
+                              ) : paymentStatus.totalPaid > 0 ? (
+                                <Tooltip 
+                                  title={`Incomplete payment: $${paymentStatus.totalPaid.toLocaleString()} paid, $${paymentStatus.remaining.toLocaleString()} remaining`} 
+                                  arrow
+                                >
+                                  <WarningIcon sx={{ fontSize: 16, color: '#FF9800', mr: 0.5, cursor: 'help' }} />
+                                </Tooltip>
+                              ) : null}
+                              <Typography variant="caption" sx={{ 
+                                fontWeight: 600, 
+                                color: paymentStatus.isFullyPaid ? '#48A9A6' : '#1B358F' 
+                              }}>
+                                ${price.toLocaleString()}
+                              </Typography>
+                            </Box>
                           </Box>
                         );
                       })}
@@ -253,6 +343,7 @@ export function SelectedItemsBreakdown({ selectedItems, reservation, itemPayment
                     </Box>
                   </Box>
                 }
+                secondaryTypographyProps={{ component: 'div' }}
               />
             </ListItem>
           )}
@@ -272,6 +363,7 @@ export function SelectedItemsBreakdown({ selectedItems, reservation, itemPayment
                         const passengerIndex = resolvePassengerIndex(passengerId);
                         const passengerData = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
                         const price = passengerData?.ancillaries?.bag?.price || 0;
+                        const paymentStatus = getPaymentStatus(passengerId, 'bag', price);
                         return (
                           <Box key={passengerId} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.5 }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
@@ -280,9 +372,31 @@ export function SelectedItemsBreakdown({ selectedItems, reservation, itemPayment
                               </Typography>
                               {getPaymentMethodIcons(passengerId, 'bag')}
                             </Box>
-                            <Typography variant="caption" sx={{ fontWeight: 600, color: '#1B358F' }}>
-                              ${price.toLocaleString()}
-                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                              {paymentStatus.isFullyPaid ? (
+                                <CheckCircleIcon sx={{ fontSize: 16, color: '#4CAF50', mr: 0.5 }} />
+                              ) : paymentStatus.hasNoPaymentMethods ? (
+                                <Tooltip 
+                                  title={`No payment method assigned: $${paymentStatus.remaining.toLocaleString()} remaining`} 
+                                  arrow
+                                >
+                                  <WarningIcon sx={{ fontSize: 16, color: '#FF9800', mr: 0.5, cursor: 'help' }} />
+                                </Tooltip>
+                              ) : paymentStatus.totalPaid > 0 ? (
+                                <Tooltip 
+                                  title={`Incomplete payment: $${paymentStatus.totalPaid.toLocaleString()} paid, $${paymentStatus.remaining.toLocaleString()} remaining`} 
+                                  arrow
+                                >
+                                  <WarningIcon sx={{ fontSize: 16, color: '#FF9800', mr: 0.5, cursor: 'help' }} />
+                                </Tooltip>
+                              ) : null}
+                              <Typography variant="caption" sx={{ 
+                                fontWeight: 600, 
+                                color: paymentStatus.isFullyPaid ? '#48A9A6' : '#1B358F' 
+                              }}>
+                                ${price.toLocaleString()}
+                              </Typography>
+                            </Box>
                           </Box>
                         );
                       })}
@@ -296,6 +410,7 @@ export function SelectedItemsBreakdown({ selectedItems, reservation, itemPayment
                     </Box>
                   </Box>
                 }
+                secondaryTypographyProps={{ component: 'div' }}
               />
             </ListItem>
           )}
@@ -315,6 +430,7 @@ export function SelectedItemsBreakdown({ selectedItems, reservation, itemPayment
                         const passengerIndex = resolvePassengerIndex(passengerId);
                         const passengerData = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
                         const price = passengerData?.ancillaries?.secondBag?.price || 0;
+                        const paymentStatus = getPaymentStatus(passengerId, 'secondBag', price);
                         return (
                           <Box key={passengerId} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.5 }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
@@ -323,9 +439,31 @@ export function SelectedItemsBreakdown({ selectedItems, reservation, itemPayment
                               </Typography>
                               {getPaymentMethodIcons(passengerId, 'secondBag')}
                             </Box>
-                            <Typography variant="caption" sx={{ fontWeight: 600, color: '#1B358F' }}>
-                              ${price.toLocaleString()}
-                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                              {paymentStatus.isFullyPaid ? (
+                                <CheckCircleIcon sx={{ fontSize: 16, color: '#4CAF50', mr: 0.5 }} />
+                              ) : paymentStatus.hasNoPaymentMethods ? (
+                                <Tooltip 
+                                  title={`No payment method assigned: $${paymentStatus.remaining.toLocaleString()} remaining`} 
+                                  arrow
+                                >
+                                  <WarningIcon sx={{ fontSize: 16, color: '#FF9800', mr: 0.5, cursor: 'help' }} />
+                                </Tooltip>
+                              ) : paymentStatus.totalPaid > 0 ? (
+                                <Tooltip 
+                                  title={`Incomplete payment: $${paymentStatus.totalPaid.toLocaleString()} paid, $${paymentStatus.remaining.toLocaleString()} remaining`} 
+                                  arrow
+                                >
+                                  <WarningIcon sx={{ fontSize: 16, color: '#FF9800', mr: 0.5, cursor: 'help' }} />
+                                </Tooltip>
+                              ) : null}
+                              <Typography variant="caption" sx={{ 
+                                fontWeight: 600, 
+                                color: paymentStatus.isFullyPaid ? '#48A9A6' : '#1B358F' 
+                              }}>
+                                ${price.toLocaleString()}
+                              </Typography>
+                            </Box>
                           </Box>
                         );
                       })}
@@ -339,6 +477,7 @@ export function SelectedItemsBreakdown({ selectedItems, reservation, itemPayment
                     </Box>
                   </Box>
                 }
+                secondaryTypographyProps={{ component: 'div' }}
               />
             </ListItem>
           )}
@@ -358,6 +497,7 @@ export function SelectedItemsBreakdown({ selectedItems, reservation, itemPayment
                         const passengerIndex = resolvePassengerIndex(passengerId);
                         const passengerData = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
                         const price = passengerData?.ancillaries?.thirdBag?.price || 0;
+                        const paymentStatus = getPaymentStatus(passengerId, 'thirdBag', price);
                         return (
                           <Box key={passengerId} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.5 }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
@@ -366,9 +506,31 @@ export function SelectedItemsBreakdown({ selectedItems, reservation, itemPayment
                               </Typography>
                               {getPaymentMethodIcons(passengerId, 'thirdBag')}
                             </Box>
-                            <Typography variant="caption" sx={{ fontWeight: 600, color: '#1B358F' }}>
-                              ${price.toLocaleString()}
-                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                              {paymentStatus.isFullyPaid ? (
+                                <CheckCircleIcon sx={{ fontSize: 16, color: '#4CAF50', mr: 0.5 }} />
+                              ) : paymentStatus.hasNoPaymentMethods ? (
+                                <Tooltip 
+                                  title={`No payment method assigned: $${paymentStatus.remaining.toLocaleString()} remaining`} 
+                                  arrow
+                                >
+                                  <WarningIcon sx={{ fontSize: 16, color: '#FF9800', mr: 0.5, cursor: 'help' }} />
+                                </Tooltip>
+                              ) : paymentStatus.totalPaid > 0 ? (
+                                <Tooltip 
+                                  title={`Incomplete payment: $${paymentStatus.totalPaid.toLocaleString()} paid, $${paymentStatus.remaining.toLocaleString()} remaining`} 
+                                  arrow
+                                >
+                                  <WarningIcon sx={{ fontSize: 16, color: '#FF9800', mr: 0.5, cursor: 'help' }} />
+                                </Tooltip>
+                              ) : null}
+                              <Typography variant="caption" sx={{ 
+                                fontWeight: 600, 
+                                color: paymentStatus.isFullyPaid ? '#48A9A6' : '#1B358F' 
+                              }}>
+                                ${price.toLocaleString()}
+                              </Typography>
+                            </Box>
                           </Box>
                         );
                       })}
@@ -382,6 +544,7 @@ export function SelectedItemsBreakdown({ selectedItems, reservation, itemPayment
                     </Box>
                   </Box>
                 }
+                secondaryTypographyProps={{ component: 'div' }}
               />
             </ListItem>
           )}
@@ -401,6 +564,7 @@ export function SelectedItemsBreakdown({ selectedItems, reservation, itemPayment
                         const passengerIndex = resolvePassengerIndex(passengerId);
                         const passengerData = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
                         const price = passengerData?.ancillaries?.uatp?.price || 0;
+                        const paymentStatus = getPaymentStatus(passengerId, 'uatp', price);
                         return (
                           <Box key={passengerId} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.5 }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
@@ -409,9 +573,31 @@ export function SelectedItemsBreakdown({ selectedItems, reservation, itemPayment
                               </Typography>
                               {getPaymentMethodIcons(passengerId, 'uatp')}
                             </Box>
-                            <Typography variant="caption" sx={{ fontWeight: 600, color: '#1B358F' }}>
-                              ${price.toLocaleString()}
-                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                              {paymentStatus.isFullyPaid ? (
+                                <CheckCircleIcon sx={{ fontSize: 16, color: '#4CAF50', mr: 0.5 }} />
+                              ) : paymentStatus.hasNoPaymentMethods ? (
+                                <Tooltip 
+                                  title={`No payment method assigned: $${paymentStatus.remaining.toLocaleString()} remaining`} 
+                                  arrow
+                                >
+                                  <WarningIcon sx={{ fontSize: 16, color: '#FF9800', mr: 0.5, cursor: 'help' }} />
+                                </Tooltip>
+                              ) : paymentStatus.totalPaid > 0 ? (
+                                <Tooltip 
+                                  title={`Incomplete payment: $${paymentStatus.totalPaid.toLocaleString()} paid, $${paymentStatus.remaining.toLocaleString()} remaining`} 
+                                  arrow
+                                >
+                                  <WarningIcon sx={{ fontSize: 16, color: '#FF9800', mr: 0.5, cursor: 'help' }} />
+                                </Tooltip>
+                              ) : null}
+                              <Typography variant="caption" sx={{ 
+                                fontWeight: 600, 
+                                color: paymentStatus.isFullyPaid ? '#48A9A6' : '#1B358F' 
+                              }}>
+                                ${price.toLocaleString()}
+                              </Typography>
+                            </Box>
                           </Box>
                         );
                       })}
@@ -425,6 +611,7 @@ export function SelectedItemsBreakdown({ selectedItems, reservation, itemPayment
                     </Box>
                   </Box>
                 }
+                secondaryTypographyProps={{ component: 'div' }}
               />
             </ListItem>
           )}

@@ -97,75 +97,6 @@ export function PaymentMethodPointsForm({ itemKey, paymentData, updateMethodFiel
 
   return (
     <Box sx={{ mt: 2, p: 3, bgcolor: 'white', borderRadius: 2, border: '1px solid', borderColor: '#E4DFDA' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="subtitle2" sx={{ color: '#1B358F', fontWeight: 600 }}>
-          Points Details
-        </Typography>
-        <Button
-          variant="contained"
-          size="small"
-          onClick={() => {
-            setIsSaved(true);
-            // Apply validation and capping immediately when saving
-            const inputValue = localAmount;
-            // Handle empty input
-            if (inputValue === '' || inputValue === null || inputValue === undefined) {
-              setLocalAmount('1.00');
-              updateMethodField(itemKey, 'points', 'amount', '1');
-              updateMethodField(itemKey, 'points', 'pointsToUse', '50');
-              return;
-            }
-            
-            const value = parseFloat(inputValue);
-            // Handle invalid input (NaN)
-            if (isNaN(value)) {
-              setLocalAmount('1');
-              updateMethodField(itemKey, 'points', 'amount', '1');
-              updateMethodField(itemKey, 'points', 'pointsToUse', '50');
-              return;
-            }
-            
-            // Don't allow negative values, and always cap at remaining amount
-            // If value is 0, set it to 1 dollar minimum
-            const minValue = value <= 0 ? 1 : Math.max(0.01, value);
-            
-            // Calculate remaining amount WITHOUT the current payment method
-            // We need to exclude the current points amount from the calculation
-            const currentPaidAmount = getTotalPaidAmountWrapper(itemKey);
-            
-            // Subtract the current points amount to get the amount paid by OTHER methods
-            const currentPointsAmount = parseFloat(storedAmount || '0') || 0;
-            const otherMethodsPaid = currentPaidAmount - currentPointsAmount;
-            
-            const currentRemaining = Math.max(0, originalPrice - otherMethodsPaid);
-            
-            // Always cap at current remaining amount, but ensure minimum is 1 if remaining is 0
-            const cappedAmount = currentRemaining > 0 ? Math.min(minValue, currentRemaining) : (originalPrice > 0 ? Math.min(minValue, originalPrice) : 1);
-            const pointsToUse = Math.round(cappedAmount * 50); // 50 points = $1
-            
-            setLocalAmount(cappedAmount.toFixed(2));
-            updateMethodField(itemKey, 'points', 'amount', cappedAmount.toString());
-            updateMethodField(itemKey, 'points', 'pointsToUse', pointsToUse.toString());
-            
-            // Collapse the form after saving
-            if (setItemExpandedMethod) {
-              setItemExpandedMethod(prev => ({
-                ...prev,
-                [itemKey]: null
-              }));
-            }
-          }}
-          sx={{
-            bgcolor: '#48A9A6',
-            '&:hover': { bgcolor: '#3a8a87' },
-            fontSize: '0.75rem',
-            px: 2,
-            py: 0.5
-          }}
-        >
-          Save
-        </Button>
-      </Box>
       
       {/* Payment Amount */}
       <Box sx={{ mb: 2.5 }}>
@@ -348,6 +279,75 @@ export function PaymentMethodPointsForm({ itemKey, paymentData, updateMethodFiel
             updateMethodField(itemKey, 'points', 'awardReference', value);
           }} 
         />
+      </Box>
+      
+      {/* Save Button at bottom */}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mt: 3 }}>
+        <Button
+          variant="contained"
+          size="small"
+          onClick={() => {
+            setIsSaved(true);
+            // Apply validation and capping immediately when saving
+            const inputValue = localAmount;
+            // Handle empty input
+            if (inputValue === '' || inputValue === null || inputValue === undefined) {
+              setLocalAmount('1.00');
+              updateMethodField(itemKey, 'points', 'amount', '1');
+              updateMethodField(itemKey, 'points', 'pointsToUse', '50');
+              return;
+            }
+            
+            const value = parseFloat(inputValue);
+            // Handle invalid input (NaN)
+            if (isNaN(value)) {
+              setLocalAmount('1');
+              updateMethodField(itemKey, 'points', 'amount', '1');
+              updateMethodField(itemKey, 'points', 'pointsToUse', '50');
+              return;
+            }
+            
+            // Don't allow negative values, and always cap at remaining amount
+            // If value is 0, set it to 1 dollar minimum
+            const minValue = value <= 0 ? 1 : Math.max(0.01, value);
+            
+            // Calculate remaining amount WITHOUT the current payment method
+            // We need to exclude the current points amount from the calculation
+            const currentPaidAmount = getTotalPaidAmountWrapper(itemKey);
+            
+            // Subtract the current points amount to get the amount paid by OTHER methods
+            const currentPointsAmount = parseFloat(storedAmount || '0') || 0;
+            const otherMethodsPaid = currentPaidAmount - currentPointsAmount;
+            
+            const currentRemaining = Math.max(0, originalPrice - otherMethodsPaid);
+            
+            // Always cap at current remaining amount, but ensure minimum is 1 if remaining is 0
+            const cappedAmount = currentRemaining > 0 ? Math.min(minValue, currentRemaining) : (originalPrice > 0 ? Math.min(minValue, originalPrice) : 1);
+            const pointsToUse = Math.round(cappedAmount * 50); // 50 points = $1
+            
+            setLocalAmount(cappedAmount.toFixed(2));
+            updateMethodField(itemKey, 'points', 'amount', cappedAmount.toString());
+            updateMethodField(itemKey, 'points', 'pointsToUse', pointsToUse.toString());
+            
+            // Collapse the form after saving
+            if (setItemExpandedMethod) {
+              setItemExpandedMethod(prev => ({
+                ...prev,
+                [itemKey]: null
+              }));
+            }
+          }}
+          sx={{ 
+            bgcolor: '#1B358F', 
+            color: 'white',
+            '&:hover': { bgcolor: '#0F2A7A' },
+            fontSize: '0.75rem',
+            px: 2,
+            py: 0.5
+          }}
+        >
+          Save
+        </Button>
       </Box>
     </Box>
   );

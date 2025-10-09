@@ -135,77 +135,6 @@ export function PaymentMethodCreditForm({ itemKey, paymentData, updateMethodFiel
 
   return (
     <Box sx={{ mt: 2, p: 3, bgcolor: 'white', borderRadius: 2, border: '1px solid', borderColor: '#E4DFDA' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="subtitle2" sx={{ color: '#1B358F', fontWeight: 600 }}>
-          Credit Card Details
-        </Typography>
-        <Button
-          variant="contained"
-          size="small"
-          onClick={() => {
-            setIsSaved(true);
-            // Apply validation and capping immediately when saving
-            const inputValue = localAmount;
-            
-            // Handle empty input
-            if (inputValue === '' || inputValue === null || inputValue === undefined) {
-              setLocalAmount('1.00');
-              updateMethodField(itemKey, 'credit', 'amount', '1');
-              return;
-            }
-            
-            const value = parseFloat(inputValue);
-            
-            // Handle invalid input (NaN)
-            if (isNaN(value)) {
-              setLocalAmount('1.00');
-              updateMethodField(itemKey, 'credit', 'amount', '1');
-              return;
-            }
-            
-            // Don't allow negative values, and always cap at remaining amount
-            // If value is 0, set it to 1 dollar minimum
-            const minValue = value <= 0 ? 1 : Math.max(0.01, value);
-            
-            // Calculate remaining amount WITHOUT the current payment method
-            // We need to exclude the current credit card amount from the calculation
-            const currentPaidAmount = getTotalPaidAmountWrapper(itemKey);
-            
-            // Subtract the current credit card amount to get the amount paid by OTHER methods
-            const currentCreditAmount = parseFloat(storedAmount || '0') || 0;
-            const otherMethodsPaid = currentPaidAmount - currentCreditAmount;
-            
-            const currentRemaining = Math.max(0, originalPrice - otherMethodsPaid);
-            
-            // Always cap at current remaining amount, but ensure minimum is 1 if remaining is 0
-            const cappedValue = currentRemaining > 0 ? Math.min(minValue, currentRemaining) : (originalPrice > 0 ? Math.min(minValue, originalPrice) : 1);
-            
-            
-             setLocalAmount(cappedValue.toFixed(2));
-             updateMethodField(itemKey, 'credit', 'amount', cappedValue.toString());
-             // Mark credit as saved so UI remains masked when reopening
-             updateMethodField(itemKey, 'credit', 'isSaved', 'true');
-             
-             // Collapse the form after saving
-             if (setItemExpandedMethod) {
-               setItemExpandedMethod(prev => ({
-                 ...prev,
-                 [itemKey]: null
-               }));
-             }
-             
-          }}
-          sx={{
-            bgcolor: '#1B358F',
-            '&:hover': { bgcolor: '#0f1f5f' },
-            fontSize: '0.75rem',
-            px: 2,
-            py: 0.5
-          }}
-        >
-          Save
-        </Button>
-      </Box>
       
       {/* Payment Amount and Number of Payments */}
       <Box sx={{ display: 'flex', gap: 2, mb: 2.5 }}>
@@ -380,6 +309,77 @@ export function PaymentMethodCreditForm({ itemKey, paymentData, updateMethodFiel
           }} 
           onChange={(e) => updateMethodField(itemKey, 'credit', 'cvv', e.target.value.replace(/\D/g, ''))} 
         />
+      </Box>
+      
+      {/* Save Button at bottom */}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mt: 3 }}>
+        <Button
+          variant="contained"
+          size="small"
+          onClick={() => {
+            setIsSaved(true);
+            // Apply validation and capping immediately when saving
+            const inputValue = localAmount;
+            
+            // Handle empty input
+            if (inputValue === '' || inputValue === null || inputValue === undefined) {
+              setLocalAmount('1.00');
+              updateMethodField(itemKey, 'credit', 'amount', '1');
+              return;
+            }
+            
+            const value = parseFloat(inputValue);
+            
+            // Handle invalid input (NaN)
+            if (isNaN(value)) {
+              setLocalAmount('1.00');
+              updateMethodField(itemKey, 'credit', 'amount', '1');
+              return;
+            }
+            
+            // Don't allow negative values, and always cap at remaining amount
+            // If value is 0, set it to 1 dollar minimum
+            const minValue = value <= 0 ? 1 : Math.max(0.01, value);
+            
+            // Calculate remaining amount WITHOUT the current payment method
+            // We need to exclude the current credit card amount from the calculation
+            const currentPaidAmount = getTotalPaidAmountWrapper(itemKey);
+            
+            // Subtract the current credit card amount to get the amount paid by OTHER methods
+            const currentCreditAmount = parseFloat(storedAmount || '0') || 0;
+            const otherMethodsPaid = currentPaidAmount - currentCreditAmount;
+            
+            const currentRemaining = Math.max(0, originalPrice - otherMethodsPaid);
+            
+            // Always cap at current remaining amount, but ensure minimum is 1 if remaining is 0
+            const cappedValue = currentRemaining > 0 ? Math.min(minValue, currentRemaining) : (originalPrice > 0 ? Math.min(minValue, originalPrice) : 1);
+            
+            
+             setLocalAmount(cappedValue.toFixed(2));
+             updateMethodField(itemKey, 'credit', 'amount', cappedValue.toString());
+             // Mark credit as saved so UI remains masked when reopening
+             updateMethodField(itemKey, 'credit', 'isSaved', 'true');
+             
+             // Collapse the form after saving
+             if (setItemExpandedMethod) {
+               setItemExpandedMethod(prev => ({
+                 ...prev,
+                 [itemKey]: null
+               }));
+             }
+             
+          }}
+          sx={{ 
+            bgcolor: '#1B358F', 
+            color: 'white',
+            '&:hover': { bgcolor: '#0F2A7A' },
+            fontSize: '0.75rem',
+            px: 2,
+            py: 0.5
+          }}
+        >
+          Save
+        </Button>
       </Box>
     </Box>
   );

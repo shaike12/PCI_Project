@@ -197,7 +197,12 @@ export const removeMethod = (
       delete methods.points;
     }
     
-    updated[itemKey] = methods;
+    // If all payment methods are deleted, remove the itemKey entirely
+    if (!methods.credit && (!methods.vouchers || methods.vouchers.length === 0) && !methods.points) {
+      delete updated[itemKey];
+    } else {
+      updated[itemKey] = methods;
+    }
     return updated;
   });
 

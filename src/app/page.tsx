@@ -33,19 +33,12 @@ import {
 import {
   Person as PersonIcon,
   CreditCard as CreditCardIcon,
-  Check as CheckIcon,
   ContentCopy as CopyIcon,
   Delete as DeleteIcon,
   DeleteForever as DeleteAllIcon,
   Refresh as RefreshIcon,
-  ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon,
-  Flight as FlightIcon,
-  EventSeat as SeatIcon,
-  Luggage as BagIcon,
   ReceiptLong as ReceiptLongIcon,
   ShoppingCart as ShoppingCartIcon,
-  CardMembership as UatpIcon
 } from '@mui/icons-material';
 import { PassengerHeader } from './components/PassengerHeader';
 import PassengerCard from './components/PassengerCard';
@@ -783,12 +776,10 @@ export default function PaymentPortal() {
 
   // Voucher balance management functions
   const checkVoucherBalance = async (voucherNumber: string): Promise<number> => {
-    console.log('checkVoucherBalance called in page.tsx:', voucherNumber);
     const cleanVoucherNumber = voucherNumber.replace(/\D/g, '');
     
     // If we already have the balance for this voucher, return the current (updated) balance
     if (voucherBalances[cleanVoucherNumber] !== undefined) {
-      console.log('Returning existing balance:', voucherBalances[cleanVoucherNumber]);
       return voucherBalances[cleanVoucherNumber];
     }
     
@@ -806,7 +797,6 @@ export default function PaymentPortal() {
       [cleanVoucherNumber]: simulatedBalance
     }));
     
-    console.log('Generated new initial balance:', simulatedBalance);
     return simulatedBalance;
   };
 
@@ -824,18 +814,11 @@ export default function PaymentPortal() {
   const updateVoucherBalance = (voucherNumber: string, usedAmount: number) => {
     const cleanVoucherNumber = voucherNumber.replace(/\D/g, '');
     
-    console.log('updateVoucherBalance called:', { voucherNumber, cleanVoucherNumber, usedAmount });
     
     setVoucherBalances(prev => {
       const currentBalance = prev[cleanVoucherNumber] || 0;
       const newBalance = Math.max(0, currentBalance - usedAmount);
       
-      console.log('Updating voucher balance:', { 
-        voucherNumber: cleanVoucherNumber, 
-        currentBalance, 
-        usedAmount, 
-        newBalance 
-      });
       
       return {
         ...prev,
@@ -849,14 +832,12 @@ export default function PaymentPortal() {
     // If we have a stored balance (post-initialization/updates), return it
     if (voucherBalances[cleanVoucherNumber] !== undefined) {
       const balance = voucherBalances[cleanVoucherNumber];
-      console.log('getVoucherBalance (stored):', { voucherNumber, cleanVoucherNumber, balance, allBalances: voucherBalances });
       return balance;
     }
     // Otherwise compute live available = initial - current usage across items
     const initial = getVoucherInitialBalance(cleanVoucherNumber);
     const used = getCurrentVoucherUsage(cleanVoucherNumber);
     const liveAvailable = Math.max(0, initial - used);
-    console.log('getVoucherBalance (computed):', { voucherNumber, cleanVoucherNumber, initial, used, liveAvailable });
     return liveAvailable;
   };
   
@@ -1407,7 +1388,22 @@ export default function PaymentPortal() {
 
   // togglePassenger is now imported from utils/passengerLogic
   const togglePassenger = (passengerId: string) => {
+    const wasSelected = selectedPassengers.includes(passengerId);
     togglePassengerUtil(passengerId, selectedPassengers, setSelectedPassengers);
+    
+    // If passenger was deselected, clear all payment methods for this passenger
+    if (wasSelected) {
+      const prefix = `${passengerId}-`;
+      const keysToRemove = Object.keys(itemPaymentMethods).filter(key => key.startsWith(prefix));
+      keysToRemove.forEach(key => {
+        setItemPaymentMethods(prev => { const next = { ...prev } as any; delete next[key]; return next; });
+        setItemMethodForms(prev => { const next = { ...prev } as any; delete next[key]; return next; });
+        setItemExpandedMethod(prev => { const next = { ...prev } as any; delete next[key]; return next; });
+      });
+      setSelectedItems(prev => { const next = { ...prev } as any; delete next[passengerId]; return next; });
+      return;
+    }
+    
     // Auto-select all unpaid items for this passenger
     const passengerIndex = resolvePassengerIndex(passengerId);
     const passengerData = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
@@ -1420,7 +1416,6 @@ export default function PaymentPortal() {
     if (passengerData.ancillaries.secondBag && passengerData.ancillaries.secondBag.status !== 'Paid') itemsToSelect.push('secondBag');
     if (passengerData.ancillaries.thirdBag && passengerData.ancillaries.thirdBag.status !== 'Paid') itemsToSelect.push('thirdBag');
     if (passengerData.ancillaries.uatp && passengerData.ancillaries.uatp.status !== 'Paid') itemsToSelect.push('uatp');
-
 
     setSelectedItems(prev => ({
       ...prev,
@@ -1488,7 +1483,8 @@ export default function PaymentPortal() {
 
   // Clear all selected items for a passenger
   const clearAllItemsForPassenger = (passengerId: string) => {
-    if (hasPaymentMethodsForPassenger(passengerId)) {
+    // Check if passenger is still selected and has payment methods
+    if (selectedPassengers.includes(passengerId) && hasPaymentMethodsForPassenger(passengerId)) {
       openConfirmForPassenger(passengerId);
       return;
     }
@@ -1591,6 +1587,10 @@ export default function PaymentPortal() {
   const [pendingItemClear, setPendingItemClear] = useState<string | null>(null);
 
   const hasPaymentMethodsForPassenger = (passengerId: string): boolean => {
+    // Check if passenger is still selected
+    if (!selectedPassengers.includes(passengerId)) {
+      return false;
+    }
     const prefix = `${passengerId}-`;
     return Object.keys(itemPaymentMethods).some((key) => key.startsWith(prefix));
   };
@@ -2086,17 +2086,12 @@ export default function PaymentPortal() {
                           const passengerIndex = resolvePassengerIndex(passengerId);
                           const passengerData = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
                           if (!passengerData) {
-                            console.log(`[HAS_SELECTED] ${passengerId}: No passenger data found`);
                             return false;
                           }
                           
                           const passengerItems = selectedItems[passengerId] || [];
-                          console.log(`[HAS_SELECTED] ${passengerId}: passengerItems =`, passengerItems);
-                          console.log(`[HAS_SELECTED] ${passengerId}: selectedItems =`, selectedItems);
-                          console.log(`[HAS_SELECTED] ${passengerId}: passengerData =`, passengerData);
                           
                           if (passengerItems.length === 0) {
-                            console.log(`[HAS_SELECTED] ${passengerId}: No items selected, returning false`);
                             return false;
                           }
                           
@@ -2110,11 +2105,9 @@ export default function PaymentPortal() {
                             if (itemType === 'thirdBag') isUnpaid = passengerData.ancillaries.thirdBag?.status !== 'Paid';
                             if (itemType === 'uatp') isUnpaid = passengerData.ancillaries.uatp?.status !== 'Paid';
                             
-                            console.log(`[HAS_SELECTED] ${passengerId}: ${itemType} isUnpaid = ${isUnpaid}`);
                             return isUnpaid;
                           });
                           
-                          console.log(`[HAS_SELECTED] ${passengerId}: hasUnpaidItems = ${hasUnpaidItems}`);
                           return hasUnpaidItems;
                         }}
                         togglePassenger={togglePassenger}
@@ -2301,7 +2294,6 @@ export default function PaymentPortal() {
                       }
                     }
                     
-                    // Debug logging removed for production
                     
                     if (selectedItemsList.length === 0) {
                       return true;

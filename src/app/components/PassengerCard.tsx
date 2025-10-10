@@ -588,7 +588,26 @@ function PassengerCard({
           >
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-                <LuggageIcon sx={{ mr: 1, color: passengerData.ancillaries?.bag?.status === 'Paid' ? '#C1666B' : '#D4B483', fontSize: 18 }} />
+                <Box sx={{ display: 'flex', alignItems: 'center', position: 'relative', mr: 1 }}>
+                  <LuggageIcon sx={{ color: passengerData.ancillaries?.bag?.status === 'Paid' ? '#C1666B' : '#D4B483', fontSize: 18 }} />
+                  <Typography variant="caption" sx={{ 
+                    position: 'absolute', 
+                    top: -2, 
+                    right: -2, 
+                    fontSize: '0.6rem', 
+                    fontWeight: 'bold',
+                    color: '#1B358F',
+                    backgroundColor: '#E4DFDA',
+                    borderRadius: '50%',
+                    width: 12,
+                    height: 12,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    1
+                  </Typography>
+                </Box>
                 <Box sx={{ flex: 1 }}>
                   <Typography variant="body2" sx={{ fontWeight: 'medium', fontSize: '0.875rem' }}>
                     Baggage (XBAF)
@@ -675,7 +694,26 @@ function PassengerCard({
             >
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-                  <LuggageIcon sx={{ mr: 1, color: passengerData.ancillaries.secondBag?.status === 'Paid' ? '#C1666B' : '#D4B483', fontSize: 18 }} />
+                  <Box sx={{ display: 'flex', alignItems: 'center', position: 'relative', mr: 1 }}>
+                    <LuggageIcon sx={{ color: passengerData.ancillaries.secondBag?.status === 'Paid' ? '#C1666B' : '#D4B483', fontSize: 18 }} />
+                    <Typography variant="caption" sx={{ 
+                      position: 'absolute', 
+                      top: -2, 
+                      right: -2, 
+                      fontSize: '0.6rem', 
+                      fontWeight: 'bold',
+                      color: '#1B358F',
+                      backgroundColor: '#E4DFDA',
+                      borderRadius: '50%',
+                      width: 12,
+                      height: 12,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      2
+                    </Typography>
+                  </Box>
                   <Box sx={{ flex: 1 }}>
                     <Typography variant="body2" sx={{ fontWeight: 'medium', fontSize: '0.875rem' }}>
                       Second Bag (XBAS)
@@ -762,7 +800,26 @@ function PassengerCard({
             >
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-                  <LuggageIcon sx={{ mr: 1, color: passengerData.ancillaries.thirdBag?.status === 'Paid' ? '#C1666B' : '#D4B483', fontSize: 18 }} />
+                  <Box sx={{ display: 'flex', alignItems: 'center', position: 'relative', mr: 1 }}>
+                    <LuggageIcon sx={{ color: passengerData.ancillaries.thirdBag?.status === 'Paid' ? '#C1666B' : '#D4B483', fontSize: 18 }} />
+                    <Typography variant="caption" sx={{ 
+                      position: 'absolute', 
+                      top: -2, 
+                      right: -2, 
+                      fontSize: '0.6rem', 
+                      fontWeight: 'bold',
+                      color: '#1B358F',
+                      backgroundColor: '#E4DFDA',
+                      borderRadius: '50%',
+                      width: 12,
+                      height: 12,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      3
+                    </Typography>
+                  </Box>
                   <Box sx={{ flex: 1 }}>
                     <Typography variant="body2" sx={{ fontWeight: 'medium', fontSize: '0.875rem' }}>
                       Third Bag (XBAT)

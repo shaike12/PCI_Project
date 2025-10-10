@@ -1,8 +1,8 @@
 "use client";
 
-import { Accordion, AccordionDetails, AccordionSummary, Badge, Box, List, ListItem, ListItemIcon, ListItemText, Typography, Tooltip } from "@mui/material";
+import { Accordion, AccordionDetails, AccordionSummary, Badge, Box, List, ListItem, ListItemIcon, ListItemText, Typography, Tooltip, Divider } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
+import PersonIcon from "@mui/icons-material/Person";
 import FlightIcon from "@mui/icons-material/Flight";
 import EventSeatIcon from "@mui/icons-material/EventSeat";
 import LuggageIcon from "@mui/icons-material/Luggage";
@@ -185,8 +185,8 @@ export function SelectedItemsBreakdown({ selectedItems, reservation, itemPayment
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
         <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', mr: 1 }}>
-            <ShoppingCartIcon sx={{ color: '#1B358F' }} />
-            {Object.values(selectedItems).flat().length > 0 && (
+            <PersonIcon sx={{ color: '#1B358F' }} />
+            {Object.keys(selectedItems).length > 0 && (
               <Typography variant="caption" sx={{ 
                 ml: 0.5, 
                 color: '#1B358F', 
@@ -200,12 +200,12 @@ export function SelectedItemsBreakdown({ selectedItems, reservation, itemPayment
                 justifyContent: 'center',
                 fontSize: '0.7rem'
               }}>
-                {Object.values(selectedItems).flat().length}
+                {Object.keys(selectedItems).length}
               </Typography>
             )}
           </Box>
           <Typography variant="subtitle2" sx={{ fontWeight: 600, flex: 1 }}>
-            Selected Items
+            Passengers
           </Typography>
           <Typography variant="body2" sx={{ fontWeight: 600, color: '#1B358F' }}>
             ${totalSelected.toLocaleString()}
@@ -214,29 +214,200 @@ export function SelectedItemsBreakdown({ selectedItems, reservation, itemPayment
       </AccordionSummary>
       <AccordionDetails>
         <List dense>
-          {selectedTickets > 0 && (
-            <ListItem sx={{ px: 0 }}>
-              <ListItemIcon sx={{ minWidth: 36 }}>
-                <FlightIcon sx={{ color: '#1B358F' }} />
-              </ListItemIcon>
-              <ListItemText 
-                primary="Flight Tickets" 
-                secondary={
-                  <Box>
-                    {Object.entries(selectedItems)
-                      .filter(([_, items]) => items.includes('ticket'))
-                      .map(([passengerId, _]) => {
+          {Object.keys(selectedItems).length > 0 ? (
+            Object.entries(selectedItems).map(([passengerId, items], index) => {
                         const passengerIndex = resolvePassengerIndex(passengerId);
                         const passengerData = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
-                        const price = passengerData?.ticket?.price || 0;
-                        const paymentStatus = getPaymentStatus(passengerId, 'ticket', price);
-                        return (
-                          <Box key={passengerId} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.5 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-                              <Typography variant="caption" sx={{ color: '#666', mr: 1 }}>
-                                {passengerData?.name || `Passenger ${passengerId}`}
+              const passengerName = passengerData?.name || `Passenger ${passengerId}`;
+              
+              // Calculate total for this passenger
+              let passengerTotal = 0;
+              items.forEach(item => {
+                switch(item) {
+                  case 'ticket':
+                    if (passengerData?.ticket?.status !== 'Paid') {
+                      passengerTotal += passengerData?.ticket?.price || 0;
+                    }
+                    break;
+                  case 'seat':
+                    if (passengerData?.ancillaries?.seat?.status !== 'Paid') {
+                      passengerTotal += passengerData?.ancillaries?.seat?.price || 0;
+                    }
+                    break;
+                  case 'bag':
+                    if (passengerData?.ancillaries?.bag?.status !== 'Paid') {
+                      passengerTotal += passengerData?.ancillaries?.bag?.price || 0;
+                    }
+                    break;
+                  case 'secondBag':
+                    if (passengerData?.ancillaries?.secondBag?.status !== 'Paid') {
+                      passengerTotal += passengerData?.ancillaries?.secondBag?.price || 0;
+                    }
+                    break;
+                  case 'thirdBag':
+                    if (passengerData?.ancillaries?.thirdBag?.status !== 'Paid') {
+                      passengerTotal += passengerData?.ancillaries?.thirdBag?.price || 0;
+                    }
+                    break;
+                  case 'uatp':
+                    if (passengerData?.ancillaries?.uatp?.status !== 'Paid') {
+                      passengerTotal += passengerData?.ancillaries?.uatp?.price || 0;
+                    }
+                    break;
+                }
+              });
+
+              return (
+                <Box key={passengerId}>
+                  <ListItem sx={{ px: 0, py: 1 }}>
+              <ListItemText 
+                      primary={
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#1B358F' }}>
+                            {passengerName}
                               </Typography>
-                              {getPaymentMethodIcons(passengerId, 'ticket')}
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: '#1B358F' }}>
+                            ${passengerTotal.toLocaleString()}
+                      </Typography>
+                  </Box>
+                }
+                      secondary={
+                        <Box sx={{ mt: 1 }}>
+                          {items.map((item, itemIndex) => {
+                            let itemName = '';
+                            let itemPrice = 0;
+                            let itemIcon = null;
+                            let itemColor = '#1B358F';
+                            let isPaid = false;
+
+                            switch(item) {
+                              case 'ticket':
+                                itemName = 'Flight Ticket';
+                                itemPrice = passengerData?.ticket?.price || 0;
+                                itemIcon = <FlightIcon />;
+                                itemColor = '#1B358F';
+                                isPaid = passengerData?.ticket?.status === 'Paid';
+                                break;
+                              case 'seat':
+                                itemName = 'Seat Selection';
+                                itemPrice = passengerData?.ancillaries?.seat?.price || 0;
+                                itemIcon = <EventSeatIcon />;
+                                itemColor = '#1B358F';
+                                isPaid = passengerData?.ancillaries?.seat?.status === 'Paid';
+                                break;
+                              case 'bag':
+                                itemName = 'Baggage (XBAF)';
+                                itemPrice = passengerData?.ancillaries?.bag?.price || 0;
+                                itemIcon = (
+                                  <Box sx={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
+                                    <LuggageIcon />
+                                    <Typography variant="caption" sx={{ 
+                                      position: 'absolute', 
+                                      top: -2, 
+                                      right: -2, 
+                                      fontSize: '0.6rem', 
+                                      fontWeight: 'bold',
+                                      color: '#1B358F',
+                                      backgroundColor: '#E4DFDA',
+                                      borderRadius: '50%',
+                                      width: 12,
+                                      height: 12,
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center'
+                                    }}>
+                                      1
+                                    </Typography>
+                                  </Box>
+                                );
+                                itemColor = '#1B358F';
+                                isPaid = passengerData?.ancillaries?.bag?.status === 'Paid';
+                                break;
+                              case 'secondBag':
+                                itemName = 'Second Bag (XBAS)';
+                                itemPrice = passengerData?.ancillaries?.secondBag?.price || 0;
+                                itemIcon = (
+                                  <Box sx={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
+                                    <LuggageIcon />
+                                    <Typography variant="caption" sx={{ 
+                                      position: 'absolute', 
+                                      top: -2, 
+                                      right: -2, 
+                                      fontSize: '0.6rem', 
+                                      fontWeight: 'bold',
+                                      color: '#1B358F',
+                                      backgroundColor: '#E4DFDA',
+                                      borderRadius: '50%',
+                                      width: 12,
+                                      height: 12,
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center'
+                                    }}>
+                                      2
+                                    </Typography>
+                                  </Box>
+                                );
+                                itemColor = '#1B358F';
+                                isPaid = passengerData?.ancillaries?.secondBag?.status === 'Paid';
+                                break;
+                              case 'thirdBag':
+                                itemName = 'Third Bag (XBAT)';
+                                itemPrice = passengerData?.ancillaries?.thirdBag?.price || 0;
+                                itemIcon = (
+                                  <Box sx={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
+                                    <LuggageIcon />
+                                    <Typography variant="caption" sx={{ 
+                                      position: 'absolute', 
+                                      top: -2, 
+                                      right: -2, 
+                                      fontSize: '0.6rem', 
+                                      fontWeight: 'bold',
+                                      color: '#1B358F',
+                                      backgroundColor: '#E4DFDA',
+                                      borderRadius: '50%',
+                                      width: 12,
+                                      height: 12,
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center'
+                                    }}>
+                                      3
+                                    </Typography>
+                                  </Box>
+                                );
+                                itemColor = '#1B358F';
+                                isPaid = passengerData?.ancillaries?.thirdBag?.status === 'Paid';
+                                break;
+                              case 'uatp':
+                                itemName = 'UATP';
+                                itemPrice = passengerData?.ancillaries?.uatp?.price || 0;
+                                itemIcon = <CreditCardIcon />;
+                                itemColor = '#1B358F';
+                                isPaid = passengerData?.ancillaries?.uatp?.status === 'Paid';
+                                break;
+                            }
+
+                            if (itemPrice === 0) return null;
+
+                            const paymentStatus = getPaymentStatus(passengerId, item, itemPrice);
+
+                        return (
+                              <Box key={item} sx={{ 
+                                display: 'flex', 
+                                justifyContent: 'space-between', 
+                                alignItems: 'center', 
+                                py: 0.5,
+                                pl: 2
+                              }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+                                  <Box sx={{ color: itemColor, mr: 1, display: 'flex', alignItems: 'center' }}>
+                                    {itemIcon}
+                  </Box>
+                              <Typography variant="caption" sx={{ color: '#666', mr: 1 }}>
+                                    {itemName}
+                              </Typography>
+                                  {getPaymentMethodIcons(passengerId, item)}
                             </Box>
                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
                               {paymentStatus.isFullyPaid ? (
@@ -260,369 +431,30 @@ export function SelectedItemsBreakdown({ selectedItems, reservation, itemPayment
                                 fontWeight: 600, 
                                 color: paymentStatus.isFullyPaid ? '#48A9A6' : '#1B358F' 
                               }}>
-                                ${price.toLocaleString()}
+                                    ${itemPrice.toLocaleString()}
                               </Typography>
                             </Box>
                           </Box>
                         );
                       })}
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.5, borderTop: '1px solid #E0E0E0', mt: 0.5 }}>
-                      <Typography variant="caption" sx={{ fontWeight: 700, color: '#1B358F' }}>
-                        Total
-                      </Typography>
-                      <Typography variant="caption" sx={{ fontWeight: 700, color: '#1B358F' }}>
-                        ${selectedTickets.toLocaleString()}
-                      </Typography>
-                    </Box>
                   </Box>
                 }
                 secondaryTypographyProps={{ component: 'div' }}
               />
             </ListItem>
-          )}
-          
-          {selectedSeats > 0 && (
-            <ListItem sx={{ px: 0 }}>
-              <ListItemIcon sx={{ minWidth: 36 }}>
-                <EventSeatIcon sx={{ color: '#48A9A6' }} />
-              </ListItemIcon>
-              <ListItemText 
-                primary="Seat" 
-                secondary={
-                  <Box>
-                    {Object.entries(selectedItems)
-                      .filter(([_, items]) => items.includes('seat'))
-                      .map(([passengerId, _]) => {
-                        const passengerIndex = resolvePassengerIndex(passengerId);
-                        const passengerData = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
-                        const price = passengerData?.ancillaries?.seat?.price || 0;
-                        const paymentStatus = getPaymentStatus(passengerId, 'seat', price);
-                        return (
-                          <Box key={passengerId} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.5 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-                              <Typography variant="caption" sx={{ color: '#666', mr: 1 }}>
-                                {passengerData?.name || `Passenger ${passengerId}`}
-                              </Typography>
-                              {getPaymentMethodIcons(passengerId, 'seat')}
-                            </Box>
-                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                              {paymentStatus.isFullyPaid ? (
-                                <CheckCircleIcon sx={{ fontSize: 16, color: '#4CAF50', mr: 0.5 }} />
-                              ) : paymentStatus.hasNoPaymentMethods ? (
-                                <Tooltip 
-                                  title={`No payment method assigned: $${paymentStatus.remaining.toLocaleString()} remaining`} 
-                                  arrow
-                                >
-                                  <WarningIcon sx={{ fontSize: 16, color: '#FF9800', mr: 0.5, cursor: 'help' }} />
-                                </Tooltip>
-                              ) : paymentStatus.totalPaid > 0 ? (
-                                <Tooltip 
-                                  title={`Incomplete payment: $${paymentStatus.totalPaid.toLocaleString()} paid, $${paymentStatus.remaining.toLocaleString()} remaining`} 
-                                  arrow
-                                >
-                                  <WarningIcon sx={{ fontSize: 16, color: '#FF9800', mr: 0.5, cursor: 'help' }} />
-                                </Tooltip>
-                              ) : null}
-                              <Typography variant="caption" sx={{ 
-                                fontWeight: 600, 
-                                color: paymentStatus.isFullyPaid ? '#48A9A6' : '#1B358F' 
-                              }}>
-                                ${price.toLocaleString()}
-                              </Typography>
-                            </Box>
+                  {index < Object.keys(selectedItems).length - 1 && (
+                    <Divider sx={{ mx: 2 }} />
+                  )}
                           </Box>
                         );
-                      })}
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.5, borderTop: '1px solid #E0E0E0', mt: 0.5 }}>
-                      <Typography variant="caption" sx={{ fontWeight: 700, color: '#1B358F' }}>
-                        Total
-                      </Typography>
-                      <Typography variant="caption" sx={{ fontWeight: 700, color: '#1B358F' }}>
-                        ${selectedSeats.toLocaleString()}
-                      </Typography>
-                    </Box>
-                  </Box>
-                }
-                secondaryTypographyProps={{ component: 'div' }}
-              />
-            </ListItem>
-          )}
-          
-          {selectedBags > 0 && (
-            <ListItem sx={{ px: 0 }}>
-              <ListItemIcon sx={{ minWidth: 36 }}>
-                <LuggageIcon sx={{ color: '#48A9A6' }} />
-              </ListItemIcon>
-              <ListItemText 
-                primary="Baggage (XBAF)" 
-                secondary={
-                  <Box>
-                    {Object.entries(selectedItems)
-                      .filter(([_, items]) => items.includes('bag'))
-                      .map(([passengerId, _]) => {
-                        const passengerIndex = resolvePassengerIndex(passengerId);
-                        const passengerData = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
-                        const price = passengerData?.ancillaries?.bag?.price || 0;
-                        const paymentStatus = getPaymentStatus(passengerId, 'bag', price);
-                        return (
-                          <Box key={passengerId} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.5 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-                              <Typography variant="caption" sx={{ color: '#666', mr: 1 }}>
-                                {passengerData?.name || `Passenger ${passengerId}`}
-                              </Typography>
-                              {getPaymentMethodIcons(passengerId, 'bag')}
-                            </Box>
-                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                              {paymentStatus.isFullyPaid ? (
-                                <CheckCircleIcon sx={{ fontSize: 16, color: '#4CAF50', mr: 0.5 }} />
-                              ) : paymentStatus.hasNoPaymentMethods ? (
-                                <Tooltip 
-                                  title={`No payment method assigned: $${paymentStatus.remaining.toLocaleString()} remaining`} 
-                                  arrow
-                                >
-                                  <WarningIcon sx={{ fontSize: 16, color: '#FF9800', mr: 0.5, cursor: 'help' }} />
-                                </Tooltip>
-                              ) : paymentStatus.totalPaid > 0 ? (
-                                <Tooltip 
-                                  title={`Incomplete payment: $${paymentStatus.totalPaid.toLocaleString()} paid, $${paymentStatus.remaining.toLocaleString()} remaining`} 
-                                  arrow
-                                >
-                                  <WarningIcon sx={{ fontSize: 16, color: '#FF9800', mr: 0.5, cursor: 'help' }} />
-                                </Tooltip>
-                              ) : null}
-                              <Typography variant="caption" sx={{ 
-                                fontWeight: 600, 
-                                color: paymentStatus.isFullyPaid ? '#48A9A6' : '#1B358F' 
-                              }}>
-                                ${price.toLocaleString()}
-                              </Typography>
-                            </Box>
-                          </Box>
-                        );
-                      })}
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.5, borderTop: '1px solid #E0E0E0', mt: 0.5 }}>
-                      <Typography variant="caption" sx={{ fontWeight: 700, color: '#1B358F' }}>
-                        Total
-                      </Typography>
-                      <Typography variant="caption" sx={{ fontWeight: 700, color: '#1B358F' }}>
-                        ${selectedBags.toLocaleString()}
-                      </Typography>
-                    </Box>
-                  </Box>
-                }
-                secondaryTypographyProps={{ component: 'div' }}
-              />
-            </ListItem>
-          )}
-          
-          {selectedSecondBags > 0 && (
-            <ListItem sx={{ px: 0 }}>
-              <ListItemIcon sx={{ minWidth: 36 }}>
-                <LuggageIcon sx={{ color: '#D4B483' }} />
-              </ListItemIcon>
-              <ListItemText 
-                primary="Second Bag (XBAS)" 
-                secondary={
-                  <Box>
-                    {Object.entries(selectedItems)
-                      .filter(([_, items]) => items.includes('secondBag'))
-                      .map(([passengerId, _]) => {
-                        const passengerIndex = resolvePassengerIndex(passengerId);
-                        const passengerData = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
-                        const price = passengerData?.ancillaries?.secondBag?.price || 0;
-                        const paymentStatus = getPaymentStatus(passengerId, 'secondBag', price);
-                        return (
-                          <Box key={passengerId} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.5 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-                              <Typography variant="caption" sx={{ color: '#666', mr: 1 }}>
-                                {passengerData?.name || `Passenger ${passengerId}`}
-                              </Typography>
-                              {getPaymentMethodIcons(passengerId, 'secondBag')}
-                            </Box>
-                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                              {paymentStatus.isFullyPaid ? (
-                                <CheckCircleIcon sx={{ fontSize: 16, color: '#4CAF50', mr: 0.5 }} />
-                              ) : paymentStatus.hasNoPaymentMethods ? (
-                                <Tooltip 
-                                  title={`No payment method assigned: $${paymentStatus.remaining.toLocaleString()} remaining`} 
-                                  arrow
-                                >
-                                  <WarningIcon sx={{ fontSize: 16, color: '#FF9800', mr: 0.5, cursor: 'help' }} />
-                                </Tooltip>
-                              ) : paymentStatus.totalPaid > 0 ? (
-                                <Tooltip 
-                                  title={`Incomplete payment: $${paymentStatus.totalPaid.toLocaleString()} paid, $${paymentStatus.remaining.toLocaleString()} remaining`} 
-                                  arrow
-                                >
-                                  <WarningIcon sx={{ fontSize: 16, color: '#FF9800', mr: 0.5, cursor: 'help' }} />
-                                </Tooltip>
-                              ) : null}
-                              <Typography variant="caption" sx={{ 
-                                fontWeight: 600, 
-                                color: paymentStatus.isFullyPaid ? '#48A9A6' : '#1B358F' 
-                              }}>
-                                ${price.toLocaleString()}
-                              </Typography>
-                            </Box>
-                          </Box>
-                        );
-                      })}
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.5, borderTop: '1px solid #E0E0E0', mt: 0.5 }}>
-                      <Typography variant="caption" sx={{ fontWeight: 700, color: '#1B358F' }}>
-                        Total
-                      </Typography>
-                      <Typography variant="caption" sx={{ fontWeight: 700, color: '#1B358F' }}>
-                        ${selectedSecondBags.toLocaleString()}
-                      </Typography>
-                    </Box>
-                  </Box>
-                }
-                secondaryTypographyProps={{ component: 'div' }}
-              />
-            </ListItem>
-          )}
-          
-          {selectedThirdBags > 0 && (
-            <ListItem sx={{ px: 0 }}>
-              <ListItemIcon sx={{ minWidth: 36 }}>
-                <LuggageIcon sx={{ color: '#D4B483' }} />
-              </ListItemIcon>
-              <ListItemText 
-                primary="Third Bag (XBAT)" 
-                secondary={
-                  <Box>
-                    {Object.entries(selectedItems)
-                      .filter(([_, items]) => items.includes('thirdBag'))
-                      .map(([passengerId, _]) => {
-                        const passengerIndex = resolvePassengerIndex(passengerId);
-                        const passengerData = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
-                        const price = passengerData?.ancillaries?.thirdBag?.price || 0;
-                        const paymentStatus = getPaymentStatus(passengerId, 'thirdBag', price);
-                        return (
-                          <Box key={passengerId} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.5 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-                              <Typography variant="caption" sx={{ color: '#666', mr: 1 }}>
-                                {passengerData?.name || `Passenger ${passengerId}`}
-                              </Typography>
-                              {getPaymentMethodIcons(passengerId, 'thirdBag')}
-                            </Box>
-                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                              {paymentStatus.isFullyPaid ? (
-                                <CheckCircleIcon sx={{ fontSize: 16, color: '#4CAF50', mr: 0.5 }} />
-                              ) : paymentStatus.hasNoPaymentMethods ? (
-                                <Tooltip 
-                                  title={`No payment method assigned: $${paymentStatus.remaining.toLocaleString()} remaining`} 
-                                  arrow
-                                >
-                                  <WarningIcon sx={{ fontSize: 16, color: '#FF9800', mr: 0.5, cursor: 'help' }} />
-                                </Tooltip>
-                              ) : paymentStatus.totalPaid > 0 ? (
-                                <Tooltip 
-                                  title={`Incomplete payment: $${paymentStatus.totalPaid.toLocaleString()} paid, $${paymentStatus.remaining.toLocaleString()} remaining`} 
-                                  arrow
-                                >
-                                  <WarningIcon sx={{ fontSize: 16, color: '#FF9800', mr: 0.5, cursor: 'help' }} />
-                                </Tooltip>
-                              ) : null}
-                              <Typography variant="caption" sx={{ 
-                                fontWeight: 600, 
-                                color: paymentStatus.isFullyPaid ? '#48A9A6' : '#1B358F' 
-                              }}>
-                                ${price.toLocaleString()}
-                              </Typography>
-                            </Box>
-                          </Box>
-                        );
-                      })}
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.5, borderTop: '1px solid #E0E0E0', mt: 0.5 }}>
-                      <Typography variant="caption" sx={{ fontWeight: 700, color: '#1B358F' }}>
-                        Total
-                      </Typography>
-                      <Typography variant="caption" sx={{ fontWeight: 700, color: '#1B358F' }}>
-                        ${selectedThirdBags.toLocaleString()}
-                      </Typography>
-                    </Box>
-                  </Box>
-                }
-                secondaryTypographyProps={{ component: 'div' }}
-              />
-            </ListItem>
-          )}
-          
-          {selectedUatp > 0 && (
-            <ListItem sx={{ px: 0 }}>
-              <ListItemIcon sx={{ minWidth: 36 }}>
-                <CreditCardIcon sx={{ color: '#48A9A6' }} />
-              </ListItemIcon>
-              <ListItemText 
-                primary="UATP" 
-                secondary={
-                  <Box>
-                    {Object.entries(selectedItems)
-                      .filter(([_, items]) => items.includes('uatp'))
-                      .map(([passengerId, _]) => {
-                        const passengerIndex = resolvePassengerIndex(passengerId);
-                        const passengerData = passengerIndex >= 0 ? reservation.passengers[passengerIndex] : undefined;
-                        const price = passengerData?.ancillaries?.uatp?.price || 0;
-                        const paymentStatus = getPaymentStatus(passengerId, 'uatp', price);
-                        return (
-                          <Box key={passengerId} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.5 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-                              <Typography variant="caption" sx={{ color: '#666', mr: 1 }}>
-                                {passengerData?.name || `Passenger ${passengerId}`}
-                              </Typography>
-                              {getPaymentMethodIcons(passengerId, 'uatp')}
-                            </Box>
-                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                              {paymentStatus.isFullyPaid ? (
-                                <CheckCircleIcon sx={{ fontSize: 16, color: '#4CAF50', mr: 0.5 }} />
-                              ) : paymentStatus.hasNoPaymentMethods ? (
-                                <Tooltip 
-                                  title={`No payment method assigned: $${paymentStatus.remaining.toLocaleString()} remaining`} 
-                                  arrow
-                                >
-                                  <WarningIcon sx={{ fontSize: 16, color: '#FF9800', mr: 0.5, cursor: 'help' }} />
-                                </Tooltip>
-                              ) : paymentStatus.totalPaid > 0 ? (
-                                <Tooltip 
-                                  title={`Incomplete payment: $${paymentStatus.totalPaid.toLocaleString()} paid, $${paymentStatus.remaining.toLocaleString()} remaining`} 
-                                  arrow
-                                >
-                                  <WarningIcon sx={{ fontSize: 16, color: '#FF9800', mr: 0.5, cursor: 'help' }} />
-                                </Tooltip>
-                              ) : null}
-                              <Typography variant="caption" sx={{ 
-                                fontWeight: 600, 
-                                color: paymentStatus.isFullyPaid ? '#48A9A6' : '#1B358F' 
-                              }}>
-                                ${price.toLocaleString()}
-                              </Typography>
-                            </Box>
-                          </Box>
-                        );
-                      })}
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.5, borderTop: '1px solid #E0E0E0', mt: 0.5 }}>
-                      <Typography variant="caption" sx={{ fontWeight: 700, color: '#1B358F' }}>
-                        Total
-                      </Typography>
-                      <Typography variant="caption" sx={{ fontWeight: 700, color: '#1B358F' }}>
-                        ${selectedUatp.toLocaleString()}
-                      </Typography>
-                    </Box>
-                  </Box>
-                }
-                secondaryTypographyProps={{ component: 'div' }}
-              />
-            </ListItem>
-          )}
-          
-          {totalSelected === 0 && (
+            })
+          ) : (
             <ListItem sx={{ px: 0 }}>
               <ListItemIcon sx={{ minWidth: 36 }}>
                 <InfoIcon color="disabled" />
               </ListItemIcon>
               <ListItemText 
-                primary="No items selected" 
+                primary="No passengers selected" 
                 secondary="Select passengers and items to see details"
               />
             </ListItem>

@@ -216,43 +216,100 @@ export function PaymentTabs(props: PaymentTabsProps) {
               case 'bag': 
                 return (
                   <Tooltip title={tooltipTitle} arrow>
-                    <LuggageIcon 
-                      sx={{ 
-                        ...iconProps, 
-                        color,
-                        cursor: (isPaid || !isActiveTab) ? 'default' : 'pointer',
-                        '&:hover': (isPaid || !isActiveTab) ? {} : { opacity: 0.7 }
-                      }} 
-                      onClick={handleIconClick}
-                    />
+                    <Box sx={{ position: 'relative' }}>
+                      <LuggageIcon 
+                        sx={{ 
+                          ...iconProps, 
+                          color,
+                          cursor: (isPaid || !isActiveTab) ? 'default' : 'pointer',
+                          '&:hover': (isPaid || !isActiveTab) ? {} : { opacity: 0.7 }
+                        }} 
+                        onClick={handleIconClick}
+                      />
+                      <Typography variant="caption" sx={{ 
+                        position: 'absolute', 
+                        top: -2, 
+                        right: -2, 
+                        fontSize: '0.6rem', 
+                        fontWeight: 'bold',
+                        color: '#1B358F',
+                        backgroundColor: '#E4DFDA',
+                        borderRadius: '50%',
+                        width: 12,
+                        height: 12,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        1
+                      </Typography>
+                    </Box>
                   </Tooltip>
                 );
               case 'secondBag': 
                 return (
                   <Tooltip title={tooltipTitle} arrow>
-                    <LuggageIcon 
-                      sx={{ 
-                        ...iconProps, 
-                        color,
-                        cursor: (isPaid || !isActiveTab) ? 'default' : 'pointer',
-                        '&:hover': (isPaid || !isActiveTab) ? {} : { opacity: 0.7 }
-                      }} 
-                      onClick={handleIconClick}
-                    />
+                    <Box sx={{ position: 'relative' }}>
+                      <LuggageIcon 
+                        sx={{ 
+                          ...iconProps, 
+                          color,
+                          cursor: (isPaid || !isActiveTab) ? 'default' : 'pointer',
+                          '&:hover': (isPaid || !isActiveTab) ? {} : { opacity: 0.7 }
+                        }} 
+                        onClick={handleIconClick}
+                      />
+                      <Typography variant="caption" sx={{ 
+                        position: 'absolute', 
+                        top: -2, 
+                        right: -2, 
+                        fontSize: '0.6rem', 
+                        fontWeight: 'bold',
+                        color: '#1B358F',
+                        backgroundColor: '#E4DFDA',
+                        borderRadius: '50%',
+                        width: 12,
+                        height: 12,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        2
+                      </Typography>
+                    </Box>
                   </Tooltip>
                 );
               case 'thirdBag': 
                 return (
                   <Tooltip title={tooltipTitle} arrow>
-                    <LuggageIcon 
-                      sx={{ 
-                        ...iconProps, 
-                        color,
-                        cursor: (isPaid || !isActiveTab) ? 'default' : 'pointer',
-                        '&:hover': (isPaid || !isActiveTab) ? {} : { opacity: 0.7 }
-                      }} 
-                      onClick={handleIconClick}
-                    />
+                    <Box sx={{ position: 'relative' }}>
+                      <LuggageIcon 
+                        sx={{ 
+                          ...iconProps, 
+                          color,
+                          cursor: (isPaid || !isActiveTab) ? 'default' : 'pointer',
+                          '&:hover': (isPaid || !isActiveTab) ? {} : { opacity: 0.7 }
+                        }} 
+                        onClick={handleIconClick}
+                      />
+                      <Typography variant="caption" sx={{ 
+                        position: 'absolute', 
+                        top: -2, 
+                        right: -2, 
+                        fontSize: '0.6rem', 
+                        fontWeight: 'bold',
+                        color: '#1B358F',
+                        backgroundColor: '#E4DFDA',
+                        borderRadius: '50%',
+                        width: 12,
+                        height: 12,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        3
+                      </Typography>
+                    </Box>
                   </Tooltip>
                 );
               case 'uatp': 
@@ -473,25 +530,62 @@ export function PaymentTabs(props: PaymentTabsProps) {
                 title = 'Flight Ticket';
                 price = p.ticket.price;
                 color = '#48A9A6';
-                icon = <FlightIcon sx={{ fontSize: 18, mr: 1 }} />;
+                icon = <FlightIcon sx={{ fontSize: 28, mr: 1 }} />;
               } else if (itemType === 'seat') {
                 title = `Seat (${p.ancillaries.seat.seatNumber || 'N/A'})`;
                 price = p.ancillaries.seat.price;
                 color = '#48A9A6';
-                icon = <EventSeatIcon sx={{ fontSize: 18, mr: 1 }} />;
+                icon = <EventSeatIcon sx={{ fontSize: 28, mr: 1 }} />;
               } else if (itemType === 'bag') {
                 title = 'Baggage (XBAF)';
                 price = p.ancillaries.bag.price;
                 color = '#48A9A6';
-                icon = <LuggageIcon sx={{ fontSize: 18, mr: 1 }} />;
+                icon = (
+                  <Box sx={{ display: 'flex', alignItems: 'center', position: 'relative', mr: 1 }}>
+                    <LuggageIcon sx={{ fontSize: 28 }} />
+                    <Typography variant="caption" sx={{ 
+                      position: 'absolute', 
+                      top: -4, 
+                      right: -4, 
+                      fontSize: '0.8rem', 
+                      fontWeight: 'bold',
+                      color: '#1B358F',
+                      backgroundColor: '#E4DFDA',
+                      borderRadius: '50%',
+                      width: 16,
+                      height: 16,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      1
+                    </Typography>
+                  </Box>
+                );
               } else if (itemType === 'secondBag') {
                 title = 'Second Bag (XBAS)';
                 price = p.ancillaries.secondBag?.price || 0;
                 color = '#48A9A6';
                 icon = (
-                  <Box sx={{ display: 'flex', alignItems: 'center', mr: 1 }}>
-                    <LuggageIcon sx={{ fontSize: 18 }} />
-                    <LuggageIcon sx={{ fontSize: 18, ml: -0.5 }} />
+                  <Box sx={{ display: 'flex', alignItems: 'center', position: 'relative', mr: 1 }}>
+                    <LuggageIcon sx={{ fontSize: 28 }} />
+                    <Typography variant="caption" sx={{ 
+                      position: 'absolute', 
+                      top: -4, 
+                      right: -4, 
+                      fontSize: '0.8rem', 
+                      fontWeight: 'bold',
+                      color: '#1B358F',
+                      backgroundColor: '#E4DFDA',
+                      borderRadius: '50%',
+                      width: 16,
+                      height: 16,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      2
+                    </Typography>
                   </Box>
                 );
               } else if (itemType === 'thirdBag') {
@@ -499,17 +593,32 @@ export function PaymentTabs(props: PaymentTabsProps) {
                 price = p.ancillaries.thirdBag?.price || 0;
                 color = '#48A9A6';
                 icon = (
-                  <Box sx={{ display: 'flex', alignItems: 'center', mr: 1 }}>
-                    <LuggageIcon sx={{ fontSize: 18 }} />
-                    <LuggageIcon sx={{ fontSize: 18, ml: -0.5 }} />
-                    <LuggageIcon sx={{ fontSize: 18, ml: -0.5 }} />
+                  <Box sx={{ display: 'flex', alignItems: 'center', position: 'relative', mr: 1 }}>
+                    <LuggageIcon sx={{ fontSize: 28 }} />
+                    <Typography variant="caption" sx={{ 
+                      position: 'absolute', 
+                      top: -4, 
+                      right: -4, 
+                      fontSize: '0.8rem', 
+                      fontWeight: 'bold',
+                      color: '#1B358F',
+                      backgroundColor: '#E4DFDA',
+                      borderRadius: '50%',
+                      width: 16,
+                      height: 16,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      3
+                    </Typography>
                   </Box>
                 );
               } else if (itemType === 'uatp') {
                 title = 'UATP';
                 price = p.ancillaries.uatp?.price || 0;
                 color = '#48A9A6';
-                icon = <CreditCardIcon sx={{ fontSize: 18, mr: 1 }} />;
+                icon = <CreditCardIcon sx={{ fontSize: 28, mr: 1 }} />;
               }
 
               const itemKey = `${tabsValue}-${itemType}`;
